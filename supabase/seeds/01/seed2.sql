@@ -1,0 +1,1 @@
+-- I depend on tables defined in 00/seed1.sql, so I need to be seeded after it.
