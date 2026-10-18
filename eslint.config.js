@@ -72,6 +72,16 @@ export default [
     },
   },
   {
+    // Route options must follow @tanstack/router/create-route-property-order
+    // (validateSearch → loaderDeps → beforeLoad → loader → head) for type
+    // inference, which conflicts with alphabetical sort-keys. shadcn-generated
+    // ui components keep upstream ordering so they can be re-pulled cleanly.
+    files: ['src/routes/**/*.{ts,tsx}', 'src/components/ui/**/*.tsx'],
+    rules: {
+      "sort-keys": 'off',
+    },
+  },
+  {
     ignores: ['.sandcastle/*.ts', 'eslint.config.js', 'prettier.config.js', 'src/paraglide/*', 'supabase-selfhosted', 'public', 'src/supabase/database.types.ts'],
   },
 ]

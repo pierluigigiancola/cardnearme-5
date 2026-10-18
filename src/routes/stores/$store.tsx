@@ -1,0 +1,204 @@
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { Link, createFileRoute, notFound } from '@tanstack/react-router'
+import { ExternalLink, MapPin, Users } from 'lucide-react'
+import { toast } from 'sonner'
+
+import { useRequireAuth } from '#/auth/AuthGate'
+import { tradeResultLimit } from '#/auth/limits'
+import { useViewer } from '#/auth/useViewer'
+import { PageHeader, Section } from '#/components/layout/PageHeader'
+import { StoreMap } from '#/components/places/Places'
+import { HeadStartSteps, ShareButton, UnlockProgress } from '#/components/trading/Promos'
+import { TradeItems } from '#/components/trading/TradeItems'
+import { Button } from '#/components/ui/button'
+import { cityQuery, storeQuery, tradeItemsQuery } from '#/services/queries'
+
+const PREVIEW = 8
+
+export const Route = createFileRoute('/stores/$store')({
+  loader: async ({ context: { queryClient, viewer }, params }) => {
+    const store = await queryClient.ensureQueryData(storeQuery(params.store))
+    if (!store) throw notFound()
+    const city = await queryClient.ensureQueryData(cityQuery(store.citySlug))
+    if (!city) throw notFound()
+    const limit = Math.min(PREVIEW, tradeResultLimit(viewer) ?? PREVIEW)
+    await Promise.all([
+      queryClient.ensureQueryData(tradeItemsQuery({
+        limit,
+        listType: 'haves',
+        storeSlug: store.slug,
+      })),
+      queryClient.ensureQueryData(tradeItemsQuery({
+        limit,
+        listType: 'wants',
+        storeSlug: store.slug,
+      })),
+    ])
+    return {
+      city,
+      store,
+    }
+  },
+  head: ({ loaderData }) => ({ meta: [{ title: loaderData ? `${loaderData.store.name} | CardNearMe` : 'Store | CardNearMe' }] }),
+  component: StorePage,
+})
+
+function StorePage() {
+  const { city, store } = Route.useLoaderData()
+  const viewer = useViewer()
+  const requireAuth = useRequireAuth()
+  const limit = Math.min(PREVIEW, tradeResultLimit(viewer) ?? PREVIEW)
+  const { data: haves } = useSuspenseQuery(tradeItemsQuery({
+    limit,
+    listType: 'haves',
+    storeSlug: store.slug,
+  }))
+  const { data: wants } = useSuspenseQuery(tradeItemsQuery({
+    limit,
+    listType: 'wants',
+    storeSlug: store.slug,
+  }))
+  const unlocked = city.traderCount >= city.unlockThreshold
+
+  return (
+    <div className="page-wrap">
+      <PageHeader
+        actions={(
+          <>
+            <ShareButton label="Copy link" />
+
+            <Button
+              onClick={() => requireAuth('joinStore', () => toast.success(`Joined ${store.name}`))}
+            >
+              <Users />
+              Join store
+            </Button>
+          </>
+        )}
+        crumbs={[{
+          href: '/stores',
+          label: 'Stores',
+        }, { label: store.name }]}
+        description={`Browse available cards and find trading opportunities at ${store.name}`}
+        title={store.name}
+      />
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div>
+          {unlocked
+            ? (
+              <>
+                <Section
+                  action={(
+                    <Link
+                      className="text-sm font-semibold text-primary"
+                      params={{ city: city.slug }}
+                      to="/city/$city/haves"
+                    >
+                      View all
+                      {' '}
+
+                      {haves.total}
+
+                      {' →'}
+                    </Link>
+                  )}
+                  description="Cards available for trade at this store"
+                  title="Haves"
+                >
+                  <TradeItems
+                    items={haves.items}
+                    view="visual"
+                  />
+                </Section>
+
+                <Section
+                  action={(
+                    <Link
+                      className="text-sm font-semibold text-primary"
+                      params={{ city: city.slug }}
+                      to="/city/$city/wants"
+                    >
+                      View all
+                      {' '}
+
+                      {wants.total}
+
+                      {' →'}
+                    </Link>
+                  )}
+                  description="Cards players are looking for at this store"
+                  title="Wants"
+                >
+                  <TradeItems
+                    items={wants.items}
+                    view="visual"
+                  />
+                </Section>
+              </>
+            )
+            : (
+              <div className="space-y-6">
+                <UnlockProgress city={city} />
+
+                <HeadStartSteps />
+              </div>
+            )}
+        </div>
+
+        <aside className="space-y-4">
+          <StoreMap stores={[store]} />
+
+          <div className="space-y-3 rounded-xl border bg-card p-4 text-sm">
+            <Link
+              className="flex items-center gap-2 font-semibold text-primary"
+              params={{ city: city.slug }}
+              to="/city/$city"
+            >
+              <MapPin className="size-4" />
+
+              {city.name}
+
+              {' trading'}
+            </Link>
+
+            <p className="text-muted-foreground">{store.address}</p>
+
+            {store.website && (
+              <a
+                className="flex items-center gap-1 text-primary"
+                href={store.website}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <ExternalLink className="size-3" />
+                Website
+              </a>
+            )}
+
+            <p className="flex items-center gap-1 text-muted-foreground">
+              <Users className="size-3" />
+
+              {store.traderCount}
+
+              {' traders'}
+            </p>
+          </div>
+
+          <div className="rounded-xl border bg-card p-4 text-sm">
+            <p className="font-semibold">Is this your store?</p>
+
+            <p className="text-muted-foreground">Claim this page to manage your listing and connect with traders.</p>
+
+            <Link
+              className="mt-2 inline-block font-semibold text-primary"
+              to="/contact"
+            >
+              Claim page →
+            </Link>
+          </div>
+        </aside>
+      </div>
+    </div>
+  )
+}

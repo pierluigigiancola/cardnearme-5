@@ -10,33 +10,541 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as ChangelogRouteImport } from './routes/changelog'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as FindCardsRouteImport } from './routes/find-cards'
+import { Route as HelpRouteRouteImport } from './routes/help/route'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ScannerRouteImport } from './routes/scanner'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as SignUpRouteImport } from './routes/sign-up'
+import { Route as SwapCalculatorRouteImport } from './routes/swap-calculator'
+import { Route as XRouteRouteImport } from './routes/x/route'
+import { Route as CityIndexRouteImport } from './routes/city/index'
+import { Route as DecksIndexRouteImport } from './routes/decks/index'
+import { Route as HelpIndexRouteImport } from './routes/help/index'
+import { Route as HelpTopicRouteImport } from './routes/help/$topic'
+import { Route as SetsIndexRouteImport } from './routes/sets/index'
+import { Route as StoresIndexRouteImport } from './routes/stores/index'
+import { Route as StoresStoreRouteImport } from './routes/stores/$store'
+import { Route as UsersUsernameRouteImport } from './routes/users/$username'
+import { Route as XIndexRouteImport } from './routes/x/index'
+import { Route as XDecksRouteImport } from './routes/x/decks'
+import { Route as XInboxRouteImport } from './routes/x/inbox'
+import { Route as XListsRouteImport } from './routes/x/lists'
+import { Route as XNotificationsRouteImport } from './routes/x/notifications'
+import { Route as XOnboardingRouteImport } from './routes/x/onboarding'
+import { Route as XSettingsRouteImport } from './routes/x/settings'
+import { Route as XStoresRouteImport } from './routes/x/stores'
+import { Route as CityCityIndexRouteImport } from './routes/city/$city/index'
+import { Route as CityCityHavesRouteImport } from './routes/city/$city/haves'
+import { Route as CityCityMatchedRouteImport } from './routes/city/$city/matched'
+import { Route as CityCityWantsRouteImport } from './routes/city/$city/wants'
+import { Route as DecksGameIndexRouteImport } from './routes/decks/$game/index'
+import { Route as SetsGameIndexRouteImport } from './routes/sets/$game/index'
+import { Route as XBinderIndexRouteImport } from './routes/x/binder/index'
+import { Route as XBinderImportRouteImport } from './routes/x/binder/import'
+import { Route as DecksGameFormatIndexRouteImport } from './routes/decks/$game/$format/index'
+import { Route as DecksGameFormatDeckIdRouteImport } from './routes/decks/$game/$format/$deckId'
+import { Route as SetsGameSetIndexRouteImport } from './routes/sets/$game/$set/index'
+import { Route as SetsGameSetSealedRouteImport } from './routes/sets/$game/$set/sealed'
+import { Route as SetsGameSetCardNumberRouteImport } from './routes/sets/$game/$set/$card/$number'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChangelogRoute = ChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FindCardsRoute = FindCardsRouteImport.update({
+  id: '/find-cards',
+  path: '/find-cards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRouteRoute = HelpRouteRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScannerRoute = ScannerRouteImport.update({
+  id: '/scanner',
+  path: '/scanner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignUpRoute = SignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SwapCalculatorRoute = SwapCalculatorRouteImport.update({
+  id: '/swap-calculator',
+  path: '/swap-calculator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const XRouteRoute = XRouteRouteImport.update({
+  id: '/x',
+  path: '/x',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CityIndexRoute = CityIndexRouteImport.update({
+  id: '/city/',
+  path: '/city/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DecksIndexRoute = DecksIndexRouteImport.update({
+  id: '/decks/',
+  path: '/decks/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpIndexRoute = HelpIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => HelpRouteRoute,
+} as any)
+const HelpTopicRoute = HelpTopicRouteImport.update({
+  id: '/$topic',
+  path: '/$topic',
+  getParentRoute: () => HelpRouteRoute,
+} as any)
+const SetsIndexRoute = SetsIndexRouteImport.update({
+  id: '/sets/',
+  path: '/sets/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StoresIndexRoute = StoresIndexRouteImport.update({
+  id: '/stores/',
+  path: '/stores/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StoresStoreRoute = StoresStoreRouteImport.update({
+  id: '/stores/$store',
+  path: '/stores/$store',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsersUsernameRoute = UsersUsernameRouteImport.update({
+  id: '/users/$username',
+  path: '/users/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const XIndexRoute = XIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => XRouteRoute,
+} as any)
+const XDecksRoute = XDecksRouteImport.update({
+  id: '/decks',
+  path: '/decks',
+  getParentRoute: () => XRouteRoute,
+} as any)
+const XInboxRoute = XInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => XRouteRoute,
+} as any)
+const XListsRoute = XListsRouteImport.update({
+  id: '/lists',
+  path: '/lists',
+  getParentRoute: () => XRouteRoute,
+} as any)
+const XNotificationsRoute = XNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => XRouteRoute,
+} as any)
+const XOnboardingRoute = XOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => XRouteRoute,
+} as any)
+const XSettingsRoute = XSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => XRouteRoute,
+} as any)
+const XStoresRoute = XStoresRouteImport.update({
+  id: '/stores',
+  path: '/stores',
+  getParentRoute: () => XRouteRoute,
+} as any)
+const CityCityIndexRoute = CityCityIndexRouteImport.update({
+  id: '/city/$city/',
+  path: '/city/$city/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CityCityHavesRoute = CityCityHavesRouteImport.update({
+  id: '/city/$city/haves',
+  path: '/city/$city/haves',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CityCityMatchedRoute = CityCityMatchedRouteImport.update({
+  id: '/city/$city/matched',
+  path: '/city/$city/matched',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CityCityWantsRoute = CityCityWantsRouteImport.update({
+  id: '/city/$city/wants',
+  path: '/city/$city/wants',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DecksGameIndexRoute = DecksGameIndexRouteImport.update({
+  id: '/decks/$game/',
+  path: '/decks/$game/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetsGameIndexRoute = SetsGameIndexRouteImport.update({
+  id: '/sets/$game/',
+  path: '/sets/$game/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const XBinderIndexRoute = XBinderIndexRouteImport.update({
+  id: '/binder/',
+  path: '/binder/',
+  getParentRoute: () => XRouteRoute,
+} as any)
+const XBinderImportRoute = XBinderImportRouteImport.update({
+  id: '/binder/import',
+  path: '/binder/import',
+  getParentRoute: () => XRouteRoute,
+} as any)
+const DecksGameFormatIndexRoute = DecksGameFormatIndexRouteImport.update({
+  id: '/decks/$game/$format/',
+  path: '/decks/$game/$format/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DecksGameFormatDeckIdRoute = DecksGameFormatDeckIdRouteImport.update({
+  id: '/decks/$game/$format/$deckId',
+  path: '/decks/$game/$format/$deckId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetsGameSetIndexRoute = SetsGameSetIndexRouteImport.update({
+  id: '/sets/$game/$set/',
+  path: '/sets/$game/$set/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetsGameSetSealedRoute = SetsGameSetSealedRouteImport.update({
+  id: '/sets/$game/$set/sealed',
+  path: '/sets/$game/$set/sealed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetsGameSetCardNumberRoute = SetsGameSetCardNumberRouteImport.update({
+  id: '/sets/$game/$set/$card/$number',
+  path: '/sets/$game/$set/$card/$number',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/help': typeof HelpRouteRouteWithChildren
+  '/x': typeof XRouteRouteWithChildren
+  '/about': typeof AboutRoute
+  '/changelog': typeof ChangelogRoute
+  '/contact': typeof ContactRoute
+  '/find-cards': typeof FindCardsRoute
+  '/privacy': typeof PrivacyRoute
+  '/scanner': typeof ScannerRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
+  '/swap-calculator': typeof SwapCalculatorRoute
+  '/help/$topic': typeof HelpTopicRoute
+  '/stores/$store': typeof StoresStoreRoute
+  '/users/$username': typeof UsersUsernameRoute
+  '/x/decks': typeof XDecksRoute
+  '/x/inbox': typeof XInboxRoute
+  '/x/lists': typeof XListsRoute
+  '/x/notifications': typeof XNotificationsRoute
+  '/x/onboarding': typeof XOnboardingRoute
+  '/x/settings': typeof XSettingsRoute
+  '/x/stores': typeof XStoresRoute
+  '/city/': typeof CityIndexRoute
+  '/decks/': typeof DecksIndexRoute
+  '/help/': typeof HelpIndexRoute
+  '/sets/': typeof SetsIndexRoute
+  '/stores/': typeof StoresIndexRoute
+  '/x/': typeof XIndexRoute
+  '/city/$city/haves': typeof CityCityHavesRoute
+  '/city/$city/matched': typeof CityCityMatchedRoute
+  '/city/$city/wants': typeof CityCityWantsRoute
+  '/x/binder/import': typeof XBinderImportRoute
+  '/city/$city/': typeof CityCityIndexRoute
+  '/decks/$game/': typeof DecksGameIndexRoute
+  '/sets/$game/': typeof SetsGameIndexRoute
+  '/x/binder/': typeof XBinderIndexRoute
+  '/decks/$game/$format/$deckId': typeof DecksGameFormatDeckIdRoute
+  '/sets/$game/$set/sealed': typeof SetsGameSetSealedRoute
+  '/decks/$game/$format/': typeof DecksGameFormatIndexRoute
+  '/sets/$game/$set/': typeof SetsGameSetIndexRoute
+  '/sets/$game/$set/$card/$number': typeof SetsGameSetCardNumberRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/changelog': typeof ChangelogRoute
+  '/contact': typeof ContactRoute
+  '/find-cards': typeof FindCardsRoute
+  '/privacy': typeof PrivacyRoute
+  '/scanner': typeof ScannerRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
+  '/swap-calculator': typeof SwapCalculatorRoute
+  '/help/$topic': typeof HelpTopicRoute
+  '/stores/$store': typeof StoresStoreRoute
+  '/users/$username': typeof UsersUsernameRoute
+  '/x/decks': typeof XDecksRoute
+  '/x/inbox': typeof XInboxRoute
+  '/x/lists': typeof XListsRoute
+  '/x/notifications': typeof XNotificationsRoute
+  '/x/onboarding': typeof XOnboardingRoute
+  '/x/settings': typeof XSettingsRoute
+  '/x/stores': typeof XStoresRoute
+  '/city': typeof CityIndexRoute
+  '/decks': typeof DecksIndexRoute
+  '/help': typeof HelpIndexRoute
+  '/sets': typeof SetsIndexRoute
+  '/stores': typeof StoresIndexRoute
+  '/x': typeof XIndexRoute
+  '/city/$city/haves': typeof CityCityHavesRoute
+  '/city/$city/matched': typeof CityCityMatchedRoute
+  '/city/$city/wants': typeof CityCityWantsRoute
+  '/x/binder/import': typeof XBinderImportRoute
+  '/city/$city': typeof CityCityIndexRoute
+  '/decks/$game': typeof DecksGameIndexRoute
+  '/sets/$game': typeof SetsGameIndexRoute
+  '/x/binder': typeof XBinderIndexRoute
+  '/decks/$game/$format/$deckId': typeof DecksGameFormatDeckIdRoute
+  '/sets/$game/$set/sealed': typeof SetsGameSetSealedRoute
+  '/decks/$game/$format': typeof DecksGameFormatIndexRoute
+  '/sets/$game/$set': typeof SetsGameSetIndexRoute
+  '/sets/$game/$set/$card/$number': typeof SetsGameSetCardNumberRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/help': typeof HelpRouteRouteWithChildren
+  '/x': typeof XRouteRouteWithChildren
+  '/about': typeof AboutRoute
+  '/changelog': typeof ChangelogRoute
+  '/contact': typeof ContactRoute
+  '/find-cards': typeof FindCardsRoute
+  '/privacy': typeof PrivacyRoute
+  '/scanner': typeof ScannerRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
+  '/swap-calculator': typeof SwapCalculatorRoute
+  '/help/$topic': typeof HelpTopicRoute
+  '/stores/$store': typeof StoresStoreRoute
+  '/users/$username': typeof UsersUsernameRoute
+  '/x/decks': typeof XDecksRoute
+  '/x/inbox': typeof XInboxRoute
+  '/x/lists': typeof XListsRoute
+  '/x/notifications': typeof XNotificationsRoute
+  '/x/onboarding': typeof XOnboardingRoute
+  '/x/settings': typeof XSettingsRoute
+  '/x/stores': typeof XStoresRoute
+  '/city/': typeof CityIndexRoute
+  '/decks/': typeof DecksIndexRoute
+  '/help/': typeof HelpIndexRoute
+  '/sets/': typeof SetsIndexRoute
+  '/stores/': typeof StoresIndexRoute
+  '/x/': typeof XIndexRoute
+  '/city/$city/haves': typeof CityCityHavesRoute
+  '/city/$city/matched': typeof CityCityMatchedRoute
+  '/city/$city/wants': typeof CityCityWantsRoute
+  '/x/binder/import': typeof XBinderImportRoute
+  '/city/$city/': typeof CityCityIndexRoute
+  '/decks/$game/': typeof DecksGameIndexRoute
+  '/sets/$game/': typeof SetsGameIndexRoute
+  '/x/binder/': typeof XBinderIndexRoute
+  '/decks/$game/$format/$deckId': typeof DecksGameFormatDeckIdRoute
+  '/sets/$game/$set/sealed': typeof SetsGameSetSealedRoute
+  '/decks/$game/$format/': typeof DecksGameFormatIndexRoute
+  '/sets/$game/$set/': typeof SetsGameSetIndexRoute
+  '/sets/$game/$set/$card/$number': typeof SetsGameSetCardNumberRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/help'
+    | '/x'
+    | '/about'
+    | '/changelog'
+    | '/contact'
+    | '/find-cards'
+    | '/privacy'
+    | '/scanner'
+    | '/sign-in'
+    | '/sign-up'
+    | '/swap-calculator'
+    | '/help/$topic'
+    | '/stores/$store'
+    | '/users/$username'
+    | '/x/decks'
+    | '/x/inbox'
+    | '/x/lists'
+    | '/x/notifications'
+    | '/x/onboarding'
+    | '/x/settings'
+    | '/x/stores'
+    | '/city/'
+    | '/decks/'
+    | '/help/'
+    | '/sets/'
+    | '/stores/'
+    | '/x/'
+    | '/city/$city/haves'
+    | '/city/$city/matched'
+    | '/city/$city/wants'
+    | '/x/binder/import'
+    | '/city/$city/'
+    | '/decks/$game/'
+    | '/sets/$game/'
+    | '/x/binder/'
+    | '/decks/$game/$format/$deckId'
+    | '/sets/$game/$set/sealed'
+    | '/decks/$game/$format/'
+    | '/sets/$game/$set/'
+    | '/sets/$game/$set/$card/$number'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/about'
+    | '/changelog'
+    | '/contact'
+    | '/find-cards'
+    | '/privacy'
+    | '/scanner'
+    | '/sign-in'
+    | '/sign-up'
+    | '/swap-calculator'
+    | '/help/$topic'
+    | '/stores/$store'
+    | '/users/$username'
+    | '/x/decks'
+    | '/x/inbox'
+    | '/x/lists'
+    | '/x/notifications'
+    | '/x/onboarding'
+    | '/x/settings'
+    | '/x/stores'
+    | '/city'
+    | '/decks'
+    | '/help'
+    | '/sets'
+    | '/stores'
+    | '/x'
+    | '/city/$city/haves'
+    | '/city/$city/matched'
+    | '/city/$city/wants'
+    | '/x/binder/import'
+    | '/city/$city'
+    | '/decks/$game'
+    | '/sets/$game'
+    | '/x/binder'
+    | '/decks/$game/$format/$deckId'
+    | '/sets/$game/$set/sealed'
+    | '/decks/$game/$format'
+    | '/sets/$game/$set'
+    | '/sets/$game/$set/$card/$number'
+  id:
+    | '__root__'
+    | '/'
+    | '/help'
+    | '/x'
+    | '/about'
+    | '/changelog'
+    | '/contact'
+    | '/find-cards'
+    | '/privacy'
+    | '/scanner'
+    | '/sign-in'
+    | '/sign-up'
+    | '/swap-calculator'
+    | '/help/$topic'
+    | '/stores/$store'
+    | '/users/$username'
+    | '/x/decks'
+    | '/x/inbox'
+    | '/x/lists'
+    | '/x/notifications'
+    | '/x/onboarding'
+    | '/x/settings'
+    | '/x/stores'
+    | '/city/'
+    | '/decks/'
+    | '/help/'
+    | '/sets/'
+    | '/stores/'
+    | '/x/'
+    | '/city/$city/haves'
+    | '/city/$city/matched'
+    | '/city/$city/wants'
+    | '/x/binder/import'
+    | '/city/$city/'
+    | '/decks/$game/'
+    | '/sets/$game/'
+    | '/x/binder/'
+    | '/decks/$game/$format/$deckId'
+    | '/sets/$game/$set/sealed'
+    | '/decks/$game/$format/'
+    | '/sets/$game/$set/'
+    | '/sets/$game/$set/$card/$number'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  HelpRouteRoute: typeof HelpRouteRouteWithChildren
+  XRouteRoute: typeof XRouteRouteWithChildren
+  AboutRoute: typeof AboutRoute
+  ChangelogRoute: typeof ChangelogRoute
+  ContactRoute: typeof ContactRoute
+  FindCardsRoute: typeof FindCardsRoute
+  PrivacyRoute: typeof PrivacyRoute
+  ScannerRoute: typeof ScannerRoute
+  SignInRoute: typeof SignInRoute
+  SignUpRoute: typeof SignUpRoute
+  SwapCalculatorRoute: typeof SwapCalculatorRoute
+  StoresStoreRoute: typeof StoresStoreRoute
+  UsersUsernameRoute: typeof UsersUsernameRoute
+  CityIndexRoute: typeof CityIndexRoute
+  DecksIndexRoute: typeof DecksIndexRoute
+  SetsIndexRoute: typeof SetsIndexRoute
+  StoresIndexRoute: typeof StoresIndexRoute
+  CityCityHavesRoute: typeof CityCityHavesRoute
+  CityCityMatchedRoute: typeof CityCityMatchedRoute
+  CityCityWantsRoute: typeof CityCityWantsRoute
+  CityCityIndexRoute: typeof CityCityIndexRoute
+  DecksGameIndexRoute: typeof DecksGameIndexRoute
+  SetsGameIndexRoute: typeof SetsGameIndexRoute
+  DecksGameFormatDeckIdRoute: typeof DecksGameFormatDeckIdRoute
+  SetsGameSetSealedRoute: typeof SetsGameSetSealedRoute
+  DecksGameFormatIndexRoute: typeof DecksGameFormatIndexRoute
+  SetsGameSetIndexRoute: typeof SetsGameSetIndexRoute
+  SetsGameSetCardNumberRoute: typeof SetsGameSetCardNumberRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,12 +556,372 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/changelog': {
+      id: '/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof ChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/find-cards': {
+      id: '/find-cards'
+      path: '/find-cards'
+      fullPath: '/find-cards'
+      preLoaderRoute: typeof FindCardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/scanner': {
+      id: '/scanner'
+      path: '/scanner'
+      fullPath: '/scanner'
+      preLoaderRoute: typeof ScannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-up': {
+      id: '/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof SignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/swap-calculator': {
+      id: '/swap-calculator'
+      path: '/swap-calculator'
+      fullPath: '/swap-calculator'
+      preLoaderRoute: typeof SwapCalculatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/x': {
+      id: '/x'
+      path: '/x'
+      fullPath: '/x'
+      preLoaderRoute: typeof XRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/city/': {
+      id: '/city/'
+      path: '/city'
+      fullPath: '/city/'
+      preLoaderRoute: typeof CityIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/decks/': {
+      id: '/decks/'
+      path: '/decks'
+      fullPath: '/decks/'
+      preLoaderRoute: typeof DecksIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help/': {
+      id: '/help/'
+      path: '/'
+      fullPath: '/help/'
+      preLoaderRoute: typeof HelpIndexRouteImport
+      parentRoute: typeof HelpRouteRoute
+    }
+    '/help/$topic': {
+      id: '/help/$topic'
+      path: '/$topic'
+      fullPath: '/help/$topic'
+      preLoaderRoute: typeof HelpTopicRouteImport
+      parentRoute: typeof HelpRouteRoute
+    }
+    '/sets/': {
+      id: '/sets/'
+      path: '/sets'
+      fullPath: '/sets/'
+      preLoaderRoute: typeof SetsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stores/': {
+      id: '/stores/'
+      path: '/stores'
+      fullPath: '/stores/'
+      preLoaderRoute: typeof StoresIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stores/$store': {
+      id: '/stores/$store'
+      path: '/stores/$store'
+      fullPath: '/stores/$store'
+      preLoaderRoute: typeof StoresStoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/users/$username': {
+      id: '/users/$username'
+      path: '/users/$username'
+      fullPath: '/users/$username'
+      preLoaderRoute: typeof UsersUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/x/': {
+      id: '/x/'
+      path: '/'
+      fullPath: '/x/'
+      preLoaderRoute: typeof XIndexRouteImport
+      parentRoute: typeof XRouteRoute
+    }
+    '/x/decks': {
+      id: '/x/decks'
+      path: '/decks'
+      fullPath: '/x/decks'
+      preLoaderRoute: typeof XDecksRouteImport
+      parentRoute: typeof XRouteRoute
+    }
+    '/x/inbox': {
+      id: '/x/inbox'
+      path: '/inbox'
+      fullPath: '/x/inbox'
+      preLoaderRoute: typeof XInboxRouteImport
+      parentRoute: typeof XRouteRoute
+    }
+    '/x/lists': {
+      id: '/x/lists'
+      path: '/lists'
+      fullPath: '/x/lists'
+      preLoaderRoute: typeof XListsRouteImport
+      parentRoute: typeof XRouteRoute
+    }
+    '/x/notifications': {
+      id: '/x/notifications'
+      path: '/notifications'
+      fullPath: '/x/notifications'
+      preLoaderRoute: typeof XNotificationsRouteImport
+      parentRoute: typeof XRouteRoute
+    }
+    '/x/onboarding': {
+      id: '/x/onboarding'
+      path: '/onboarding'
+      fullPath: '/x/onboarding'
+      preLoaderRoute: typeof XOnboardingRouteImport
+      parentRoute: typeof XRouteRoute
+    }
+    '/x/settings': {
+      id: '/x/settings'
+      path: '/settings'
+      fullPath: '/x/settings'
+      preLoaderRoute: typeof XSettingsRouteImport
+      parentRoute: typeof XRouteRoute
+    }
+    '/x/stores': {
+      id: '/x/stores'
+      path: '/stores'
+      fullPath: '/x/stores'
+      preLoaderRoute: typeof XStoresRouteImport
+      parentRoute: typeof XRouteRoute
+    }
+    '/city/$city/': {
+      id: '/city/$city/'
+      path: '/city/$city'
+      fullPath: '/city/$city/'
+      preLoaderRoute: typeof CityCityIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/city/$city/haves': {
+      id: '/city/$city/haves'
+      path: '/city/$city/haves'
+      fullPath: '/city/$city/haves'
+      preLoaderRoute: typeof CityCityHavesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/city/$city/matched': {
+      id: '/city/$city/matched'
+      path: '/city/$city/matched'
+      fullPath: '/city/$city/matched'
+      preLoaderRoute: typeof CityCityMatchedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/city/$city/wants': {
+      id: '/city/$city/wants'
+      path: '/city/$city/wants'
+      fullPath: '/city/$city/wants'
+      preLoaderRoute: typeof CityCityWantsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/decks/$game/': {
+      id: '/decks/$game/'
+      path: '/decks/$game'
+      fullPath: '/decks/$game/'
+      preLoaderRoute: typeof DecksGameIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sets/$game/': {
+      id: '/sets/$game/'
+      path: '/sets/$game'
+      fullPath: '/sets/$game/'
+      preLoaderRoute: typeof SetsGameIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/x/binder/': {
+      id: '/x/binder/'
+      path: '/binder'
+      fullPath: '/x/binder/'
+      preLoaderRoute: typeof XBinderIndexRouteImport
+      parentRoute: typeof XRouteRoute
+    }
+    '/x/binder/import': {
+      id: '/x/binder/import'
+      path: '/binder/import'
+      fullPath: '/x/binder/import'
+      preLoaderRoute: typeof XBinderImportRouteImport
+      parentRoute: typeof XRouteRoute
+    }
+    '/decks/$game/$format/': {
+      id: '/decks/$game/$format/'
+      path: '/decks/$game/$format'
+      fullPath: '/decks/$game/$format/'
+      preLoaderRoute: typeof DecksGameFormatIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/decks/$game/$format/$deckId': {
+      id: '/decks/$game/$format/$deckId'
+      path: '/decks/$game/$format/$deckId'
+      fullPath: '/decks/$game/$format/$deckId'
+      preLoaderRoute: typeof DecksGameFormatDeckIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sets/$game/$set/': {
+      id: '/sets/$game/$set/'
+      path: '/sets/$game/$set'
+      fullPath: '/sets/$game/$set/'
+      preLoaderRoute: typeof SetsGameSetIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sets/$game/$set/sealed': {
+      id: '/sets/$game/$set/sealed'
+      path: '/sets/$game/$set/sealed'
+      fullPath: '/sets/$game/$set/sealed'
+      preLoaderRoute: typeof SetsGameSetSealedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sets/$game/$set/$card/$number': {
+      id: '/sets/$game/$set/$card/$number'
+      path: '/sets/$game/$set/$card/$number'
+      fullPath: '/sets/$game/$set/$card/$number'
+      preLoaderRoute: typeof SetsGameSetCardNumberRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface HelpRouteRouteChildren {
+  HelpTopicRoute: typeof HelpTopicRoute
+  HelpIndexRoute: typeof HelpIndexRoute
+}
+
+const HelpRouteRouteChildren: HelpRouteRouteChildren = {
+  HelpTopicRoute: HelpTopicRoute,
+  HelpIndexRoute: HelpIndexRoute,
+}
+
+const HelpRouteRouteWithChildren = HelpRouteRoute._addFileChildren(
+  HelpRouteRouteChildren,
+)
+
+interface XRouteRouteChildren {
+  XDecksRoute: typeof XDecksRoute
+  XInboxRoute: typeof XInboxRoute
+  XListsRoute: typeof XListsRoute
+  XNotificationsRoute: typeof XNotificationsRoute
+  XOnboardingRoute: typeof XOnboardingRoute
+  XSettingsRoute: typeof XSettingsRoute
+  XStoresRoute: typeof XStoresRoute
+  XIndexRoute: typeof XIndexRoute
+  XBinderImportRoute: typeof XBinderImportRoute
+  XBinderIndexRoute: typeof XBinderIndexRoute
+}
+
+const XRouteRouteChildren: XRouteRouteChildren = {
+  XDecksRoute: XDecksRoute,
+  XInboxRoute: XInboxRoute,
+  XListsRoute: XListsRoute,
+  XNotificationsRoute: XNotificationsRoute,
+  XOnboardingRoute: XOnboardingRoute,
+  XSettingsRoute: XSettingsRoute,
+  XStoresRoute: XStoresRoute,
+  XIndexRoute: XIndexRoute,
+  XBinderImportRoute: XBinderImportRoute,
+  XBinderIndexRoute: XBinderIndexRoute,
+}
+
+const XRouteRouteWithChildren =
+  XRouteRoute._addFileChildren(XRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  HelpRouteRoute: HelpRouteRouteWithChildren,
+  XRouteRoute: XRouteRouteWithChildren,
+  AboutRoute: AboutRoute,
+  ChangelogRoute: ChangelogRoute,
+  ContactRoute: ContactRoute,
+  FindCardsRoute: FindCardsRoute,
+  PrivacyRoute: PrivacyRoute,
+  ScannerRoute: ScannerRoute,
+  SignInRoute: SignInRoute,
+  SignUpRoute: SignUpRoute,
+  SwapCalculatorRoute: SwapCalculatorRoute,
+  StoresStoreRoute: StoresStoreRoute,
+  UsersUsernameRoute: UsersUsernameRoute,
+  CityIndexRoute: CityIndexRoute,
+  DecksIndexRoute: DecksIndexRoute,
+  SetsIndexRoute: SetsIndexRoute,
+  StoresIndexRoute: StoresIndexRoute,
+  CityCityHavesRoute: CityCityHavesRoute,
+  CityCityMatchedRoute: CityCityMatchedRoute,
+  CityCityWantsRoute: CityCityWantsRoute,
+  CityCityIndexRoute: CityCityIndexRoute,
+  DecksGameIndexRoute: DecksGameIndexRoute,
+  SetsGameIndexRoute: SetsGameIndexRoute,
+  DecksGameFormatDeckIdRoute: DecksGameFormatDeckIdRoute,
+  SetsGameSetSealedRoute: SetsGameSetSealedRoute,
+  DecksGameFormatIndexRoute: DecksGameFormatIndexRoute,
+  SetsGameSetIndexRoute: SetsGameSetIndexRoute,
+  SetsGameSetCardNumberRoute: SetsGameSetCardNumberRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
