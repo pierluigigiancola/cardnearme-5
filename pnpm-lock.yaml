@@ -114,6 +114,9 @@ importers:
       '@tanstack/eslint-plugin-router':
         specifier: ^1.162.0
         version: 1.162.0(eslint@10.12.0(jiti@2.7.0))(typescript@6.0.3)
+      '@tanstack/intent':
+        specifier: ^0.5.5
+        version: 0.5.5
       '@tanstack/router-cli':
         specifier: ^1.132.0
         version: 1.167.43
@@ -1911,6 +1914,11 @@ packages:
   '@tanstack/history@1.162.5':
     resolution: {integrity: sha512-w1+YvwmTkwt5n8yUqEH3IWZ9DsmorCZW/EQ3KYHnqEgIkOZpH54NvW6/Epq3Dzb8H0ifIeYX8PExvrNLIH5FIA==}
     engines: {node: '>=20.19'}
+
+  '@tanstack/intent@0.5.5':
+    resolution: {integrity: sha512-Ei5RqUWgV96HrezTEyDbScy0wZN+17dNo59Am8/3ncv0YIaIxApkiX5LkM488wxe4a1Imdi09nhjFxblxwLMSQ==}
+    engines: {node: '>=20.12.0'}
+    hasBin: true
 
   '@tanstack/match-sorter-utils@9.2.6':
     resolution: {integrity: sha512-DIpUSOhPfQ7u/qfUi/Wgm0wBO56MyBYXGvnlI0NcauDRPqdBUlAZZjW2Dxm92m+k1UWVhKw8YJ4f47+75Aujyw==}
@@ -5547,6 +5555,8 @@ snapshots:
       - typescript
 
   '@tanstack/history@1.162.5': {}
+
+  '@tanstack/intent@0.5.5': {}
 
   '@tanstack/match-sorter-utils@9.2.6':
     dependencies:
