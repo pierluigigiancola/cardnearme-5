@@ -1,12 +1,15 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
-import { MapPin, MessageSquare } from 'lucide-react'
+import { ArrowLeftRight, MapPin, MessageSquare, Settings } from 'lucide-react'
 
 import { GatedPanel, SignedOut, useRequireAuth } from '#/auth/AuthGate'
+import { useViewer } from '#/auth/useViewer'
 import { GameBadge } from '#/components/cards/CardBits'
 import { DeckTile } from '#/components/decks/DeckTools'
 import { PageHeader, Section } from '#/components/layout/PageHeader'
+import { useTradeBuilder } from '#/components/trading/TradeBuilder'
 import { TradeItems } from '#/components/trading/TradeItems'
+import { useStartChat } from '#/components/trading/useStartChat'
 import { Avatar, AvatarFallback } from '#/components/ui/avatar'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
@@ -47,6 +50,10 @@ export const Route = createFileRoute('/users/$username')({
 function ProfilePage() {
   const user = Route.useLoaderData()
   const requireAuth = useRequireAuth()
+  const viewer = useViewer()
+  const isMe = viewer.kind === 'user' && viewer.username === user.username
+  const openTradeBuilder = useTradeBuilder()
+  const { isPending: startingChat, startChat } = useStartChat()
   const { data: games } = useSuspenseQuery(gamesQuery())
   const { data: cities } = useSuspenseQuery(citiesQuery())
   const { data: stores } = useSuspenseQuery(storesQuery())
@@ -98,12 +105,40 @@ function ProfilePage() {
             </span>
           </span>
         )}
-        actions={(
-          <Button onClick={() => requireAuth('message')}>
-            <MessageSquare />
-            Message
-          </Button>
-        )}
+        actions={isMe
+          ? (
+            <Button
+              asChild
+              variant="outline"
+            >
+              <Link to="/x/settings">
+                <Settings />
+                Edit profile
+              </Link>
+            </Button>
+          )
+          : (
+            <>
+              <Button
+                disabled={startingChat}
+                onClick={() => requireAuth('message', () => startChat(user.username))}
+                variant="outline"
+              >
+                <MessageSquare />
+                Message
+              </Button>
+
+              <Button
+                onClick={() => requireAuth('trade', () => openTradeBuilder({
+                  partner: user.username,
+                  useMatches: true,
+                }))}
+              >
+                <ArrowLeftRight />
+                Trade
+              </Button>
+            </>
+          )}
       />
 
       <div className="grid gap-6 lg:grid-cols-[300px_1fr]">

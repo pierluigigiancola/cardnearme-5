@@ -14,11 +14,13 @@ import { viewerQuery } from '../auth/viewer'
 import { AppFooter } from '../components/layout/AppFooter'
 import { AppHeader } from '../components/layout/AppHeader'
 import { CommandPalette } from '../components/layout/CommandPalette'
+import { TradeBuilderProvider } from '../components/trading/TradeBuilder'
 import { Button } from '../components/ui/button'
 import { Toaster } from '../components/ui/sonner'
 import { TooltipProvider } from '../components/ui/tooltip'
 import PostHogProvider from '../integrations/posthog/provider'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
+import { PricingProvider } from '../lib/pricing'
 import { ThemeProvider, themeInitScript } from '../lib/theme'
 import appCss from '../styles.css?url'
 
@@ -91,19 +93,23 @@ function RootLayout() {
     <ThemeProvider>
       <TooltipProvider>
         <AuthPromptProvider>
-          <div className="flex min-h-screen flex-col">
-            <AppHeader />
+          <PricingProvider>
+            <TradeBuilderProvider>
+              <div className="flex min-h-screen flex-col">
+                <AppHeader />
 
-            <main className="flex-1">
-              <Outlet />
-            </main>
+                <main className="flex-1">
+                  <Outlet />
+                </main>
 
-            <AppFooter />
-          </div>
+                <AppFooter />
+              </div>
 
-          <CommandPalette />
+              <CommandPalette />
 
-          <Toaster />
+              <Toaster />
+            </TradeBuilderProvider>
+          </PricingProvider>
         </AuthPromptProvider>
       </TooltipProvider>
     </ThemeProvider>

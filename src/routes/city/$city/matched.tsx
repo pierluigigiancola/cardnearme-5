@@ -1,10 +1,14 @@
+import { useQuery } from '@tanstack/react-query'
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
-import { Sparkles } from 'lucide-react'
+import { Loader2, Sparkles } from 'lucide-react'
 
 import { GatedPanel, SignedIn, SignedOut } from '#/auth/AuthGate'
+import { useSignedInViewer } from '#/auth/useViewer'
 import { PageHeader } from '#/components/layout/PageHeader'
+import { MatchList } from '#/components/trading/MatchList'
 import { Button } from '#/components/ui/button'
-import { cityQuery } from '#/services/queries'
+import { cityQuery, matchesQuery, storesQuery } from '#/services/queries'
+import type { City } from '#/services/types'
 
 export const Route = createFileRoute('/city/$city/matched')({
   loader: async ({ context: { queryClient }, params }) => {
@@ -43,7 +47,28 @@ function MatchedPage() {
       </SignedOut>
 
       <SignedIn>
-        {/* Ticket 02: replace with the viewer's matches from the matching service. */}
+        <CityMatches city={city} />
+      </SignedIn>
+    </div>
+  )
+}
+
+function CityMatches({ city }: { city: City }) {
+  const viewer = useSignedInViewer()
+  const { data: matches, isPending } = useQuery(matchesQuery(viewer.id, { citySlug: city.slug }))
+  const { data: stores = [] } = useQuery(storesQuery(city.slug))
+
+  if (isPending) {
+    return (
+      <p className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" />
+        Finding your matches…
+      </p>
+    )
+  }
+  return (
+    <MatchList
+      empty={(
         <div className="mx-auto flex max-w-lg flex-col items-center gap-3 rounded-xl border border-dashed p-10 text-center">
           <Sparkles className="size-6 text-match" />
 
@@ -63,7 +88,9 @@ function MatchedPage() {
             </Link>
           </Button>
         </div>
-      </SignedIn>
-    </div>
+      )}
+      matches={matches ?? []}
+      storeNames={Object.fromEntries(stores.map(store => [store.slug, store.name]))}
+    />
   )
 }

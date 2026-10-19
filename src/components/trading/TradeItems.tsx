@@ -1,8 +1,10 @@
 import { Link } from '@tanstack/react-router'
 import { ArrowLeftRight } from 'lucide-react'
-import { toast } from 'sonner'
+
+import { useTradeBuilder } from './TradeBuilder'
 
 import { useRequireAuth } from '#/auth/AuthGate'
+import { useViewer } from '#/auth/useViewer'
 import { CardArt } from '#/components/cards/CardArt'
 import { ConditionBadge, FinishBadge, Price } from '#/components/cards/CardBits'
 import { Button } from '#/components/ui/button'
@@ -29,13 +31,27 @@ export function TradeItems({ items, view }: {
 
 function TradeButton({ item }: { item: TradeItem }) {
   const requireAuth = useRequireAuth()
+  const openTradeBuilder = useTradeBuilder()
+  const viewer = useViewer()
+  if (viewer.kind === 'user' && viewer.username === item.ownerUsername) {
+    return (
+      <Button
+        className="w-full"
+        disabled
+        size="sm"
+        variant="outline"
+      >
+        Your card
+      </Button>
+    )
+  }
   return (
     <Button
       className="w-full"
-      onClick={() => requireAuth('trade', () => {
-        // Ticket 02: open the trade builder pre-filled with this item.
-        toast.info(`Trade builder for ${item.card.name} arrives in ticket 02`)
-      })}
+      onClick={() => requireAuth('trade', () => openTradeBuilder({
+        item,
+        partner: item.ownerUsername,
+      }))}
       size="sm"
     >
       <ArrowLeftRight />
@@ -79,6 +95,8 @@ function TradeItemGrid({ items }: { items: TradeItem[] }) {
           </CardLink>
 
           <div className="flex items-center gap-1.5">
+            {item.listType === 'wants' && <span className="text-[10px] text-muted-foreground">min</span>}
+
             <ConditionBadge condition={item.condition} />
 
             <FinishBadge finish={item.finish} />
@@ -120,7 +138,7 @@ function TradeItemTable({ items }: { items: TradeItem[] }) {
 
             <TableHead>Set</TableHead>
 
-            <TableHead>Cond.</TableHead>
+            <TableHead>{items.at(0)?.listType === 'wants' ? 'Min. cond.' : 'Cond.'}</TableHead>
 
             <TableHead className="text-right">Qty</TableHead>
 

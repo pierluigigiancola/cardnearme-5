@@ -1,4 +1,7 @@
-import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
+import { Outlet, createFileRoute, redirect, useMatch } from '@tanstack/react-router'
+
+import { WorkspaceNav } from '#/components/workspace/WorkspaceNav'
+import { gamesQuery, profileQuery, unreadCountsQuery } from '#/services/queries'
 
 /**
  * Signed-in workspace. Navigation guard only — every private server function
@@ -21,5 +24,26 @@ export const Route = createFileRoute('/x')({
     }
     return { user: viewer }
   },
-  component: () => <Outlet />,
+  loader: async ({ context: { queryClient, user } }) => {
+    await Promise.all([
+      queryClient.ensureQueryData(profileQuery(user.id)),
+      queryClient.ensureQueryData(gamesQuery()),
+      queryClient.ensureQueryData(unreadCountsQuery(user.id)),
+    ])
+  },
+  component: WorkspaceLayout,
 })
+
+function WorkspaceLayout() {
+  const onboarding = useMatch({
+    from: '/x/onboarding',
+    shouldThrow: false,
+  })
+  return (
+    <>
+      {!onboarding && <WorkspaceNav />}
+
+      <Outlet />
+    </>
+  )
+}

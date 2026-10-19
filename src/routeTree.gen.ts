@@ -30,13 +30,11 @@ import { Route as StoresIndexRouteImport } from './routes/stores/index'
 import { Route as StoresStoreRouteImport } from './routes/stores/$store'
 import { Route as UsersUsernameRouteImport } from './routes/users/$username'
 import { Route as XIndexRouteImport } from './routes/x/index'
-import { Route as XDecksRouteImport } from './routes/x/decks'
-import { Route as XInboxRouteImport } from './routes/x/inbox'
+import { Route as XInboxRouteRouteImport } from './routes/x/inbox/route'
 import { Route as XListsRouteImport } from './routes/x/lists'
 import { Route as XNotificationsRouteImport } from './routes/x/notifications'
 import { Route as XOnboardingRouteImport } from './routes/x/onboarding'
 import { Route as XSettingsRouteImport } from './routes/x/settings'
-import { Route as XStoresRouteImport } from './routes/x/stores'
 import { Route as CityCityIndexRouteImport } from './routes/city/$city/index'
 import { Route as CityCityHavesRouteImport } from './routes/city/$city/haves'
 import { Route as CityCityMatchedRouteImport } from './routes/city/$city/matched'
@@ -45,6 +43,12 @@ import { Route as DecksGameIndexRouteImport } from './routes/decks/$game/index'
 import { Route as SetsGameIndexRouteImport } from './routes/sets/$game/index'
 import { Route as XBinderIndexRouteImport } from './routes/x/binder/index'
 import { Route as XBinderImportRouteImport } from './routes/x/binder/import'
+import { Route as XDecksIndexRouteImport } from './routes/x/decks/index'
+import { Route as XDecksDeckIdRouteImport } from './routes/x/decks/$deckId'
+import { Route as XInboxIndexRouteImport } from './routes/x/inbox/index'
+import { Route as XInboxChatIdRouteImport } from './routes/x/inbox/$chatId'
+import { Route as XStoresIndexRouteImport } from './routes/x/stores/index'
+import { Route as XStoresStoreRouteImport } from './routes/x/stores/$store'
 import { Route as DecksGameFormatIndexRouteImport } from './routes/decks/$game/$format/index'
 import { Route as DecksGameFormatDeckIdRouteImport } from './routes/decks/$game/$format/$deckId'
 import { Route as SetsGameSetIndexRouteImport } from './routes/sets/$game/$set/index'
@@ -156,12 +160,7 @@ const XIndexRoute = XIndexRouteImport.update({
   path: '/',
   getParentRoute: () => XRouteRoute,
 } as any)
-const XDecksRoute = XDecksRouteImport.update({
-  id: '/decks',
-  path: '/decks',
-  getParentRoute: () => XRouteRoute,
-} as any)
-const XInboxRoute = XInboxRouteImport.update({
+const XInboxRouteRoute = XInboxRouteRouteImport.update({
   id: '/inbox',
   path: '/inbox',
   getParentRoute: () => XRouteRoute,
@@ -184,11 +183,6 @@ const XOnboardingRoute = XOnboardingRouteImport.update({
 const XSettingsRoute = XSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => XRouteRoute,
-} as any)
-const XStoresRoute = XStoresRouteImport.update({
-  id: '/stores',
-  path: '/stores',
   getParentRoute: () => XRouteRoute,
 } as any)
 const CityCityIndexRoute = CityCityIndexRouteImport.update({
@@ -231,6 +225,36 @@ const XBinderImportRoute = XBinderImportRouteImport.update({
   path: '/binder/import',
   getParentRoute: () => XRouteRoute,
 } as any)
+const XDecksIndexRoute = XDecksIndexRouteImport.update({
+  id: '/decks/',
+  path: '/decks/',
+  getParentRoute: () => XRouteRoute,
+} as any)
+const XDecksDeckIdRoute = XDecksDeckIdRouteImport.update({
+  id: '/decks/$deckId',
+  path: '/decks/$deckId',
+  getParentRoute: () => XRouteRoute,
+} as any)
+const XInboxIndexRoute = XInboxIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => XInboxRouteRoute,
+} as any)
+const XInboxChatIdRoute = XInboxChatIdRouteImport.update({
+  id: '/$chatId',
+  path: '/$chatId',
+  getParentRoute: () => XInboxRouteRoute,
+} as any)
+const XStoresIndexRoute = XStoresIndexRouteImport.update({
+  id: '/stores/',
+  path: '/stores/',
+  getParentRoute: () => XRouteRoute,
+} as any)
+const XStoresStoreRoute = XStoresStoreRouteImport.update({
+  id: '/stores/$store',
+  path: '/stores/$store',
+  getParentRoute: () => XRouteRoute,
+} as any)
 const DecksGameFormatIndexRoute = DecksGameFormatIndexRouteImport.update({
   id: '/decks/$game/$format/',
   path: '/decks/$game/$format/',
@@ -270,16 +294,14 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/swap-calculator': typeof SwapCalculatorRoute
+  '/x/inbox': typeof XInboxRouteRouteWithChildren
   '/help/$topic': typeof HelpTopicRoute
   '/stores/$store': typeof StoresStoreRoute
   '/users/$username': typeof UsersUsernameRoute
-  '/x/decks': typeof XDecksRoute
-  '/x/inbox': typeof XInboxRoute
   '/x/lists': typeof XListsRoute
   '/x/notifications': typeof XNotificationsRoute
   '/x/onboarding': typeof XOnboardingRoute
   '/x/settings': typeof XSettingsRoute
-  '/x/stores': typeof XStoresRoute
   '/city/': typeof CityIndexRoute
   '/decks/': typeof DecksIndexRoute
   '/help/': typeof HelpIndexRoute
@@ -290,10 +312,16 @@ export interface FileRoutesByFullPath {
   '/city/$city/matched': typeof CityCityMatchedRoute
   '/city/$city/wants': typeof CityCityWantsRoute
   '/x/binder/import': typeof XBinderImportRoute
+  '/x/decks/$deckId': typeof XDecksDeckIdRoute
+  '/x/inbox/$chatId': typeof XInboxChatIdRoute
+  '/x/stores/$store': typeof XStoresStoreRoute
   '/city/$city/': typeof CityCityIndexRoute
   '/decks/$game/': typeof DecksGameIndexRoute
   '/sets/$game/': typeof SetsGameIndexRoute
   '/x/binder/': typeof XBinderIndexRoute
+  '/x/decks/': typeof XDecksIndexRoute
+  '/x/inbox/': typeof XInboxIndexRoute
+  '/x/stores/': typeof XStoresIndexRoute
   '/decks/$game/$format/$deckId': typeof DecksGameFormatDeckIdRoute
   '/sets/$game/$set/sealed': typeof SetsGameSetSealedRoute
   '/decks/$game/$format/': typeof DecksGameFormatIndexRoute
@@ -314,13 +342,10 @@ export interface FileRoutesByTo {
   '/help/$topic': typeof HelpTopicRoute
   '/stores/$store': typeof StoresStoreRoute
   '/users/$username': typeof UsersUsernameRoute
-  '/x/decks': typeof XDecksRoute
-  '/x/inbox': typeof XInboxRoute
   '/x/lists': typeof XListsRoute
   '/x/notifications': typeof XNotificationsRoute
   '/x/onboarding': typeof XOnboardingRoute
   '/x/settings': typeof XSettingsRoute
-  '/x/stores': typeof XStoresRoute
   '/city': typeof CityIndexRoute
   '/decks': typeof DecksIndexRoute
   '/help': typeof HelpIndexRoute
@@ -331,10 +356,16 @@ export interface FileRoutesByTo {
   '/city/$city/matched': typeof CityCityMatchedRoute
   '/city/$city/wants': typeof CityCityWantsRoute
   '/x/binder/import': typeof XBinderImportRoute
+  '/x/decks/$deckId': typeof XDecksDeckIdRoute
+  '/x/inbox/$chatId': typeof XInboxChatIdRoute
+  '/x/stores/$store': typeof XStoresStoreRoute
   '/city/$city': typeof CityCityIndexRoute
   '/decks/$game': typeof DecksGameIndexRoute
   '/sets/$game': typeof SetsGameIndexRoute
   '/x/binder': typeof XBinderIndexRoute
+  '/x/decks': typeof XDecksIndexRoute
+  '/x/inbox': typeof XInboxIndexRoute
+  '/x/stores': typeof XStoresIndexRoute
   '/decks/$game/$format/$deckId': typeof DecksGameFormatDeckIdRoute
   '/sets/$game/$set/sealed': typeof SetsGameSetSealedRoute
   '/decks/$game/$format': typeof DecksGameFormatIndexRoute
@@ -355,16 +386,14 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/swap-calculator': typeof SwapCalculatorRoute
+  '/x/inbox': typeof XInboxRouteRouteWithChildren
   '/help/$topic': typeof HelpTopicRoute
   '/stores/$store': typeof StoresStoreRoute
   '/users/$username': typeof UsersUsernameRoute
-  '/x/decks': typeof XDecksRoute
-  '/x/inbox': typeof XInboxRoute
   '/x/lists': typeof XListsRoute
   '/x/notifications': typeof XNotificationsRoute
   '/x/onboarding': typeof XOnboardingRoute
   '/x/settings': typeof XSettingsRoute
-  '/x/stores': typeof XStoresRoute
   '/city/': typeof CityIndexRoute
   '/decks/': typeof DecksIndexRoute
   '/help/': typeof HelpIndexRoute
@@ -375,10 +404,16 @@ export interface FileRoutesById {
   '/city/$city/matched': typeof CityCityMatchedRoute
   '/city/$city/wants': typeof CityCityWantsRoute
   '/x/binder/import': typeof XBinderImportRoute
+  '/x/decks/$deckId': typeof XDecksDeckIdRoute
+  '/x/inbox/$chatId': typeof XInboxChatIdRoute
+  '/x/stores/$store': typeof XStoresStoreRoute
   '/city/$city/': typeof CityCityIndexRoute
   '/decks/$game/': typeof DecksGameIndexRoute
   '/sets/$game/': typeof SetsGameIndexRoute
   '/x/binder/': typeof XBinderIndexRoute
+  '/x/decks/': typeof XDecksIndexRoute
+  '/x/inbox/': typeof XInboxIndexRoute
+  '/x/stores/': typeof XStoresIndexRoute
   '/decks/$game/$format/$deckId': typeof DecksGameFormatDeckIdRoute
   '/sets/$game/$set/sealed': typeof SetsGameSetSealedRoute
   '/decks/$game/$format/': typeof DecksGameFormatIndexRoute
@@ -400,16 +435,14 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/swap-calculator'
+    | '/x/inbox'
     | '/help/$topic'
     | '/stores/$store'
     | '/users/$username'
-    | '/x/decks'
-    | '/x/inbox'
     | '/x/lists'
     | '/x/notifications'
     | '/x/onboarding'
     | '/x/settings'
-    | '/x/stores'
     | '/city/'
     | '/decks/'
     | '/help/'
@@ -420,10 +453,16 @@ export interface FileRouteTypes {
     | '/city/$city/matched'
     | '/city/$city/wants'
     | '/x/binder/import'
+    | '/x/decks/$deckId'
+    | '/x/inbox/$chatId'
+    | '/x/stores/$store'
     | '/city/$city/'
     | '/decks/$game/'
     | '/sets/$game/'
     | '/x/binder/'
+    | '/x/decks/'
+    | '/x/inbox/'
+    | '/x/stores/'
     | '/decks/$game/$format/$deckId'
     | '/sets/$game/$set/sealed'
     | '/decks/$game/$format/'
@@ -444,13 +483,10 @@ export interface FileRouteTypes {
     | '/help/$topic'
     | '/stores/$store'
     | '/users/$username'
-    | '/x/decks'
-    | '/x/inbox'
     | '/x/lists'
     | '/x/notifications'
     | '/x/onboarding'
     | '/x/settings'
-    | '/x/stores'
     | '/city'
     | '/decks'
     | '/help'
@@ -461,10 +497,16 @@ export interface FileRouteTypes {
     | '/city/$city/matched'
     | '/city/$city/wants'
     | '/x/binder/import'
+    | '/x/decks/$deckId'
+    | '/x/inbox/$chatId'
+    | '/x/stores/$store'
     | '/city/$city'
     | '/decks/$game'
     | '/sets/$game'
     | '/x/binder'
+    | '/x/decks'
+    | '/x/inbox'
+    | '/x/stores'
     | '/decks/$game/$format/$deckId'
     | '/sets/$game/$set/sealed'
     | '/decks/$game/$format'
@@ -484,16 +526,14 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/swap-calculator'
+    | '/x/inbox'
     | '/help/$topic'
     | '/stores/$store'
     | '/users/$username'
-    | '/x/decks'
-    | '/x/inbox'
     | '/x/lists'
     | '/x/notifications'
     | '/x/onboarding'
     | '/x/settings'
-    | '/x/stores'
     | '/city/'
     | '/decks/'
     | '/help/'
@@ -504,10 +544,16 @@ export interface FileRouteTypes {
     | '/city/$city/matched'
     | '/city/$city/wants'
     | '/x/binder/import'
+    | '/x/decks/$deckId'
+    | '/x/inbox/$chatId'
+    | '/x/stores/$store'
     | '/city/$city/'
     | '/decks/$game/'
     | '/sets/$game/'
     | '/x/binder/'
+    | '/x/decks/'
+    | '/x/inbox/'
+    | '/x/stores/'
     | '/decks/$game/$format/$deckId'
     | '/sets/$game/$set/sealed'
     | '/decks/$game/$format/'
@@ -696,18 +742,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof XIndexRouteImport
       parentRoute: typeof XRouteRoute
     }
-    '/x/decks': {
-      id: '/x/decks'
-      path: '/decks'
-      fullPath: '/x/decks'
-      preLoaderRoute: typeof XDecksRouteImport
-      parentRoute: typeof XRouteRoute
-    }
     '/x/inbox': {
       id: '/x/inbox'
       path: '/inbox'
       fullPath: '/x/inbox'
-      preLoaderRoute: typeof XInboxRouteImport
+      preLoaderRoute: typeof XInboxRouteRouteImport
       parentRoute: typeof XRouteRoute
     }
     '/x/lists': {
@@ -736,13 +775,6 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/x/settings'
       preLoaderRoute: typeof XSettingsRouteImport
-      parentRoute: typeof XRouteRoute
-    }
-    '/x/stores': {
-      id: '/x/stores'
-      path: '/stores'
-      fullPath: '/x/stores'
-      preLoaderRoute: typeof XStoresRouteImport
       parentRoute: typeof XRouteRoute
     }
     '/city/$city/': {
@@ -801,6 +833,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof XBinderImportRouteImport
       parentRoute: typeof XRouteRoute
     }
+    '/x/decks/': {
+      id: '/x/decks/'
+      path: '/decks'
+      fullPath: '/x/decks/'
+      preLoaderRoute: typeof XDecksIndexRouteImport
+      parentRoute: typeof XRouteRoute
+    }
+    '/x/decks/$deckId': {
+      id: '/x/decks/$deckId'
+      path: '/decks/$deckId'
+      fullPath: '/x/decks/$deckId'
+      preLoaderRoute: typeof XDecksDeckIdRouteImport
+      parentRoute: typeof XRouteRoute
+    }
+    '/x/inbox/': {
+      id: '/x/inbox/'
+      path: '/'
+      fullPath: '/x/inbox/'
+      preLoaderRoute: typeof XInboxIndexRouteImport
+      parentRoute: typeof XInboxRouteRoute
+    }
+    '/x/inbox/$chatId': {
+      id: '/x/inbox/$chatId'
+      path: '/$chatId'
+      fullPath: '/x/inbox/$chatId'
+      preLoaderRoute: typeof XInboxChatIdRouteImport
+      parentRoute: typeof XInboxRouteRoute
+    }
+    '/x/stores/': {
+      id: '/x/stores/'
+      path: '/stores'
+      fullPath: '/x/stores/'
+      preLoaderRoute: typeof XStoresIndexRouteImport
+      parentRoute: typeof XRouteRoute
+    }
+    '/x/stores/$store': {
+      id: '/x/stores/$store'
+      path: '/stores/$store'
+      fullPath: '/x/stores/$store'
+      preLoaderRoute: typeof XStoresStoreRouteImport
+      parentRoute: typeof XRouteRoute
+    }
     '/decks/$game/$format/': {
       id: '/decks/$game/$format/'
       path: '/decks/$game/$format'
@@ -853,30 +927,48 @@ const HelpRouteRouteWithChildren = HelpRouteRoute._addFileChildren(
   HelpRouteRouteChildren,
 )
 
+interface XInboxRouteRouteChildren {
+  XInboxChatIdRoute: typeof XInboxChatIdRoute
+  XInboxIndexRoute: typeof XInboxIndexRoute
+}
+
+const XInboxRouteRouteChildren: XInboxRouteRouteChildren = {
+  XInboxChatIdRoute: XInboxChatIdRoute,
+  XInboxIndexRoute: XInboxIndexRoute,
+}
+
+const XInboxRouteRouteWithChildren = XInboxRouteRoute._addFileChildren(
+  XInboxRouteRouteChildren,
+)
+
 interface XRouteRouteChildren {
-  XDecksRoute: typeof XDecksRoute
-  XInboxRoute: typeof XInboxRoute
+  XInboxRouteRoute: typeof XInboxRouteRouteWithChildren
   XListsRoute: typeof XListsRoute
   XNotificationsRoute: typeof XNotificationsRoute
   XOnboardingRoute: typeof XOnboardingRoute
   XSettingsRoute: typeof XSettingsRoute
-  XStoresRoute: typeof XStoresRoute
   XIndexRoute: typeof XIndexRoute
   XBinderImportRoute: typeof XBinderImportRoute
+  XDecksDeckIdRoute: typeof XDecksDeckIdRoute
+  XStoresStoreRoute: typeof XStoresStoreRoute
   XBinderIndexRoute: typeof XBinderIndexRoute
+  XDecksIndexRoute: typeof XDecksIndexRoute
+  XStoresIndexRoute: typeof XStoresIndexRoute
 }
 
 const XRouteRouteChildren: XRouteRouteChildren = {
-  XDecksRoute: XDecksRoute,
-  XInboxRoute: XInboxRoute,
+  XInboxRouteRoute: XInboxRouteRouteWithChildren,
   XListsRoute: XListsRoute,
   XNotificationsRoute: XNotificationsRoute,
   XOnboardingRoute: XOnboardingRoute,
   XSettingsRoute: XSettingsRoute,
-  XStoresRoute: XStoresRoute,
   XIndexRoute: XIndexRoute,
   XBinderImportRoute: XBinderImportRoute,
+  XDecksDeckIdRoute: XDecksDeckIdRoute,
+  XStoresStoreRoute: XStoresStoreRoute,
   XBinderIndexRoute: XBinderIndexRoute,
+  XDecksIndexRoute: XDecksIndexRoute,
+  XStoresIndexRoute: XStoresIndexRoute,
 }
 
 const XRouteRouteWithChildren =

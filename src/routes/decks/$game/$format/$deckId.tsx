@@ -243,7 +243,7 @@ function DeckPage() {
             className="space-y-2"
             onSubmit={(event) => {
               event.preventDefault()
-              // Ticket 02: persist via a comments service.
+              // Follow-up (ticket 02 comments): persist through a deck comments service; posting only shows a toast today.
               toast.success('Comment posted')
               setDraft('')
             }}

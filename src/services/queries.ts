@@ -2,7 +2,16 @@ import { queryOptions } from '@tanstack/react-query'
 
 import { getServices } from './services'
 import type { CatalogueService } from './services'
-import type { Card, CardQuery, GameId, TradeItemQuery } from './types'
+import type {
+  BinderQuery,
+  Card,
+  CardQuery,
+  GameId,
+  ListsQuery,
+  MatchScope,
+  NotificationQuery,
+  TradeItemQuery,
+} from './types'
 
 /**
  * React Query options for every read the UI performs. Route loaders call
@@ -194,4 +203,100 @@ export const helpArticleQuery = (slug: string) =>
     ...staticData,
     queryFn: async () => (await getServices()).content.getHelpArticle(slug),
     queryKey: ['help', slug],
+  })
+
+// ---------------------------------------------------------------------------
+// Signed-in workspace. Keys start with `workspaceKey(viewerId)` so one
+// account's data is never served to another after switching accounts, and
+// mutations can refresh everything personal with a single invalidation.
+// ---------------------------------------------------------------------------
+
+export const workspaceKey = (viewerId: string) => ['me', viewerId] as const
+
+export const profileQuery = (viewerId: string) =>
+  queryOptions({
+    queryFn: async () => (await getServices()).profile.get(),
+    queryKey: [...workspaceKey(viewerId), 'profile'],
+  })
+
+export const binderCountsQuery = (viewerId: string) =>
+  queryOptions({
+    queryFn: async () => (await getServices()).binder.getCounts(),
+    queryKey: [...workspaceKey(viewerId), 'binder-counts'],
+  })
+
+export const binderItemsQuery = (viewerId: string, query: BinderQuery) =>
+  queryOptions({
+    queryFn: async () => (await getServices()).binder.listItems(query),
+    queryKey: [...workspaceKey(viewerId), 'binder', query],
+  })
+
+export const ownershipQuery = (viewerId: string, cardIds: string[]) =>
+  queryOptions({
+    queryFn: async () => (await getServices()).binder.getOwnership(cardIds),
+    queryKey: [...workspaceKey(viewerId), 'ownership', cardIds],
+  })
+
+export const binderImportQuery = (viewerId: string, importId: string) =>
+  queryOptions({
+    queryFn: async () => (await getServices()).binder.getImport(importId),
+    queryKey: [...workspaceKey(viewerId), 'import', importId],
+  })
+
+export const tradeListsQuery = (viewerId: string, query: ListsQuery = {}) =>
+  queryOptions({
+    queryFn: async () => (await getServices()).lists.list(query),
+    queryKey: [...workspaceKey(viewerId), 'lists', query],
+  })
+
+export const myDecksQuery = (viewerId: string) =>
+  queryOptions({
+    queryFn: async () => (await getServices()).deckBuilder.listMine(),
+    queryKey: [...workspaceKey(viewerId), 'decks'],
+  })
+
+export const myDeckQuery = (viewerId: string, deckId: string) =>
+  queryOptions({
+    queryFn: async () => (await getServices()).deckBuilder.getMine(deckId),
+    queryKey: [...workspaceKey(viewerId), 'decks', deckId],
+  })
+
+export const chatsQuery = (viewerId: string) =>
+  queryOptions({
+    queryFn: async () => (await getServices()).chat.listChats(),
+    queryKey: [...workspaceKey(viewerId), 'chats'],
+    // Poll so replies from the other trader show up without a reload.
+    refetchInterval: 15_000,
+  })
+
+export const chatThreadQuery = (viewerId: string, chatId: string) =>
+  queryOptions({
+    queryFn: async () => (await getServices()).chat.getThread(chatId),
+    queryKey: [...workspaceKey(viewerId), 'chats', chatId],
+    refetchInterval: 5_000,
+  })
+
+export const matchesQuery = (viewerId: string, scope: MatchScope = {}) =>
+  queryOptions({
+    queryFn: async () => (await getServices()).trades.listMatches(scope),
+    queryKey: [...workspaceKey(viewerId), 'matches', scope],
+  })
+
+export const tradeContextQuery = (viewerId: string, partner: string) =>
+  queryOptions({
+    queryFn: async () => (await getServices()).trades.getContext(partner),
+    queryKey: [...workspaceKey(viewerId), 'trade-context', partner],
+  })
+
+export const notificationsQuery = (viewerId: string, query: NotificationQuery = {}) =>
+  queryOptions({
+    queryFn: async () => (await getServices()).notifications.list(query),
+    queryKey: [...workspaceKey(viewerId), 'notifications', query],
+  })
+
+export const unreadCountsQuery = (viewerId: string) =>
+  queryOptions({
+    queryFn: async () => (await getServices()).notifications.getUnreadCounts(),
+    queryKey: [...workspaceKey(viewerId), 'unread'],
+    refetchInterval: 30_000,
   })

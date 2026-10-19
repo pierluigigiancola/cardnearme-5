@@ -1,12 +1,14 @@
 import type { Viewer } from './viewer'
 
 /**
- * Product limits for anonymous visitors. Tune these here; the UI reads them
- * and the service layer enforces them (`limit` on list queries).
+ * Product limits. Tune these here; the UI reads them and the service layer
+ * enforces them (`limit` on list queries, store joins).
  */
 export const viewerLimits = {
   /** Cards shown when an anonymous visitor browses a city's haves or wants. */
   anonymousTradeResults: 30,
+  /** Stores a signed-in trader can join as trading locations. */
+  tradingStores: 5,
 }
 
 export function tradeResultLimit(viewer: Viewer): number | undefined {

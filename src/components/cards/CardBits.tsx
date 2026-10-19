@@ -1,5 +1,6 @@
 import { Badge } from '#/components/ui/badge'
 import { formatPrice } from '#/lib/format'
+import { usePricingSource } from '#/lib/pricing'
 import { cn } from '#/lib/utils'
 import type { Condition, Finish, Game, Rarity } from '#/services/types'
 
@@ -24,7 +25,8 @@ export function Price({ amount, className }: {
   amount: number | null | undefined;
   className?: string
 }) {
-  return <span className={cn('font-semibold text-price tabular-nums', className)}>{formatPrice(amount)}</span>
+  const source = usePricingSource()
+  return <span className={cn('font-semibold text-price tabular-nums', className)}>{formatPrice(amount, source)}</span>
 }
 
 export function PriceChange({ value }: { value: number }) {

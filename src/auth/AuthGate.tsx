@@ -1,4 +1,4 @@
-import { Link, useLocation } from '@tanstack/react-router'
+import { Link, useLocation, useRouter } from '@tanstack/react-router'
 import { LockKeyhole } from 'lucide-react'
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
@@ -111,15 +111,25 @@ const AuthPromptContext = createContext<RequireAuth | null>(null)
 
 export function AuthPromptProvider({ children }: { children: ReactNode }) {
   const viewer = useViewer()
+  const router = useRouter()
   const [action, setAction] = useState<GatedAction | null>(null)
+  const onboarded = viewer.kind === 'user' && viewer.onboarded
 
   const requireAuth = useCallback<RequireAuth>((nextAction, run) => {
-    if (viewer.kind === 'user') {
-      run?.()
+    if (viewer.kind === 'anonymous') {
+      setAction(nextAction)
       return
     }
-    setAction(nextAction)
-  }, [viewer.kind])
+    if (!onboarded) {
+      // Trading actions need a city and stores; finish setup, then come back here.
+      void router.navigate({
+        search: { redirect: router.state.location.href },
+        to: '/x/onboarding',
+      })
+      return
+    }
+    run?.()
+  }, [onboarded, router, viewer.kind])
 
   const value = useMemo(() => requireAuth, [requireAuth])
 

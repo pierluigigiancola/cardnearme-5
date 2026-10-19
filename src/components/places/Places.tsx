@@ -8,9 +8,12 @@ import type { Store } from '#/services/types'
  * Lightweight stand-in for a real map: plots stores by lat/lng inside a box.
  * Replace with Leaflet/MapLibre once real store data and tiles are wired.
  */
-export function StoreMap({ stores, className }: {
+export function StoreMap({ className, onSelect, selected, stores }: {
   stores: Store[];
-  className?: string
+  className?: string;
+  /** Turns pins into toggles (e.g. picking stores) instead of links. */
+  onSelect?: (storeSlug: string) => void;
+  selected?: string[]
 }) {
   if (stores.length === 0) return null
   const lats = stores.map(store => store.lat)
@@ -24,29 +27,50 @@ export function StoreMap({ stores, className }: {
     <div
       aria-label="Store map"
       className={cn('relative min-h-64 overflow-hidden rounded-xl border bg-[radial-gradient(circle_at_center,var(--color-accent),var(--color-muted))]', className)}
-      role="img"
+      role={onSelect ? 'group' : 'img'}
     >
       <div className="absolute inset-0 bg-[linear-gradient(var(--color-border)_1px,transparent_1px),linear-gradient(90deg,var(--color-border)_1px,transparent_1px)] [background-size:32px_32px] opacity-40" />
 
-      {stores.map(store => (
-        <Link
-          className="group absolute -translate-x-1/2 -translate-y-full"
-          key={store.slug}
-          params={{ store: store.slug }}
-          style={{
-            left: `${(10 + ((store.lng - minLng) / spanLng) * 80).toFixed(2)}%`,
-            top: `${(15 + (1 - (store.lat - minLat) / spanLat) * 75).toFixed(2)}%`,
-          }}
-          title={store.name}
-          to="/stores/$store"
-        >
-          <span className="flex items-center gap-1 rounded-full bg-primary px-2 py-1 text-xs font-bold text-primary-foreground shadow-lg">
+      {stores.map((store) => {
+        const position = {
+          left: `${(10 + ((store.lng - minLng) / spanLng) * 80).toFixed(2)}%`,
+          top: `${(15 + (1 - (store.lat - minLat) / spanLat) * 75).toFixed(2)}%`,
+        }
+        const pin = (
+          <span className={cn('flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold shadow-lg', !selected || selected.includes(store.slug) ? 'bg-primary text-primary-foreground' : 'bg-card text-foreground ring-1 ring-border')}>
             <MapPin className="size-3" />
 
             {store.traderCount}
           </span>
-        </Link>
-      ))}
+        )
+        return onSelect
+          ? (
+            <button
+              aria-label={store.name}
+              aria-pressed={selected?.includes(store.slug) ?? false}
+              className="group absolute -translate-x-1/2 -translate-y-full"
+              key={store.slug}
+              onClick={() => onSelect(store.slug)}
+              style={position}
+              title={store.name}
+              type="button"
+            >
+              {pin}
+            </button>
+          )
+          : (
+            <Link
+              className="group absolute -translate-x-1/2 -translate-y-full"
+              key={store.slug}
+              params={{ store: store.slug }}
+              style={position}
+              title={store.name}
+              to="/stores/$store"
+            >
+              {pin}
+            </Link>
+          )
+      })}
     </div>
   )
 }

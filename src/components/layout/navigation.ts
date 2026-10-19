@@ -38,6 +38,30 @@ export const primaryNav: NavItem[] = [
   },
 ]
 
+/** Header navigation for signed-in traders: their binder replaces public decks. */
+export const signedInPrimaryNav: NavItem[] = [
+  {
+    icon: MapPin,
+    label: 'Find cards',
+    to: '/find-cards',
+  },
+  {
+    icon: BookOpen,
+    label: 'Binder',
+    to: '/x/binder',
+  },
+  {
+    icon: Layers,
+    label: 'Cards',
+    to: '/sets',
+  },
+  {
+    icon: ScanLine,
+    label: 'Scanner',
+    to: '/scanner',
+  },
+]
+
 export const publicCommands: NavItem[] = [
   {
     icon: Home,
@@ -95,6 +119,11 @@ export const signedInCommands: NavItem[] = [
     label: 'Lists',
     shortcut: 't',
     to: '/x/lists',
+  },
+  {
+    icon: Store,
+    label: 'My stores',
+    to: '/x/stores',
   },
   {
     icon: Inbox,

@@ -1,9 +1,10 @@
+import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { LogOut, Menu, Moon, Settings, Sun, User } from 'lucide-react'
+import { Inbox, LogOut, Menu, Moon, Settings, Sun, User } from 'lucide-react'
 import { useState } from 'react'
 
 import { GlobalSearch } from './GlobalSearch'
-import { primaryNav, publicCommands, signedInCommands } from './navigation'
+import { primaryNav, publicCommands, signedInCommands, signedInPrimaryNav } from './navigation'
 
 import { useReturnPath } from '#/auth/AuthGate'
 import { useSignOut, useViewer } from '#/auth/useViewer'
@@ -26,6 +27,7 @@ import {
   SheetTrigger,
 } from '#/components/ui/sheet'
 import { useTheme } from '#/lib/theme'
+import { unreadCountsQuery } from '#/services/queries'
 
 export function AppHeader() {
   const viewer = useViewer()
@@ -46,10 +48,10 @@ export function AppHeader() {
         </Link>
 
         <nav className="ml-2 hidden items-center gap-1 lg:flex">
-          {primaryNav.map(item => (
+          {(viewer.kind === 'user' ? signedInPrimaryNav : primaryNav).map(item => (
             <Link
               activeProps={{ className: 'bg-primary/15 text-primary' }}
-              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold text-muted-foreground transition hover:text-foreground"
+              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold whitespace-nowrap text-muted-foreground transition hover:text-foreground"
               key={item.to}
               to={item.to}
             >
@@ -73,7 +75,13 @@ export function AppHeader() {
         </Button>
 
         {viewer.kind === 'user'
-          ? <UserMenu username={viewer.username} />
+          ? (
+            <>
+              <InboxButton viewerId={viewer.id} />
+
+              <UserMenu username={viewer.username} />
+            </>
+          )
           : (
             <div className="flex items-center gap-1">
               <Button
@@ -105,6 +113,26 @@ export function AppHeader() {
           )}
       </div>
     </header>
+  )
+}
+
+function InboxButton({ viewerId }: { viewerId: string }) {
+  const { data: unread } = useQuery(unreadCountsQuery(viewerId))
+  const count = (unread?.messages ?? 0) + (unread?.notifications ?? 0)
+  return (
+    <Button
+      aria-label={count > 0 ? `Inbox, ${count} unread` : 'Inbox'}
+      asChild
+      className="relative"
+      size="icon"
+      variant="ghost"
+    >
+      <Link to={unread && unread.messages === 0 && unread.notifications > 0 ? '/x/notifications' : '/x/inbox'}>
+        <Inbox />
+
+        {count > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-primary px-1 text-center text-[10px] leading-4 font-bold text-primary-foreground tabular-nums">{count > 99 ? '99+' : count}</span>}
+      </Link>
+    </Button>
   )
 }
 
@@ -177,7 +205,7 @@ function UserMenu({ username }: { username: string }) {
 function MobileNav() {
   const [open, setOpen] = useState(false)
   const viewer = useViewer()
-  const items = viewer.kind === 'user' ? [...primaryNav, ...signedInCommands] : [...primaryNav, ...publicCommands.slice(3)]
+  const items = viewer.kind === 'user' ? [...signedInPrimaryNav, ...signedInCommands.slice(1)] : [...primaryNav, ...publicCommands.slice(3)]
 
   return (
     <Sheet

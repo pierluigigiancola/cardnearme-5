@@ -1,10 +1,11 @@
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
 import { ExternalLink, MapPin, Plus } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { GatedPanel, SignedIn, SignedOut, useRequireAuth } from '#/auth/AuthGate'
+import { useSignedInViewer } from '#/auth/useViewer'
+import { AddCardDialog, sectionLabels } from '#/components/binder/AddCardDialog'
 import { CardArt } from '#/components/cards/CardArt'
 import { Price, PriceChange, RarityLabel } from '#/components/cards/CardBits'
 import { CardList } from '#/components/cards/CardList'
@@ -14,8 +15,8 @@ import { Button } from '#/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { formatDate } from '#/lib/format'
 import { cn } from '#/lib/utils'
-import { cardAvailabilityQuery, cardQuery, gameQuery, printingsQuery } from '#/services/queries'
-import type { Finish } from '#/services/types'
+import { cardAvailabilityQuery, cardQuery, gameQuery, ownershipQuery, printingsQuery } from '#/services/queries'
+import type { Card, Finish } from '#/services/types'
 
 export const Route = createFileRoute('/sets/$game/$set/$card/$number')({
   loader: async ({ context: { queryClient }, params }) => {
@@ -49,6 +50,7 @@ function CardPage() {
   const { data: availability } = useSuspenseQuery(cardAvailabilityQuery(card))
   const requireAuth = useRequireAuth()
   const [finish, setFinish] = useState<Finish>('nonfoil')
+  const [adding, setAdding] = useState(false)
   const price = card.prices[finish] ?? card.prices.nonfoil
 
   return (
@@ -120,7 +122,7 @@ function CardPage() {
 
             <Button
               className="flex-1"
-              onClick={() => requireAuth('addToCollection', () => toast.success(`${card.name} added to your collection`))}
+              onClick={() => requireAuth('addToCollection', () => setAdding(true))}
             >
               <Plus />
               Add to…
@@ -173,15 +175,14 @@ function CardPage() {
           </SignedOut>
 
           <SignedIn>
-            <div className="grid grid-cols-3 gap-2 rounded-xl border bg-card p-4 text-center text-sm">
-              {[['Collection', 0], ['Haves', 0], ['Wants', 0]].map(([label, count]) => (
-                <div key={label}>
-                  <p className="text-xl font-bold">{count}</p>
+            <OwnershipCounts card={card} />
 
-                  <p className="text-muted-foreground">{label}</p>
-                </div>
-              ))}
-            </div>
+            <AddCardDialog
+              card={card}
+              defaultSection="collection"
+              onOpenChange={setAdding}
+              open={adding}
+            />
           </SignedIn>
         </div>
 
@@ -318,6 +319,32 @@ function CardPage() {
           </ul>
         </Section>
       )}
+    </div>
+  )
+}
+
+/** Copies of this card (any printing) in the viewer's binder. */
+function OwnershipCounts({ card }: { card: Card }) {
+  const viewer = useSignedInViewer()
+  const { data } = useQuery(ownershipQuery(viewer.id, [card.id]))
+  const ownership = data?.[card.id]
+  return (
+    <div className="grid grid-cols-3 gap-2 rounded-xl border bg-card p-4 text-center text-sm">
+      {(['collection', 'haves', 'wants'] as const).map(section => (
+        <Link
+          className="rounded-lg py-1 transition hover:bg-accent"
+          key={section}
+          search={{
+            q: card.name,
+            section,
+          }}
+          to="/x/binder"
+        >
+          <p className="text-xl font-bold tabular-nums">{ownership?.[section] ?? '–'}</p>
+
+          <p className="text-muted-foreground">{sectionLabels[section]}</p>
+        </Link>
+      ))}
     </div>
   )
 }

@@ -13,6 +13,13 @@ export function useViewer() {
   })
 }
 
+/** The signed-in viewer, for components that only render inside `/x` or behind `requireAuth`. */
+export function useSignedInViewer() {
+  const viewer = useViewer()
+  if (viewer.kind !== 'user') throw new Error('useSignedInViewer needs a signed-in viewer')
+  return viewer
+}
+
 /** Re-reads the session after sign in / sign out and re-runs route guards. */
 export function useRefreshViewer() {
   const queryClient = useQueryClient()
