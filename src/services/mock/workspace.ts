@@ -44,8 +44,8 @@ import { conditionLabels, isCondition, isFinish, isLanguage, languageLabels } fr
  * In-memory mock of the signed-in workspace. Runs on the server only (see
  * `workspaceRpc.ts`); state is seeded per user on first access and lives
  * until the server restarts. Mock trading partners are the seeded public
- * users, and they accept proposals on their own after a short delay so every
- * trade state can be exercised from one account.
+ * users, and in development they accept proposals on their own after a short
+ * delay so every trade state can be exercised from one account.
  */
 
 export interface WorkspaceOwner {
@@ -934,8 +934,12 @@ function createWorkspaceServices(state: WorkspaceState): WorkspaceServices {
     })
   }
 
-  /** Mock partners accept the viewer's proposals after PARTNER_REPLY_MS. */
+  /**
+   * Mock partners accept the viewer's proposals after PARTNER_REPLY_MS, in
+   * development only, so a deployed mock never answers on someone's behalf.
+   */
   const runPartners = () => {
+    if (!import.meta.env.DEV) return
     const cutoff = Date.now() - PARTNER_REPLY_MS
     for (const trade of state.trades) {
       if (trade.status !== 'pending' || trade.proposer !== me || Date.parse(trade.updatedAt) > cutoff) continue

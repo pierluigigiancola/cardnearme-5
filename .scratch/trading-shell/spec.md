@@ -1,6 +1,8 @@
 # Spec: CardNearMe trading shell (modelled on lootstack.app)
 
-Status: needs-triage
+Status: done
+
+The shell shipped (tickets 01 and 02). Backend work continues in `.scratch/backend-readiness/`.
 
 ## Goal
 
@@ -92,6 +94,7 @@ confirmed by browsing signed in (see ticket 02).
 | `/x/stores`, `/x/stores/:slug` | My stores / store trading view |
 | `/x/inbox`, `/x/inbox/:chatId` | Chat with traders |
 | `/x/notifications` | Match alerts, trade updates |
+| `/x/settings` | Profile, games, pricing source |
 | (proposal modal) | Trade proposal preview / negotiation |
 
 ### Global chrome

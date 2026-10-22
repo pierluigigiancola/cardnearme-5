@@ -1,6 +1,6 @@
 # 02 — Signed-in area (`/x/*`)
 
-Status: resolved
+Status: done
 Blocked by: 01
 Spec: [../spec.md](../spec.md)
 
@@ -108,7 +108,6 @@ not in the client bundle. Clicked through every flow in demo mode, and in Supaba
 routes return 200, unknown deck/chat/store → 404.
 
 Not done / follow-ups:
-- Unit tests for `lib/cardListText.ts`, `lib/deckValidation.ts`, `lib/tradeMath.ts` (no test runner yet).
 - Mock state is in-memory: a dev-server restart or an edit to `mock/workspace.ts` re-seeds it.
 - Prices: mock has one price per finish, so USD only changes the currency symbol; public
   pages briefly show EUR before the profile loads (consider pricing source on the session).
@@ -117,7 +116,6 @@ Not done / follow-ups:
 - Public profile does not reflect your workspace binder or list visibility yet.
 - Notifications/chat use polling (5–30 s), no realtime.
 - Copy still English-only (Paraglide), no Leaflet map.
-- Intent (`pnpm exec intent list`) is not installed, so no local skills were loaded.
 
 ### 2026-10-18 — closing
 
