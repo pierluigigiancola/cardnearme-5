@@ -3,8 +3,11 @@ import { Link } from '@tanstack/react-router'
 import { footerNav } from './navigation'
 
 import { Logo } from '#/components/brand/Logo'
+import { useConsent } from '#/integrations/posthog/provider'
 
 export function AppFooter() {
+  const { openSettings } = useConsent()
+
   return (
     <footer className="mt-16 border-t bg-card/40">
       <div className="page-wrap grid gap-8 py-10 sm:grid-cols-2 lg:grid-cols-5">
@@ -34,8 +37,16 @@ export function AppFooter() {
         ))}
       </div>
 
-      <div className="page-wrap border-t py-4 text-xs text-muted-foreground">
-        Card names and images belong to their respective publishers. Prices are indicative.
+      <div className="page-wrap flex flex-wrap items-center justify-between gap-2 border-t py-4 text-xs text-muted-foreground">
+        <span>Card names and images belong to their respective publishers. Prices are indicative.</span>
+
+        <button
+          className="underline hover:text-foreground"
+          onClick={openSettings}
+          type="button"
+        >
+          Cookie settings
+        </button>
       </div>
     </footer>
   )
