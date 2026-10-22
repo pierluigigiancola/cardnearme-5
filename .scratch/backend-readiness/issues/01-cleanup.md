@@ -11,7 +11,7 @@ Clear the noise so later phases have working checks and accurate docs.
 
 ## Acceptance criteria
 
-- [ ] `.output/` is in the `ignores` list in `eslint.config.js`.
+- [x] `.output/` is in the `ignores` list in `eslint.config.js` (done on `main` in d9330ca).
 - [ ] `pnpm lint` passes. The remaining pre-existing errors are in `src/router.tsx`, `vite.config.ts`, `src/components/LocaleSwitcher.tsx` and the PostHog and React Query provider files.
 - [ ] `docs/agents/triage-labels.md` has a `done` row ("Shipped; no further work").
 - [ ] `.scratch/trading-shell/issues/01-public-shell.md` and `02-signed-in-area.md` say `Status: done`, and their delivered acceptance checkboxes are ticked.

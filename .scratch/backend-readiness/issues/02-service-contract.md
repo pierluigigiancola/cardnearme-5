@@ -41,4 +41,4 @@ Change `src/services/types.ts` and `src/services/services.ts` so the contract ma
 
 **Docs**
 
-- [ ] `docs/user-paths/backend-touchpoints.md` describes the new contract. Gaps it lists that this phase closes are marked resolved.
+- [ ] The doc comments in `src/services/services.ts` describe the new contract, since they are now the only description of it the backend will be built against.

@@ -6,7 +6,7 @@ Status: ready-for-agent
 
 Get the front-end shell built in `.scratch/trading-shell/` ready for a real backend. A code review of `feat/experimentation` against `main` found that the service contract, the mock and some pages encode rules the backend can't honour: limits decided by the browser, the same owned card recorded twice, usernames used as foreign keys, and trade completion that changes the partner's Binder without them acting. This effort fixes the contract and moves the rules into one shared domain module, so the real Supabase backend can be built against a contract that won't change under it.
 
-Work on a new branch off `feat/experimentation` (suggested name: `feat/backend-readiness`).
+Work on a new branch off `main`, which now contains the shell (suggested name: `feat/backend-readiness`).
 
 Out of scope: the real Supabase backend itself (tables, RLS, server functions against the database), sourcing card data, pricing feeds, payments.
 
@@ -64,5 +64,5 @@ Stub features, built with the backend (not part of the phases):
 ## Done when
 
 - `pnpm lint`, `pnpm exec tsc --noEmit` and `pnpm test` all pass.
-- The service interfaces in `src/services/` match `GLOSSARY.md`, the ADRs and the decisions above, and `docs/user-paths/backend-touchpoints.md` describes the same contract.
+- The service interfaces in `src/services/` match `GLOSSARY.md`, the ADRs and the decisions above, and their doc comments describe that contract.
 - The mock runs every domain rule through `src/domain/`, so the real backend can call the same module.
