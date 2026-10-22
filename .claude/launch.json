@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["exec", "vite", "dev", "--port", "3100"],
+      "port": 3100
+    },
+    {
+      "name": "dev-supabase",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "eval \"$(pnpm exec supabase status -o env | grep -E '^(ANON_KEY|API_URL)=')\" && SUPABASE_URL=\"$API_URL\" SUPABASE_ANON_KEY=\"$ANON_KEY\" VITE_SUPABASE_URL=\"$API_URL\" VITE_SUPABASE_ANON_KEY=\"$ANON_KEY\" exec pnpm exec vite dev --port 3102"],
+      "port": 3102
+    }
+  ]
+}
