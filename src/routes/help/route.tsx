@@ -16,7 +16,7 @@ function HelpLayout() {
     <div className="page-wrap">
       <PageHeader
         crumbs={[{ label: 'Help centre' }]}
-        description="Get help with scanning cards, collections, local trades, decks and stores"
+        description="How-tos for your Binder, Trades, decks and Stores"
         title="Help centre"
       />
 
@@ -39,9 +39,9 @@ function HelpLayout() {
           </nav>
 
           <div className="rounded-xl border bg-card p-4 text-sm">
-            <p className="font-semibold">Need more help?</p>
+            <p className="font-semibold">Can't find it?</p>
 
-            <p className="text-muted-foreground">Our team is here to answer your questions.</p>
+            <p className="text-muted-foreground">Send us a message and a person will reply.</p>
 
             <Button
               asChild
