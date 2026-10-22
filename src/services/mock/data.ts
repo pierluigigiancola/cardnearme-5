@@ -614,24 +614,24 @@ export const changelog: ChangelogEntry[] = [
 
 export const faq: FaqEntry[] = [
   {
-    answer: 'Yes. Browsing, lists, decks and local matching are free. Optional extras may come later, but the core stays free.',
-    question: 'Is it free?',
+    answer: 'Yes. Your Binder, Lists, decks and Matches cost nothing. If paid extras arrive later, trading itself stays free.',
+    question: 'Does CardNearMe cost anything?',
   },
   {
-    answer: 'You list what you have and what you want, we match you with players at the stores you both visit, and you meet in person to swap.',
-    question: 'How does a local trade work?',
+    answer: 'Mark the cards you can part with as Haves and record your Wants. When another Trader in your City has a Have that fits one of your Wants, you get a Match. You agree the Trade in chat and hand the cards over face to face.',
+    question: 'What happens in a Trade?',
   },
   {
-    answer: 'No. Start with a few haves and wants; you can import the rest of your collection any time via CSV.',
-    question: 'Do I need to add my whole collection?',
+    answer: 'No. A handful of Haves and Wants is enough to get Matches. You can bring the rest of your Collection in from a CSV whenever you like.',
+    question: 'Must I enter every card I own?',
   },
   {
-    answer: 'At a local game store you both play at. Public, staffed places keep trades safe and easy.',
-    question: 'Where should we meet?',
+    answer: 'Pick a Store you both already go to. A shop with staff and other players around is the easiest place to check cards and hand them over.',
+    question: 'Where do Traders meet?',
   },
   {
-    answer: 'Prices come from a market source you choose (Cardmarket in EUR or TCGplayer in USD) and are shown next to every card.',
-    question: 'How are card prices handled?',
+    answer: 'You choose one price source for the whole app, Cardmarket (EUR) or TCGplayer (USD), and every Printing shows its price from it.',
+    question: 'Where do card prices come from?',
   },
 ]
 
@@ -648,16 +648,16 @@ function article(slug: string, title: string, summary: string, sections: [string
 }
 
 export const helpArticles: HelpArticle[] = [
-  article('getting-started', 'Getting started', 'New here? Set up your games, city and stores.', [['Create your account', 'Sign up with email or a social account, then pick the games you play.'], ['Pick your stores', 'Choose the local game stores where you trade so we can match you with nearby players.']]),
-  article('faq', 'FAQ', 'Answers to the most common questions.', [['Still stuck?', 'Use the contact form and we will get back to you.']]),
-  article('scanner', 'Card scanner', 'Scan cards with your phone.', [['How scanning works', 'Hold a card in view; the scanner identifies printing, language and finish so you can save it.']]),
-  article('collection', 'Collection management', 'Add, import, filter and sort your cards.', [['Add a card by hand', 'Search a card, pick printing, condition, finish and quantity.'], ['Import a CSV', 'Upload an export from another platform or paste a list.']]),
-  article('trading', 'Trading & lists', 'Haves, wants and nearby matches.', [['Create a have or want list', 'Lists tell nearby players what you can offer and what you are looking for.'], ['Getting matched', 'When someone at your stores has a card on your wants, you get an alert.']]),
-  article('decks', 'Deck building', 'Build a deck and check what you own.', [['Which games have a deck builder', 'Deck building is available for games that support it; others are coming.']]),
-  article('search', 'Search & filters', 'Find cards and content quickly.', [['Search, views and filters', 'Use the global search (press /) and the facet filters on any card list.']]),
-  article('stores', 'Local game stores', 'Pick shops and see nearby cards.', [['Finding a game store', 'Search your city on the stores page and join the stores where you play.']]),
-  article('account', 'Account settings', 'Profile, stores, games and pricing.', [['Pricing source', 'Choose Cardmarket (EUR) or TCGplayer (USD) for all prices.']]),
-  article('shortcuts', 'Keyboard shortcuts', 'Navigate faster with the keyboard.', [['Everywhere', 'Ctrl/Cmd+K opens the command palette, / focuses search, Esc closes dialogs.'], ['G then a key', 'G H home, G F card sets, G P public decks, G S stores, G W swap calculator, G E help.']]),
-  article('privacy', 'Privacy & security', 'How we protect your data.', [['What we store', 'Only what is needed to run your account and match trades.']]),
-  article('contact', 'Contact support', 'Get help from the team.', [['Reach us', 'Use the contact form; we usually reply within two working days.']]),
+  article('getting-started', 'Getting started', 'Your first few minutes: games, City and Stores.', [['Sign up', 'Register with email or a social login, then tell us which games you play.'], ['Join your Stores', 'Join the Stores you visit so we can find Matches among the Traders who go there too.']]),
+  article('faq', 'FAQ', 'Short answers to the questions we hear most.', [['Question not here?', 'Write to us through the contact form and we will reply.']]),
+  article('scanner', 'Card scanner', 'Turn a photo into a Collection entry.', [['What the scanner does', 'Your phone camera reads the card and suggests the Printing it belongs to. Confirm or correct it, then save.']]),
+  article('collection', 'Your Collection', 'Record, import and sort the cards you own.', [['Typing in a card', 'Look up the Card, choose its Printing, then set condition, finish and how many you own.'], ['Bringing cards in from a file', 'Upload a CSV exported elsewhere, or paste one card per line.']]),
+  article('trading', 'Haves, Wants and Lists', 'Tell other Traders what you offer and what you need.', [['Making a List', 'Group your Haves or your Wants into a List and choose who can see it.'], ['When you get a Match', 'If a Trader in your City has a Have that fits one of your Wants, we let you know.']]),
+  article('decks', 'Deck building', 'Put a deck together and see which cards you already own.', [['Supported games', 'Only some games have a deck builder today; more will follow.']]),
+  article('search', 'Searching', 'Narrow a long card list down fast.', [['Search box and facets', 'Press / to jump to search, then refine any card list with the filters beside it.']]),
+  article('stores', 'Stores', 'Find the shops in your City and join them.', [['Joining a Store', 'Open the stores page, look up your City and join the Stores where you play.']]),
+  article('account', 'Account settings', 'Profile, Stores, games and price source.', [['Price source', 'Switch every price in the app between Cardmarket (EUR) and TCGplayer (USD).']]),
+  article('shortcuts', 'Keyboard shortcuts', 'Move around without the mouse.', [['Anywhere', 'Ctrl/Cmd+K opens the command palette, / jumps to search, Esc closes a dialog.'], ['Press G, then a letter', 'G H home, G F card sets, G P public decks, G S stores, G W swap calculator, G E help.']]),
+  article('privacy', 'Privacy & security', 'What we keep and why.', [['Data we keep', 'Just enough to run your account and find your Matches.']]),
+  article('contact', 'Contact support', 'Reach a person on the team.', [['Getting in touch', 'Send us a message from the contact form; expect an answer within two working days.']]),
 ]
