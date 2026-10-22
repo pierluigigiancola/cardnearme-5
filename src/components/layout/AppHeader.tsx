@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { GlobalSearch } from './GlobalSearch'
 import { primaryNav, publicCommands, signedInCommands, signedInPrimaryNav } from './navigation'
 
-import { useReturnPath } from '#/auth/AuthGate'
+import { AuthLinks, useReturnPath } from '#/auth/AuthGate'
 import { useSignOut, useViewer } from '#/auth/useViewer'
 import { Logo } from '#/components/brand/Logo'
 import { Avatar, AvatarFallback } from '#/components/ui/avatar'
@@ -205,6 +205,7 @@ function UserMenu({ username }: { username: string }) {
 function MobileNav() {
   const [open, setOpen] = useState(false)
   const viewer = useViewer()
+  const signOut = useSignOut()
   const items = viewer.kind === 'user' ? [...signedInPrimaryNav, ...signedInCommands.slice(1)] : [...primaryNav, ...publicCommands.slice(3)]
 
   return (
@@ -233,9 +234,12 @@ function MobileNav() {
           </SheetTitle>
         </SheetHeader>
 
-        <GlobalSearch className="px-4" />
+        <GlobalSearch
+          className="px-4"
+          onPick={() => setOpen(false)}
+        />
 
-        <nav className="flex flex-col gap-1 px-2">
+        <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2">
           {items.map(item => (
             <Link
               activeProps={{ className: 'bg-primary/15 text-primary' }}
@@ -250,6 +254,24 @@ function MobileNav() {
             </Link>
           ))}
         </nav>
+
+        <div className="border-t p-4">
+          {viewer.kind === 'user'
+            ? (
+              <Button
+                className="w-full justify-start"
+                onClick={() => {
+                  setOpen(false)
+                  void signOut()
+                }}
+                variant="ghost"
+              >
+                <LogOut />
+                Sign out
+              </Button>
+            )
+            : <AuthLinks onNavigate={() => setOpen(false)} />}
+        </div>
       </SheetContent>
     </Sheet>
   )

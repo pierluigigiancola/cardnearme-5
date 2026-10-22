@@ -64,14 +64,15 @@ flowchart LR
 
 ### Mobile drawer
 
-Below `lg` a menu button opens a left sheet with the logo, a second global search and the nav list.
+Below `lg` a menu button opens a left sheet with the logo, a second global search, the nav list
+and an account footer.
 
-| Viewer | Items |
-|---|---|
-| Anonymous | Find cards, Cards, Decks, Scanner, Stores, Swap calculator, Help |
-| Signed in | Find cards, Binder, Cards, Scanner, My decks, Lists, My stores, Inbox, Notifications |
+| Viewer | Items | Footer |
+|---|---|---|
+| Anonymous | Find cards, Cards, Decks, Scanner, Stores, Swap calculator, Help | "Sign up free", "Sign in" (both with `?redirect=<current URL>`) |
+| Signed in | Find cards, Binder, Cards, Scanner, My decks, Lists, My stores, Inbox, Notifications | **Sign out** |
 
-Clicking a nav item closes the drawer.
+Clicking a nav item, a footer entry or a search result closes the drawer.
 
 ## Global search
 
@@ -160,8 +161,6 @@ Same for everyone ([`AppFooter.tsx`](../../src/components/layout/AppFooter.tsx))
 ## Gaps / open questions
 
 - **No locale switcher.** `LocaleSwitcher` exists but is not mounted; copy is English-only.
-- **Mobile drawer** has no sign-in, sign-up or sign-out entries, and picking a search result
-  inside it does not close it.
 - **Signed-in users lose the Decks link** in the header; they reach community decks only
   through the palette, `G P`, the footer or the home page.
 - **The shortcuts help article** lists only the public `G` shortcuts.

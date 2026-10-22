@@ -23,7 +23,7 @@ import type { BrowseSearch } from '#/lib/browseSearch'
 import { formatNumber } from '#/lib/format'
 import { cn } from '#/lib/utils'
 import { binderCountsQuery, binderItemsQuery, tradeListsQuery } from '#/services/queries'
-import type { BinderQuery, BinderSection } from '#/services/types'
+import type { BinderItem, BinderQuery, BinderSection } from '#/services/types'
 
 interface BinderSearch extends BrowseSearch {
   section?: BinderSection
@@ -90,7 +90,9 @@ function BinderPage() {
   const sectionLists = allLists.filter(list => list.type === section)
   const [adding, setAdding] = useState(false)
   const [creatingList, setCreatingList] = useState(false)
-  const [selected, setSelected] = useState<Set<string>>(() => new Set())
+  // Items, not ids: the selection can outlive the current filters, and the bulk bar needs each
+  // item's game and location to offer only the moves that work.
+  const [selected, setSelected] = useState<ReadonlyMap<string, BinderItem>>(() => new Map())
 
   const onChange = useCallback(
     (update: (previous: BrowseSearch) => BrowseSearch) => void navigate({
@@ -99,10 +101,10 @@ function BinderPage() {
     }),
     [navigate],
   )
-  const toggle = (itemId: string) => setSelected((previous) => {
-    const next = new Set(previous)
-    if (next.has(itemId)) next.delete(itemId)
-    else next.add(itemId)
+  const toggle = (item: BinderItem) => setSelected((previous) => {
+    const next = new Map(previous)
+    if (next.has(item.id)) next.delete(item.id)
+    else next.set(item.id, item)
     return next
   })
   const share = () => {
@@ -169,7 +171,7 @@ function BinderPage() {
           <Link
             className={cn('-mb-px border-b-2 px-4 py-2 text-sm font-semibold transition', option === section ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground')}
             key={option}
-            onClick={() => setSelected(new Set())}
+            onClick={() => setSelected(new Map())}
             search={{ section: option }}
             to="/x/binder"
           >
@@ -267,6 +269,7 @@ function BinderPage() {
             <div className="flex-1">
               <BrowseToolbar
                 onChange={onChange}
+                order={query.order ?? 'desc'}
                 placeholder={`Search your ${sectionLabels[section].toLowerCase()}`}
                 search={search}
                 shown={page.items.length}
@@ -306,7 +309,7 @@ function BinderPage() {
 
           <BulkActions
             lists={allLists}
-            onClear={() => setSelected(new Set())}
+            onClear={() => setSelected(new Map())}
             selected={selected}
           />
         </div>

@@ -71,14 +71,28 @@ export function moveTargets(lists: TradeList[]): MoveTarget[] {
   ]
 }
 
+/**
+ * Where these items can all go: lists for another game are left out, and so is the place every
+ * item already is. Used by the single-item menu and the bulk bar, so neither offers a move that fails.
+ */
+export function moveTargetsFor(items: BinderItem[], lists: TradeList[]): MoveTarget[] {
+  const gameOf = new Map(lists.map(list => [list.id, list.gameId]))
+  return moveTargets(lists).filter((target) => {
+    if (items.every(item => item.section === target.section && item.listId === target.listId)) return false
+    const gameId = target.listId ? gameOf.get(target.listId) : null
+    return !gameId || items.every(item => item.card.gameId === gameId)
+  })
+}
+
 export function BinderItems({ items, lists, onToggle, selected, view }: {
   items: BinderItem[];
   lists: TradeList[];
   view: ViewMode;
-  selected: Set<string>;
-  onToggle: (itemId: string) => void
+  selected: ReadonlyMap<string, BinderItem>;
+  onToggle: (item: BinderItem) => void
 }) {
   const [editing, setEditing] = useState<BinderItem | null>(null)
+  const [removing, setRemoving] = useState<BinderItem | null>(null)
   const listNames = new Map(lists.map(list => [list.id, list.name]))
 
   return (
@@ -121,7 +135,7 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
                       <Checkbox
                         aria-label={`Select ${item.card.name}`}
                         checked={selected.has(item.id)}
-                        onCheckedChange={() => onToggle(item.id)}
+                        onCheckedChange={() => onToggle(item)}
                       />
                     </TableCell>
 
@@ -158,6 +172,7 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
                         item={item}
                         lists={lists}
                         onEdit={() => setEditing(item)}
+                        onRemove={() => setRemoving(item)}
                       />
                     </TableCell>
                   </TableRow>
@@ -185,7 +200,7 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
                     aria-label={`Select ${item.card.name}`}
                     checked={selected.has(item.id)}
                     className={cn('absolute top-2 left-2 size-5 bg-background/90 shadow transition', selected.size === 0 && 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100')}
-                    onCheckedChange={() => onToggle(item.id)}
+                    onCheckedChange={() => onToggle(item)}
                   />
 
                   {item.quantity > 1 && <span className="absolute top-2 right-2 rounded-full bg-background/90 px-2 py-0.5 text-xs font-bold shadow">{`×${item.quantity}`}</span>}
@@ -219,6 +234,7 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
                     item={item}
                     lists={lists}
                     onEdit={() => setEditing(item)}
+                    onRemove={() => setRemoving(item)}
                   />
                 </div>
               </li>
@@ -230,6 +246,11 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
         item={editing}
         lists={lists}
         onClose={() => setEditing(null)}
+      />
+
+      <RemoveItemDialog
+        item={removing}
+        onClose={() => setRemoving(null)}
       />
     </>
   )
@@ -263,15 +284,14 @@ function CardLink({ children, item }: {
   )
 }
 
-function ItemActions({ item, lists, onEdit }: {
+function ItemActions({ item, lists, onEdit, onRemove }: {
   item: BinderItem;
   lists: TradeList[];
-  onEdit: () => void
+  onEdit: () => void;
+  onRemove: () => void
 }) {
   const move = useWorkspaceMutation((services, target: MoveTarget) => services.binder.moveItems([item.id], target))
-  const remove = useWorkspaceMutation(services => services.binder.removeItems([item.id]))
-  const targets = moveTargets(lists).filter(target => target.section !== item.section || target.listId !== item.listId)
-    .filter(target => target.section === 'collection' || !lists.find(list => list.id === target.listId)?.gameId || lists.find(list => list.id === target.listId)?.gameId === item.card.gameId)
+  const targets = moveTargetsFor([item], lists)
 
   return (
     <DropdownMenu>
@@ -312,7 +332,7 @@ function ItemActions({ item, lists, onEdit }: {
         <DropdownMenuSeparator />
 
         <DropdownMenuItem
-          onSelect={() => remove.mutate(undefined, { onSuccess: () => toast.success(`Removed ${item.card.name}`) })}
+          onSelect={onRemove}
           variant="destructive"
         >
           <Trash2 />
@@ -320,6 +340,53 @@ function ItemActions({ item, lists, onEdit }: {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  )
+}
+
+function RemoveItemDialog({ item, onClose }: {
+  item: BinderItem | null;
+  onClose: () => void
+}) {
+  const remove = useWorkspaceMutation((services, itemId: string) => services.binder.removeItems([itemId]))
+  // Keep the last card's name on screen while the dialog animates closed.
+  const [shown, setShown] = useState(item)
+  if (item && item !== shown) setShown(item)
+
+  return (
+    <Dialog
+      onOpenChange={open => !open && onClose()}
+      open={item !== null}
+    >
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{`Remove ${shown?.card.name ?? 'card'}?`}</DialogTitle>
+
+          <DialogDescription>{`${shown && shown.quantity > 1 ? `All ${shown.quantity} copies are` : 'It is'} removed from your binder. This cannot be undone.`}</DialogDescription>
+        </DialogHeader>
+
+        <DialogFooter>
+          <Button
+            onClick={onClose}
+            variant="ghost"
+          >
+            Cancel
+          </Button>
+
+          <Button
+            disabled={remove.isPending}
+            onClick={() => item && remove.mutate(item.id, {
+              onSuccess: () => {
+                toast.success(`Removed ${item.card.name}`)
+                onClose()
+              },
+            })}
+            variant="destructive"
+          >
+            Remove
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -533,14 +600,15 @@ function EditItemForm({ item, lists, onClose }: {
 
 /** Sticky bar shown while cards are selected: move or delete them together. */
 export function BulkActions({ lists, onClear, selected }: {
-  selected: Set<string>;
+  selected: ReadonlyMap<string, BinderItem>;
   lists: TradeList[];
   onClear: () => void
 }) {
   const [confirming, setConfirming] = useState(false)
-  const move = useWorkspaceMutation((services, target: MoveTarget) => services.binder.moveItems([...selected], target))
-  const remove = useWorkspaceMutation(services => services.binder.removeItems([...selected]))
+  const move = useWorkspaceMutation((services, target: MoveTarget) => services.binder.moveItems([...selected.keys()], target))
+  const remove = useWorkspaceMutation(services => services.binder.removeItems([...selected.keys()]))
   if (selected.size === 0) return null
+  const targets = moveTargetsFor([...selected.values()], lists)
 
   return (
     <div className="sticky bottom-4 z-30 mx-auto mt-4 flex w-fit flex-wrap items-center gap-2 rounded-full border bg-popover px-4 py-2 shadow-xl">
@@ -561,7 +629,9 @@ export function BulkActions({ lists, onClear, selected }: {
           align="center"
           className="w-60"
         >
-          {moveTargets(lists).map(target => (
+          {targets.length === 0 && <DropdownMenuItem disabled>No list fits every selected card</DropdownMenuItem>}
+
+          {targets.map(target => (
             <DropdownMenuItem
               key={`${target.section}-${target.listId ?? ''}`}
               onSelect={() => move.mutate(target, {

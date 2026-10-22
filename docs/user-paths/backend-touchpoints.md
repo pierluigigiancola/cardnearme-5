@@ -203,7 +203,7 @@ compatible list, or a new public "My haves" / "My wants" list.
 | `revise(tradeId, draft)` | W | Counter / Edit | Pending only; swaps proposer and recipient |
 | `accept(tradeId)` | W | Trade card | Pending and awaiting you |
 | `complete(tradeId)` | W | Trade card | Accepted only; moves cards in **your** binder |
-| `cancel(tradeId)` | W | Decline, Withdraw, Cancel trade | Pending or accepted |
+| `cancel(tradeId)` | W | Decline, Withdraw, Cancel trade | Pending or accepted; stores `cancelledBy` but not whether the trade had been accepted |
 
 ### `notifications`
 
@@ -292,10 +292,5 @@ the backend.
 27. Chat moderation: block, report, delete.
 
 **UI bugs found while mapping** (frontend fixes, not backend)
-- Set page order toggle mismatch ([03](03-catalogue-and-tools.md)).
-- Cancelled-trade copy ([07](07-trading.md)).
-- Deck Like uses the comment prompt ([04](04-community-and-content.md)).
-- Match cards skip `requireAuth` ([02](02-discovery-cities-stores.md)).
 - Store "View all" leaves the store ([02](02-discovery-cities-stores.md)).
-- `LocaleSwitcher` not mounted, mobile drawer gaps ([01](01-global-chrome.md)).
-- Single-item Remove without confirmation, bulk move offers incompatible lists ([05](05-binder-and-lists.md)).
+- `LocaleSwitcher` not mounted ([01](01-global-chrome.md)).

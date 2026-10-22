@@ -6,6 +6,7 @@ import { useTradeBuilder } from './TradeBuilder'
 import { TraderAvatar } from './TraderAvatar'
 import { useStartChat } from './useStartChat'
 
+import { useRequireAuth } from '#/auth/AuthGate'
 import { CardArt } from '#/components/cards/CardArt'
 import { Button } from '#/components/ui/button'
 import type { TradeMatch } from '#/services/types'
@@ -17,6 +18,7 @@ export function MatchList({ empty, matches, storeNames }: {
   storeNames?: Record<string, string>;
   empty?: ReactNode
 }) {
+  const requireAuth = useRequireAuth()
   const openTradeBuilder = useTradeBuilder()
   const { isPending, startChat } = useStartChat()
 
@@ -88,10 +90,10 @@ export function MatchList({ empty, matches, storeNames }: {
           <div className="mt-auto flex gap-2">
             <Button
               className="flex-1"
-              onClick={() => openTradeBuilder({
+              onClick={() => requireAuth('trade', () => openTradeBuilder({
                 partner: match.partner.username,
                 useMatches: true,
-              })}
+              }))}
               size="sm"
             >
               <ArrowLeftRight />
@@ -100,7 +102,7 @@ export function MatchList({ empty, matches, storeNames }: {
 
             <Button
               disabled={isPending}
-              onClick={() => startChat(match.partner.username)}
+              onClick={() => requireAuth('message', () => startChat(match.partner.username))}
               size="sm"
               variant="outline"
             >

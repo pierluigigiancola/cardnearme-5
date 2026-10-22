@@ -191,8 +191,8 @@ flowchart TD
 |---|---|---|---|---|
 | Sign in to see matches | `GatedPanel` (signed out) | `/sign-up` or `/sign-in` with `redirect` | — | 🌐 |
 | Open trader | Partner name | `/users/$username` | — | 🔑 |
-| Trade with a match | **Trade** on a match card | Trade builder with every match pre-selected (`useMatches`) | `trades.getContext` (R) | 🔑 (should be ✅) |
-| Message a match | **Message** | Opens or creates the chat, goes to `/x/inbox/$chatId` | `chat.openChat(partner)` (W) | 🔑 (should be ✅) |
+| Trade with a match | **Trade** on a match card | Trade builder with every match pre-selected (`useMatches`); not onboarded → `/x/onboarding?redirect=` | `trades.getContext` (R) | ✅ |
+| Message a match | **Message** | Opens or creates the chat, goes to `/x/inbox/$chatId`; not onboarded → `/x/onboarding?redirect=` | `chat.openChat(partner)` (W) | ✅ |
 | Find stores | Empty state "Browse stores nearby" | `/stores?city=` | — | 🔑 |
 
 Each match card shows the partner, "Trades at {shared stores}", a match count badge, and
@@ -261,8 +261,6 @@ flowchart TD
 - **Locked cities are reachable by URL.** `/city/$city/haves`, `/wants` and `/matched` never
   check the unlock threshold. Decide whether the backend should refuse trade listings for
   locked cities or whether the lock is only a presentation choice.
-- **Matches skip onboarding.** The matched page uses `SignedIn`, and `MatchList` opens the
-  trade builder and chat without `requireAuth`. A user with no city or stores can trade from here.
 - **"View all" on a store page shows the whole city**, not the store's own listings. The
   trade-item query already accepts `storeSlug`; a store-scoped list page is missing.
 - **Store previews are capped at 8 for everyone**, so the 30-result anonymous cap never

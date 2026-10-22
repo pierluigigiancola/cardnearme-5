@@ -64,13 +64,14 @@ From `gatedActions` in [`limits.ts`](../../src/auth/limits.ts). The prompt reads
 | Key | Copy | Used by |
 |---|---|---|
 | `addToCollection` | add cards to your collection or trade lists | Card page "Add to…" |
-| `comment` | leave a comment | Deck comments panel; also deck **Like** (wrong copy, see gaps) |
+| `comment` | leave a comment | Deck comments panel |
 | `joinStore` | join a store | Store page "Join store" |
+| `like` | like decks | Deck **Like** |
 | `matches` | see your matches | `/city/$city/matched`, profile matches panel |
-| `message` | message other traders | Profile "Message" |
+| `message` | message other traders | Profile "Message", match card "Message" |
 | `ownership` | track which cards you own | Card page ownership panel |
 | `priceHistory` | see price history | Card page price chart panel |
-| `trade` | start a trade | Every "Trade" button on trade items and profiles |
+| `trade` | start a trade | Every "Trade" button on trade items, profiles and match cards |
 
 ## Sign in and sign up
 

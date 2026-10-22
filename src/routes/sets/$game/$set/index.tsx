@@ -125,6 +125,7 @@ function SetPage() {
         <div className="space-y-4">
           <BrowseToolbar
             onChange={onChange}
+            order={query.order ?? 'asc'}
             placeholder="Search for a card"
             search={search}
             shown={data.items.length}

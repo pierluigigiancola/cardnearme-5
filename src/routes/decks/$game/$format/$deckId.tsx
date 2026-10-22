@@ -68,7 +68,7 @@ function DeckPage() {
         actions={(
           <>
             <Button
-              onClick={() => requireAuth('comment', () => toast.success('Liked'))}
+              onClick={() => requireAuth('like', () => toast.success('Liked'))}
               variant="outline"
             >
               <Heart />

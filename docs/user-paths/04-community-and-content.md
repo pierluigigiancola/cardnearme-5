@@ -152,7 +152,7 @@ shortcuts. The sidebar links every topic and "Contact support" (`/contact`). The
 ## Gaps / open questions
 
 - **Deck likes and comments are not saved.** `CommunityService` has `listDeckComments` but no
-  write methods. Like uses the `comment` gate, so the anonymous prompt says "leave a comment".
+  write methods.
 - **Comments need only sign-in, likes need onboarding.** Pick one rule.
 - **Your own decks are missing from the community pages.** Decks built in
   [`/x/decks`](06-deck-builder.md) have a public/private flag, but `community.listDecks`

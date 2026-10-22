@@ -20,6 +20,7 @@ export const gatedActions = {
   addToCollection: 'add cards to your collection or trade lists',
   comment: 'leave a comment',
   joinStore: 'join a store',
+  like: 'like decks',
   matches: 'see your matches',
   message: 'message other traders',
   ownership: 'track which cards you own',

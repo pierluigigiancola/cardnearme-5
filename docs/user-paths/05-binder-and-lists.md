@@ -82,7 +82,7 @@ flowchart TD
   Item --> Menu["Item menu"]
   Menu --> Edit["Edit details"] --> EditDlg["EditItemDialog"]:::modal
   Menu --> Move["Move to: Collection or a list"]
-  Menu --> Remove["Remove, no confirmation"]
+  Menu --> Remove["Remove"] --> RemoveConfirm["Remove card? confirm"]:::modal
   Item --> Select["Select checkbox"] --> Bulk["Bulk bar: Move to, Delete, Clear"]
   Bulk --> Confirm["Delete n cards? confirm"]:::modal
 
@@ -106,9 +106,9 @@ flowchart TD
 | Open the card | Card art or name | Card page | — |
 | Edit an item | Item menu → "Edit details" | EditItemDialog | `binder.updateItem` (W) |
 | Move an item | Item menu → "Move to" (Collection or any compatible list, not the current one) | Toast "Moved {card} to {target}" | `binder.moveItems([id], { section, listId })` (W) |
-| Remove an item | Item menu → "Remove" | Deleted at once, no confirmation; toast | `binder.removeItems([id])` (W) |
+| Remove an item | Item menu → "Remove" → "Remove {card}?" ("It is removed" / "All {n} copies are removed from your binder") → Remove | Toast "Removed {card}" | `binder.removeItems([id])` (W) |
 | Select items | Checkbox per item | Shows the bulk bar "{n} selected" | UI only |
-| Bulk move | Bulk bar "Move to…" (every target) | Toast "Moved {n} cards to {target}" | `binder.moveItems(ids, target)` (W); one incompatible card rejects the whole move |
+| Bulk move | Bulk bar "Move to…" (Collection or any list that accepts every selected card, not the one they are all already in; "No list fits every selected card" when none) | Toast "Moved {n} cards to {target}" | `binder.moveItems(ids, target)` (W); one incompatible card would reject the whole move |
 | Bulk delete | Bulk bar "Delete" → "Delete {n} cards?" → Delete | Toast "Cards deleted" | `binder.removeItems(ids)` (W) |
 
 Each item shows card art, set, list name, condition, language, finish, quantity, price,
@@ -242,9 +242,6 @@ within the user's games → any name → no match. At most 1000 rows. Commit fil
 
 ## Gaps / open questions
 
-- **Single-item Remove has no confirmation**, while bulk delete and list delete do.
-- **Bulk "Move to…" offers incompatible lists** (other game, current location); one bad card
-  rejects the whole selection with an error toast. The single-item menu filters them out.
 - **The import list picker ignores game restrictions**, so a mismatch only fails at commit,
   and commit is **not atomic**: rows before the failing one are already added.
 - **Import drafts never expire** in the mock; "expired" only appears when the id is unknown.

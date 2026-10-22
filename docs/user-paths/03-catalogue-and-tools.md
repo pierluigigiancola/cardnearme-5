@@ -138,8 +138,6 @@ The only control is a disabled "Mobile app coming soon" button.
   source (Cardmarket EUR, TCGplayer USD). The mock has one price per finish, so switching to
   USD only changes the symbol.
 - **Price history** (card page sparkline) and the **Buy** link are placeholders.
-- **Set page order toggle mismatch.** The query defaults to ascending, the toolbar treats an
-  unset order as descending, so the first click changes the icon but not the results.
 - **Card identity across printings** is "same game + same name" (ownership, matching,
   availability). Confirm this is the intended rule before modelling it in the database.
 - **The card page "Add to…" ignores the finish toggle** and always starts on the printing's
