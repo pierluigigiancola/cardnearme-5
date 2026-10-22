@@ -4,9 +4,9 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
 Spec: [../spec.md](../spec.md)
 
-- [ ] The help, FAQ and scanner page text has been compared against lootstack.app, and anything close to their wording is rewritten, per the trading-shell spec's rule against copying their copy.
-- [ ] The copy uses glossary terms.
+- [x] The help, FAQ and scanner page text has been compared against lootstack.app, and anything close to their wording is rewritten, per the trading-shell spec's rule against copying their copy.
+- [x] The copy uses glossary terms.
