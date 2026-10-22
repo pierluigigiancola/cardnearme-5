@@ -39,27 +39,37 @@ These are settled but easy to reverse, so they live here:
 
 - **Apple sign-in:** keep it only if an iOS scanner app is planned, because Apple requires Sign in with Apple on iOS apps that offer other social sign-ins. Until the owner answers, leave it in place.
 
-## Phases
+## Tickets
 
-Each phase is one issue and one commit (or a small series) with tests passing. They run in order; each depends only on the ones before it.
+Each ticket is a vertical slice: it changes the contract, the domain module, the mock and the UI for one rule, and lands with `pnpm lint`, `pnpm exec tsc --noEmit` and `pnpm test` passing. Any ticket whose blockers are all done can start.
 
-| # | Issue | Depends on |
+| # | Ticket | Blocked by |
 |---|---|---|
-| 01 | [Cleanup](issues/01-cleanup.md) | — |
-| 02 | [Service contract](issues/02-service-contract.md) | 01 |
-| 03 | [Domain module](issues/03-domain-module.md) | 02 (lands together with it) |
-| 04 | [Mock on one store](issues/04-mock-one-store.md) | 03 |
-| 05 | [UI catch-up](issues/05-ui-catch-up.md) | 04 |
-| 06 | [Cookie consent and copy check](issues/06-consent-and-copy.md) | 05 |
+| 01 | [Cleanup and queries prefactor](issues/01-cleanup-and-queries-prefactor.md) | — |
+| 02 | [Domain module, starting with trade value and caps](issues/02-domain-module-trade-value-and-caps.md) | 01 |
+| 03 | [One mock store](issues/03-one-mock-store.md) | 01 |
+| 04 | [Traders identified by UserId](issues/04-traders-identified-by-userid.md) | 03 |
+| 05 | [Card vs Printing](issues/05-card-vs-printing.md) | 03 |
+| 06 | [Onboarding from profile.onboardedAt only](issues/06-onboarding-from-profile.md) | 03 |
+| 07 | [Haves are Collection entries](issues/07-haves-are-collection-entries.md) | 02, 03 |
+| 08 | [Lists hold visibility](issues/08-lists-hold-visibility.md) | 07 |
+| 09 | [Wants target a Card with filters](issues/09-wants-target-a-card.md) | 05, 08 |
+| 10 | [City-scoped Matching and locked Cities](issues/10-city-scoped-matching.md) | 08, 09 |
+| 11 | [Trades complete on mutual confirmation](issues/11-mutual-confirmation-and-reservation.md) | 04, 07 |
+| 12 | [Deck import matches in one call](issues/12-deck-import-batch-matching.md) | 05 |
+| 13 | [UI review fixes](issues/13-ui-review-fixes.md) | 01 |
+| 14 | [Cookie consent](issues/14-cookie-consent.md) | — |
+| 15 | [Help, FAQ and scanner copy check](issues/15-copy-check.md) | — |
+| 16 | [Contract sign-off](issues/16-contract-sign-off.md) | 01–13 |
 
-Phase 02 changes the types, so the app won't build until phase 03's module and the first call sites exist. Land 02 and 03 together, or keep 02 on the branch until 03 compiles.
+02 and 03 can run in parallel, but both edit the mock workspace, so expect a merge.
 
-Stub features, built with the backend (not part of the phases):
+Stub features, built later (not part of this effort's done-when):
 
-- [Deck comments](issues/07-deck-comments.md)
-- [Deck likes](issues/08-deck-likes.md)
-- [Buy link](issues/09-buy-link.md)
-- [Contact form](issues/10-contact-form.md)
+- [Buy link](issues/17-buy-link.md): blocked by 13 and a pricing or affiliate source
+- [Deck comments](issues/18-deck-comments.md): blocked by the real backend
+- [Deck likes](issues/19-deck-likes.md): blocked by the real backend
+- [Contact form](issues/20-contact-form.md): blocked by the choice of email provider
 
 ## Done when
 
