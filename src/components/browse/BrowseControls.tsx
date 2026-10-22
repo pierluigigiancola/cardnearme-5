@@ -21,6 +21,7 @@ type SearchUpdater = (update: (previous: BrowseSearch) => BrowseSearch) => void
 
 export function BrowseToolbar({
   onChange,
+  order,
   placeholder = 'Search cards',
   search,
   sortOptions,
@@ -35,6 +36,8 @@ export function BrowseToolbar({
     label: string
   }[]
   sort: string
+  /** The order the page actually queries with, so the toggle matches the results. */
+  order: SortOrder
   placeholder?: string
   total: number
   shown: number
@@ -52,7 +55,6 @@ export function BrowseToolbar({
   }, [onChange, query, search.q])
 
   const view: ViewMode = search.view ?? 'visual'
-  const order: SortOrder = search.order ?? 'desc'
 
   return (
     <div className="flex flex-wrap items-center gap-2">

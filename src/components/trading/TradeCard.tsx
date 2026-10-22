@@ -154,7 +154,7 @@ export function TradeCard({ me, trade }: {
 
           {trade.status === 'completed' && 'Completed — the cards moved between your binders'}
 
-          {trade.status === 'cancelled' && (trade.cancelledBy === me ? 'You cancelled this trade' : `${trade.cancelledBy ?? sides.partner} declined this trade`)}
+          {trade.status === 'cancelled' && cancelledCopy(trade, me)}
         </p>
 
         {awaitingMe && (
@@ -243,6 +243,18 @@ export function TradeCard({ me, trade }: {
       </footer>
     </article>
   )
+}
+
+/**
+ * `proposer` is whoever made the latest offer, so the recipient cancelling is a decline and the
+ * proposer cancelling is a withdrawal. A trade does not record whether it had been accepted before
+ * it was cancelled, so "withdrew from" is worded to also fit a proposer cancelling after acceptance.
+ */
+function cancelledCopy(trade: Trade, me: string) {
+  if (!trade.cancelledBy) return 'This trade was cancelled'
+  const withdrew = trade.cancelledBy === trade.proposer
+  if (trade.cancelledBy === me) return withdrew ? 'You withdrew from this trade' : 'You declined this trade'
+  return withdrew ? `${trade.cancelledBy} withdrew from this trade` : `${trade.cancelledBy} declined this trade`
 }
 
 function TradeColumn({ lines, title }: {

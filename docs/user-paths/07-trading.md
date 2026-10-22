@@ -61,8 +61,9 @@ flowchart LR
   classDef svc fill:#f1f5f9,stroke:#475569,color:#0f172a
 ```
 
-Public openers go through `requireAuth('trade')`, so anonymous visitors see the sign-up
-prompt and non-onboarded users go to onboarding. The match card opener does not (see gaps).
+Public openers and the match card go through `requireAuth('trade')`, so anonymous visitors
+see the sign-up prompt and non-onboarded users go to onboarding. The match card **Message**
+goes through `requireAuth('message')` the same way.
 
 ### What the builder loads: `trades.getContext(partner)` (R)
 
@@ -191,7 +192,7 @@ difference, and the note.
 | Pending, awaiting them | "Awaiting @partner" | **Withdraw** (toast "Proposal withdrawn"), **Edit** (builder) |
 | Accepted | "Accepted — meet up, swap the cards, then mark it completed" | **Cancel trade**, **Mark completed** (toast "Trade completed — binder updated") |
 | Completed | "Completed — the cards moved between your binders" | — |
-| Cancelled | "You cancelled this trade" or "X declined this trade" | — |
+| Cancelled | By role: the recipient cancelling reads "You declined this trade" / "X declined this trade"; the proposer (latest offerer) cancelling reads "You withdrew from this trade" / "X withdrew from this trade" | — |
 
 Status pills: Pending, Accepted, Completed, Cancelled.
 
@@ -255,9 +256,10 @@ trade" notification appears. Mock partners never propose, counter, decline or co
 - **`revise` has no turn check** on the server; the UI alone separates Counter from Edit.
 - **Notifications for trade events are missing**: proposal received, counter, decline,
   withdraw, cancel, completed. Only the mock auto-accept creates one.
-- **Cancelled copy is wrong**: declining shows "You cancelled", and a partner withdrawing
-  shows "X declined".
-- **Matches skip onboarding**: the match card Trade and Message buttons have no `requireAuth`.
+- **A cancelled trade does not record whether it had been accepted.** The card can tell a
+  decline from a withdrawal (`cancelledBy` vs `proposer`), but a cancel after acceptance reads
+  the same way. Storing that (for example `acceptedAt`) would let the copy say "cancelled after
+  accepting".
 - **Plain Trade still pre-selects up to 2 gives**, which can surprise users.
 - **Meeting time** is not checked to be in the future; no reminders exist.
 - **`partnerWants`** is loaded by the builder but not shown.

@@ -22,7 +22,11 @@ function isTypingTarget(target: EventTarget | null) {
 }
 
 /** Header search over cards and cities. Press "/" anywhere to focus it. */
-export function GlobalSearch({ className }: { className?: string }) {
+export function GlobalSearch({ className, onPick }: {
+  className?: string;
+  /** Called after a result is opened (e.g. to close the drawer the search sits in). */
+  onPick?: () => void
+}) {
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   const [q, setQ] = useState('')
@@ -50,6 +54,10 @@ export function GlobalSearch({ className }: { className?: string }) {
     setQ('')
     inputRef.current?.blur()
   }
+  const pick = () => {
+    close()
+    onPick?.()
+  }
 
   const firstCard = data?.cards[0]
   const firstCity = data?.cities[0]
@@ -76,7 +84,7 @@ export function GlobalSearch({ className }: { className?: string }) {
                 params: { city: firstCity.slug },
                 to: '/city/$city',
               })
-              close()
+              pick()
             }
             else if (firstCard) {
               void navigate({
@@ -88,7 +96,7 @@ export function GlobalSearch({ className }: { className?: string }) {
                 },
                 to: '/sets/$game/$set/$card/$number',
               })
-              close()
+              pick()
             }
           }
         }}
@@ -111,7 +119,7 @@ export function GlobalSearch({ className }: { className?: string }) {
                 <Link
                   className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-accent"
                   key={city.slug}
-                  onClick={close}
+                  onClick={pick}
                   params={{ city: city.slug }}
                   to="/city/$city"
                 >
@@ -135,7 +143,7 @@ export function GlobalSearch({ className }: { className?: string }) {
                   <Link
                     className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-accent"
                     key={card.id}
-                    onClick={close}
+                    onClick={pick}
                     params={{
                       card: card.slug,
                       game: card.gameId,

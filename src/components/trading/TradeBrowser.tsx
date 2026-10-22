@@ -73,6 +73,7 @@ export function TradeBrowser({ aside, onChange, query, search }: {
       <div className="space-y-4">
         <BrowseToolbar
           onChange={onChange}
+          order={query.order ?? 'desc'}
           placeholder="Search for trades"
           search={search}
           shown={data.items.length}
