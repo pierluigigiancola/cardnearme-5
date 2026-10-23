@@ -3,6 +3,8 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { MapPin, Search } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
+import { ErrorState } from './ErrorState'
+
 import { GameBadge, Price } from '#/components/cards/CardBits'
 import { Input } from '#/components/ui/input'
 import { cn } from '#/lib/utils'
@@ -32,10 +34,11 @@ export function GlobalSearch({ className, onPick }: {
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
   const debounced = useDebounced(q, 150)
-  const { data } = useQuery({
+  const search = useQuery({
     ...globalSearchQuery(debounced),
     enabled: debounced.trim().length > 1,
   })
+  const { data } = search
   const { data: games = [] } = useQuery(gamesQuery())
 
   useEffect(() => {
@@ -109,7 +112,16 @@ export function GlobalSearch({ className, onPick }: {
 
       {open && q.trim().length > 1 && (
         <div className="absolute top-full right-0 left-0 z-50 mt-2 max-h-[70vh] overflow-auto rounded-xl border bg-popover p-2 shadow-xl">
-          {!hasResults && <p className="p-3 text-sm text-muted-foreground">No cards or cities found.</p>}
+          {search.isError && (
+            <ErrorState
+              compact
+              error={search.error}
+              onRetry={() => void search.refetch()}
+              title="Search failed"
+            />
+          )}
+
+          {!search.isError && !hasResults && <p className="p-3 text-sm text-muted-foreground">No cards or cities found.</p>}
 
           {data && data.cities.length > 0 && (
             <div className="mb-2">

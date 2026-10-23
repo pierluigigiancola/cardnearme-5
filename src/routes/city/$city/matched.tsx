@@ -4,6 +4,7 @@ import { Loader2, Sparkles } from 'lucide-react'
 
 import { GatedPanel, SignedIn, SignedOut } from '#/auth/AuthGate'
 import { useSignedInViewer } from '#/auth/useViewer'
+import { ErrorState } from '#/components/layout/ErrorState'
 import { PageHeader } from '#/components/layout/PageHeader'
 import { MatchList } from '#/components/trading/MatchList'
 import { Button } from '#/components/ui/button'
@@ -55,15 +56,28 @@ function MatchedPage() {
 
 function CityMatches({ city }: { city: City }) {
   const viewer = useSignedInViewer()
-  const { data: matches, isPending } = useQuery(matchesQuery(viewer.id, { citySlug: city.slug }))
-  const { data: stores = [] } = useQuery(storesQuery(city.slug))
+  const matchesResult = useQuery(matchesQuery(viewer.id, { citySlug: city.slug }))
+  const storesResult = useQuery(storesQuery(city.slug))
+  const stores = storesResult.data ?? []
 
-  if (isPending) {
+  if (matchesResult.isPending) {
     return (
       <p className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
         <Loader2 className="size-4 animate-spin" />
         Finding your matches…
       </p>
+    )
+  }
+  if (matchesResult.isError || storesResult.isError) {
+    return (
+      <ErrorState
+        error={matchesResult.error ?? storesResult.error}
+        onRetry={() => {
+          void matchesResult.refetch()
+          void storesResult.refetch()
+        }}
+        title="Could not load your matches"
+      />
     )
   }
   return (
@@ -89,7 +103,7 @@ function CityMatches({ city }: { city: City }) {
           </Button>
         </div>
       )}
-      matches={matches ?? []}
+      matches={matchesResult.data}
       storeNames={Object.fromEntries(stores.map(store => [store.slug, store.name]))}
     />
   )

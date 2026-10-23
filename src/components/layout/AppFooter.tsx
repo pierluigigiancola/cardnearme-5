@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 
 import { footerNav } from './navigation'
 
+import { LocaleSwitcher } from '#/components/LocaleSwitcher'
 import { Logo } from '#/components/brand/Logo'
 import { useConsent } from '#/integrations/posthog/provider'
 
@@ -40,13 +41,17 @@ export function AppFooter() {
       <div className="page-wrap flex flex-wrap items-center justify-between gap-2 border-t py-4 text-xs text-muted-foreground">
         <span>Card names and images belong to their respective publishers. Prices are indicative.</span>
 
-        <button
-          className="underline hover:text-foreground"
-          onClick={openSettings}
-          type="button"
-        >
-          Cookie settings
-        </button>
+        <div className="flex items-center gap-4">
+          <LocaleSwitcher />
+
+          <button
+            className="underline hover:text-foreground"
+            onClick={openSettings}
+            type="button"
+          >
+            Cookie settings
+          </button>
+        </div>
       </div>
     </footer>
   )
