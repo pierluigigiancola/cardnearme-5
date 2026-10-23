@@ -4,7 +4,6 @@ import { Check, ExternalLink, MapPin, Users } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { useRequireAuth } from '#/auth/AuthGate'
-import { tradeResultLimit } from '#/auth/limits'
 import { useViewer } from '#/auth/useViewer'
 import { PageHeader, Section } from '#/components/layout/PageHeader'
 import { StoreMap } from '#/components/places/Places'
@@ -24,15 +23,14 @@ export const Route = createFileRoute('/stores/$store')({
     if (!store) throw notFound()
     const city = await queryClient.ensureQueryData(cityQuery(store.citySlug))
     if (!city) throw notFound()
-    const limit = Math.min(PREVIEW, tradeResultLimit(viewer) ?? PREVIEW)
     await Promise.all([
       queryClient.ensureQueryData(tradeItemsQuery({
-        limit,
+        limit: PREVIEW,
         listType: 'haves',
         storeSlug: store.slug,
       })),
       queryClient.ensureQueryData(tradeItemsQuery({
-        limit,
+        limit: PREVIEW,
         listType: 'wants',
         storeSlug: store.slug,
       })),
@@ -57,14 +55,13 @@ function StorePage() {
   const { city, store } = Route.useLoaderData()
   const viewer = useViewer()
   const requireAuth = useRequireAuth()
-  const limit = Math.min(PREVIEW, tradeResultLimit(viewer) ?? PREVIEW)
   const { data: haves } = useSuspenseQuery(tradeItemsQuery({
-    limit,
+    limit: PREVIEW,
     listType: 'haves',
     storeSlug: store.slug,
   }))
   const { data: wants } = useSuspenseQuery(tradeItemsQuery({
-    limit,
+    limit: PREVIEW,
     listType: 'wants',
     storeSlug: store.slug,
   }))

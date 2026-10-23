@@ -1,9 +1,9 @@
 import { Link, createFileRoute, redirect } from '@tanstack/react-router'
 import { Store } from 'lucide-react'
 
-import { viewerLimits } from '#/auth/limits'
 import { PageHeader } from '#/components/layout/PageHeader'
 import { Button } from '#/components/ui/button'
+import { STORE_JOIN_CAP } from '#/domain'
 import { profileQuery } from '#/services/queries'
 
 export const Route = createFileRoute('/x/stores/')({
@@ -35,7 +35,7 @@ function NoStoresPage() {
 
         <p className="text-lg font-semibold">You have not joined a store yet</p>
 
-        <p className="text-sm text-muted-foreground">{`Join up to ${viewerLimits.tradingStores} stores where you play. Matches and trade proposals use them as meetup spots.`}</p>
+        <p className="text-sm text-muted-foreground">{`Join up to ${STORE_JOIN_CAP} stores where you play. Matches and trade proposals use them as meetup spots.`}</p>
 
         <Button asChild>
           <Link to="/stores">Find stores near you</Link>

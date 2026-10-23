@@ -37,7 +37,7 @@ import type { FacetDefinition } from './queryHelpers'
 import { createRandom, daysAgo, MOCK_NOW } from './random'
 import type { Random } from './random'
 
-import { viewerLimits } from '#/auth/limits'
+import { canJoinAnotherStore, STORE_JOIN_CAP, tradeValue } from '#/domain'
 import { conditionLabels, isCondition, isFinish, isLanguage, languageLabels } from '#/lib/cardOptions'
 
 /**
@@ -414,7 +414,7 @@ function seedConversations(state: WorkspaceState, wantSources: TradeItem[], rand
   if (alice) {
     const theirs = wantSources.filter(source => source.ownerUsername === alice).map(lineFromTradeItem)
     const mine = random.sample(myHaves, 1).map(lineFromItem)
-    const difference = sum(theirs) - sum(mine)
+    const difference = tradeValue(theirs) - tradeValue(mine)
     const trade = addTrade({
       awaiting: me,
       cancelledBy: null,
@@ -664,10 +664,6 @@ function seedConversations(state: WorkspaceState, wantSources: TradeItem[], rand
 
 function nextId(state: WorkspaceState, prefix: string) {
   return `${prefix}-${state.nextId++}`
-}
-
-function sum(lines: Pick<TradeLine, 'price' | 'quantity'>[]) {
-  return lines.reduce((total, line) => total + line.price * line.quantity, 0)
 }
 
 // ---------------------------------------------------------------------------
@@ -1446,7 +1442,7 @@ function createWorkspaceServices(state: WorkspaceState): WorkspaceServices {
       completeOnboarding: async ({ citySlug, showStoresOnProfile, storeSlugs }) => {
         if (!cities.some(city => city.slug === citySlug)) throw new Error('Pick your city')
         const unique = [...new Set(storeSlugs)]
-        if (unique.length > viewerLimits.tradingStores) throw new Error(`Pick up to ${viewerLimits.tradingStores} stores`)
+        if (unique.length > STORE_JOIN_CAP) throw new Error(`Pick up to ${STORE_JOIN_CAP} stores`)
         unique.forEach(requireStore)
         Object.assign(state.profile, {
           citySlug,
@@ -1460,8 +1456,8 @@ function createWorkspaceServices(state: WorkspaceState): WorkspaceServices {
       joinStore: async (storeSlug) => {
         const store = requireStore(storeSlug)
         if (state.profile.storeSlugs.includes(store.slug)) return state.profile
-        if (state.profile.storeSlugs.length >= viewerLimits.tradingStores) {
-          throw new Error(`You can trade at up to ${viewerLimits.tradingStores} stores. Leave one first.`)
+        if (!canJoinAnotherStore(state.profile.storeSlugs.length)) {
+          throw new Error(`You can trade at up to ${STORE_JOIN_CAP} stores. Leave one first.`)
         }
         state.profile.storeSlugs = [...state.profile.storeSlugs, store.slug]
         state.profile.citySlug ??= store.citySlug

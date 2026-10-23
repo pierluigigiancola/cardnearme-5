@@ -90,6 +90,7 @@ export interface PlacesService {
 }
 
 export interface TradingService {
+  /** Public Haves or Wants. The result cap comes from the caller's session; see `TradeItemQuery.limit`. */
   listTradeItems: (query: TradeItemQuery) => Promise<Page<TradeItem> & { facets: Facet[] }>
   getCityTradeStats: (citySlug: string) => Promise<{
     haves: number;

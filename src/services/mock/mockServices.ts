@@ -17,7 +17,8 @@ import {
   tradeItems,
   users,
 } from './data'
-import { buildFacets, cardFacets, compare, matchesFacets, matchesText, rarityOrder, tradeItemFacets } from './queryHelpers'
+import { buildFacets, cardFacets, compare, matchesFacets, matchesText, rarityOrder } from './queryHelpers'
+import { listTradeItemsRpc } from './tradingRpc'
 import { mockWorkspaceServices } from './workspaceRpc'
 
 /** Simulates network latency so loading states are exercised in the shell. */
@@ -154,28 +155,7 @@ export const mockServices: Services = {
         wants: inCity.filter(item => item.listType === 'wants').length,
       })
     },
-    listTradeItems: async ({ citySlug, facets, limit, listType, order = 'desc', ownerUsername, q, sort = 'updated', storeSlug }) => {
-      const scoped = tradeItems.filter(item =>
-        item.listType === listType
-        && (!citySlug || item.citySlug === citySlug)
-        && (!storeSlug || item.storeSlugs.includes(storeSlug))
-        && (!ownerUsername || item.ownerUsername === ownerUsername))
-      const filtered = scoped
-        .filter(item => matchesText(item.card.name, q) && matchesFacets(item, tradeItemFacets, facets))
-        .sort((a, b) => {
-          switch (sort) {
-            case 'name': return compare(a.card.name, b.card.name, order)
-            case 'price': return compare(a.price, b.price, order)
-            case 'quantity': return compare(a.quantity, b.quantity, order)
-            case 'updated': return compare(a.updatedAt, b.updatedAt, order)
-          }
-        })
-      return delay({
-        cappedAt: limit !== undefined && filtered.length > limit ? limit : null,
-        facets: buildFacets(scoped, tradeItemFacets),
-        items: limit !== undefined ? filtered.slice(0, limit) : filtered,
-        total: filtered.length,
-      })
-    },
+    // The result cap depends on the session, so this runs on the server.
+    listTradeItems: async query => listTradeItemsRpc({ data: query }),
   },
 }

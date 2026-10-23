@@ -24,9 +24,9 @@ import { Label } from '#/components/ui/label'
 import { Textarea } from '#/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { QuantityStepper } from '#/components/workspace/QuantityStepper'
+import { tradeFromPerspective, tradeValue } from '#/domain'
 import { formatPrice } from '#/lib/format'
 import { usePricingSource } from '#/lib/pricing'
-import { tradeFromPerspective } from '#/lib/tradeMath'
 import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
 import { tradeContextQuery } from '#/services/queries'
@@ -302,10 +302,8 @@ function TradeBuilderForm({ context, onClose, request }: {
     }))
   }, [context])
 
-  const total = (selection: Map<string, Selection>) =>
-    [...selection.values()].reduce((sum, line) => sum + line.price * line.quantity, 0)
-  const myCards = total(give)
-  const theirCards = total(get)
+  const myCards = tradeValue([...give.values()])
+  const theirCards = tradeValue([...get.values()])
   const myTotal = myCards + (cash.payer === 'me' ? cash.amount : 0)
   const theirTotal = theirCards + (cash.payer === 'partner' ? cash.amount : 0)
   // `|| 0` drops -0, which would format as "-€0.00".
