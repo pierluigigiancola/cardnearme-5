@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { useRequireAuth } from '#/auth/AuthGate'
 import { tradeResultLimit } from '#/auth/limits'
 import { useViewer } from '#/auth/useViewer'
+import { ErrorState } from '#/components/layout/ErrorState'
 import { PageHeader, Section } from '#/components/layout/PageHeader'
 import { StoreMap } from '#/components/places/Places'
 import { MatchList } from '#/components/trading/MatchList'
@@ -69,11 +70,13 @@ function StorePage() {
     storeSlug: store.slug,
   }))
   const unlocked = city.traderCount >= city.unlockThreshold
-  const { data: profile } = useQuery({
+  const profileResult = useQuery({
     ...profileQuery(viewer.kind === 'user' ? viewer.id : 'anonymous'),
     enabled: viewer.kind === 'user',
   })
-  const joined = profile?.storeSlugs.includes(store.slug) ?? false
+  const joined = profileResult.data?.storeSlugs.includes(store.slug) ?? false
+  // Unknown when the profile failed: don't offer "Join store" to someone who may have joined.
+  const membership = profileResult.isError ? 'unknown' : joined ? 'joined' : 'not-joined'
   const join = useWorkspaceMutation((services, slug: string) => services.profile.joinStore(slug))
 
   return (
@@ -83,30 +86,39 @@ function StorePage() {
           <>
             <ShareButton label="Copy link" />
 
-            {joined
-              ? (
-                <Button
-                  asChild
-                  variant="outline"
+            {membership === 'unknown' && (
+              <ErrorState
+                compact
+                error={profileResult.error}
+                onRetry={() => void profileResult.refetch()}
+                title="Could not load your stores"
+              />
+            )}
+
+            {membership === 'joined' && (
+              <Button
+                asChild
+                variant="outline"
+              >
+                <Link
+                  params={{ store: store.slug }}
+                  to="/x/stores/$store"
                 >
-                  <Link
-                    params={{ store: store.slug }}
-                    to="/x/stores/$store"
-                  >
-                    <Check />
-                    Joined · open
-                  </Link>
-                </Button>
-              )
-              : (
-                <Button
-                  disabled={join.isPending}
-                  onClick={() => requireAuth('joinStore', () => join.mutate(store.slug, { onSuccess: () => toast.success(`Joined ${store.name}`) }))}
-                >
-                  <Users />
-                  Join store
-                </Button>
-              )}
+                  <Check />
+                  Joined · open
+                </Link>
+              </Button>
+            )}
+
+            {membership === 'not-joined' && (
+              <Button
+                disabled={join.isPending}
+                onClick={() => requireAuth('joinStore', () => join.mutate(store.slug, { onSuccess: () => toast.success(`Joined ${store.name}`) }))}
+              >
+                <Users />
+                Join store
+              </Button>
+            )}
           </>
         )}
         crumbs={[{

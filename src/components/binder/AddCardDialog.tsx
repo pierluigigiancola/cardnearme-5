@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { useSignedInViewer } from '#/auth/useViewer'
 import { CardArt } from '#/components/cards/CardArt'
 import { Price } from '#/components/cards/CardBits'
+import { ErrorState } from '#/components/layout/ErrorState'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
@@ -113,10 +114,11 @@ function CardSearchStep({ onPick }: { onPick: (card: Card) => void }) {
     return () => clearTimeout(timeout)
   }, [query])
 
-  const { data: results = [], isFetching } = useQuery({
+  const search = useQuery({
     ...cardSearchQuery(debounced),
     enabled: debounced.trim().length > 1,
   })
+  const { data: results = [], isFetching } = search
 
   return (
     <div className="space-y-3">
@@ -159,7 +161,18 @@ function CardSearchStep({ onPick }: { onPick: (card: Card) => void }) {
           </li>
         ))}
 
-        {debounced.trim().length > 1 && query === debounced && !isFetching && results.length === 0 && <li className="px-2 py-4 text-center text-sm text-muted-foreground">No cards found.</li>}
+        {search.isError && (
+          <li>
+            <ErrorState
+              compact
+              error={search.error}
+              onRetry={() => void search.refetch()}
+              title="Search failed"
+            />
+          </li>
+        )}
+
+        {debounced.trim().length > 1 && query === debounced && !isFetching && !search.isError && results.length === 0 && <li className="px-2 py-4 text-center text-sm text-muted-foreground">No cards found.</li>}
       </ul>
     </div>
   )
@@ -182,11 +195,15 @@ function CardDetailsStep({ card, defaultListId, defaultSection, onBack, onDone }
   const [language, setLanguage] = useState<Language>('en')
   const [quantity, setQuantity] = useState(1)
 
-  const { data: otherPrintings = [] } = useQuery(printingsQuery(card))
-  const { data: lists = [] } = useQuery({
+  const printingsResult = useQuery(printingsQuery(card))
+  const listsResult = useQuery({
     ...tradeListsQuery(viewer.id, { type: section === 'wants' ? 'wants' : 'haves' }),
     enabled: section !== 'collection',
   })
+  const otherPrintings = printingsResult.data ?? []
+  const lists = listsResult.data ?? []
+  // Without the lists we can't tell which one to add to, so don't guess.
+  const listsUnavailable = section !== 'collection' && listsResult.isError
 
   const printings = [card, ...otherPrintings]
   const printing = printings.find(candidate => candidate.id === printingId) ?? card
@@ -261,30 +278,41 @@ function CardDetailsStep({ card, defaultListId, defaultSection, onBack, onDone }
 
           {section !== 'collection' && (
             <Field label="List">
-              <Select
-                onValueChange={setListId}
-                value={selectedList?.id ?? 'default'}
-              >
-                <SelectTrigger
-                  aria-label="List"
-                  className="w-full"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-
-                <SelectContent>
-                  {compatibleLists.length === 0 && <SelectItem value="default">{`New “My ${section}” list`}</SelectItem>}
-
-                  {compatibleLists.map(list => (
-                    <SelectItem
-                      key={list.id}
-                      value={list.id}
+              {listsResult.isError
+                ? (
+                  <ErrorState
+                    compact
+                    error={listsResult.error}
+                    onRetry={() => void listsResult.refetch()}
+                    title="Could not load your lists"
+                  />
+                )
+                : (
+                  <Select
+                    onValueChange={setListId}
+                    value={selectedList?.id ?? 'default'}
+                  >
+                    <SelectTrigger
+                      aria-label="List"
+                      className="w-full"
                     >
-                      {list.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                      <SelectValue />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {compatibleLists.length === 0 && <SelectItem value="default">{`New “My ${section}” list`}</SelectItem>}
+
+                      {compatibleLists.map(list => (
+                        <SelectItem
+                          key={list.id}
+                          value={list.id}
+                        >
+                          {list.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
             </Field>
           )}
 
@@ -315,6 +343,15 @@ function CardDetailsStep({ card, defaultListId, defaultSection, onBack, onDone }
                 ))}
               </SelectContent>
             </Select>
+
+            {printingsResult.isError && (
+              <ErrorState
+                compact
+                error={printingsResult.error}
+                onRetry={() => void printingsResult.refetch()}
+                title="Could not load other printings"
+              />
+            )}
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
@@ -413,7 +450,7 @@ function CardDetailsStep({ card, defaultListId, defaultSection, onBack, onDone }
       <DialogFooter>
         {onBack && (
           <Button
-            disabled={add.isPending}
+            disabled={add.isPending || listsUnavailable}
             onClick={() => submit(true)}
             type="button"
             variant="outline"
@@ -423,7 +460,7 @@ function CardDetailsStep({ card, defaultListId, defaultSection, onBack, onDone }
         )}
 
         <Button
-          disabled={add.isPending}
+          disabled={add.isPending || listsUnavailable}
           onClick={() => submit(false)}
           type="button"
         >

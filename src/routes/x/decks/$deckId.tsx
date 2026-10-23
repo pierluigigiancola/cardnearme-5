@@ -8,13 +8,13 @@ import { CardSearchBox } from '#/components/binder/CardSearchBox'
 import { CardArt } from '#/components/cards/CardArt'
 import { GameBadge, Price } from '#/components/cards/CardBits'
 import { ManaCurve, TypeBreakdown, deckValue } from '#/components/decks/DeckTools'
+import { ErrorState } from '#/components/layout/ErrorState'
 import { PageHeader } from '#/components/layout/PageHeader'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '#/components/ui/dialog'
@@ -35,6 +35,7 @@ import {
 } from '#/components/ui/select'
 import { Textarea } from '#/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
+import { ConfirmDialog } from '#/components/workspace/ConfirmDialog'
 import { QuantityStepper } from '#/components/workspace/QuantityStepper'
 import { formatTextList, parseTextList } from '#/lib/cardListText'
 import { deckCounts, validateDeck } from '#/lib/deckValidation'
@@ -137,10 +138,11 @@ function DeckEditor({ deck }: { deck: OwnedDeck }) {
   })
 
   const cardIds = useMemo(() => [...new Set(draft.cards.map(entry => entry.card.id))].sort(), [draft.cards])
-  const { data: ownership = {} } = useQuery({
+  const ownershipResult = useQuery({
     ...ownershipQuery(user.id, cardIds),
     enabled: cardIds.length > 0,
   })
+  const ownership = ownershipResult.data ?? {}
   const issues = validateDeck({
     cards: draft.cards,
     format: draft.format,
@@ -299,6 +301,16 @@ function DeckEditor({ deck }: { deck: OwnedDeck }) {
               ))}
             </ToggleGroup>
           </div>
+
+          {ownershipResult.isError && (
+            <ErrorState
+              className="rounded-xl border border-destructive/40"
+              compact
+              error={ownershipResult.error}
+              onRetry={() => void ownershipResult.refetch()}
+              title="Could not check which cards you own"
+            />
+          )}
 
           {sections.map((section) => {
             const entries = draft.cards.filter(entry => entry.section === section)
@@ -466,46 +478,26 @@ function DeckEditor({ deck }: { deck: OwnedDeck }) {
         open={textOpen}
       />
 
-      <Dialog
+      <ConfirmDialog
+        confirmLabel="Delete deck"
+        description="This deck list is removed for good. Your cards stay in your binder."
+        onConfirm={() => {
+          leaving.current = true
+          // mutateAsync: the editor unmounts once the deck query refetches as empty.
+          remove.mutateAsync(undefined)
+            .then(() => {
+              toast.success('Deck deleted')
+              return router.navigate({ to: '/x/decks' })
+            })
+            .catch(() => {
+              leaving.current = false
+            })
+        }}
         onOpenChange={setConfirmDelete}
         open={confirmDelete}
-      >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{`Delete ${deck.name}?`}</DialogTitle>
-
-            <DialogDescription>This deck list is removed for good. Your cards stay in your binder.</DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter>
-            <Button
-              onClick={() => setConfirmDelete(false)}
-              variant="ghost"
-            >
-              Cancel
-            </Button>
-
-            <Button
-              disabled={remove.isPending}
-              onClick={() => {
-                leaving.current = true
-                // mutateAsync: the editor unmounts once the deck query refetches as empty.
-                remove.mutateAsync(undefined)
-                  .then(() => {
-                    toast.success('Deck deleted')
-                    return router.navigate({ to: '/x/decks' })
-                  })
-                  .catch(() => {
-                    leaving.current = false
-                  })
-              }}
-              variant="destructive"
-            >
-              Delete deck
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        pending={remove.isPending}
+        title={`Delete ${deck.name}?`}
+      />
     </div>
   )
 }

@@ -8,6 +8,7 @@ import { viewerLimits } from '#/auth/limits'
 import { useRefreshViewer } from '#/auth/useViewer'
 import { demoCompleteOnboarding } from '#/auth/viewer'
 import { Logo } from '#/components/brand/Logo'
+import { ErrorState } from '#/components/layout/ErrorState'
 import { StoreMap } from '#/components/places/Places'
 import { Button } from '#/components/ui/button'
 import { Checkbox } from '#/components/ui/checkbox'
@@ -45,7 +46,8 @@ function OnboardingPage() {
   const [showStores, setShowStores] = useState(profile.showStoresOnProfile)
   const [query, setQuery] = useState('')
   const city = cities.find(candidate => candidate.slug === citySlug)
-  const { data: stores = [], isPending: storesPending } = useQuery(storesQuery(citySlug))
+  const storesResult = useQuery(storesQuery(citySlug))
+  const { data: stores = [], isPending: storesPending } = storesResult
   const full = storeSlugs.length >= viewerLimits.tradingStores
 
   const save = useWorkspaceMutation((services, input: OnboardingInput) => services.profile.completeOnboarding(input))
@@ -221,7 +223,18 @@ function OnboardingPage() {
                   )
                 })}
 
-                {!storesPending && stores.length === 0 && <li className="p-4 text-sm text-muted-foreground">No stores listed in this city yet — you can add them later.</li>}
+                {storesResult.isError && (
+                  <li>
+                    <ErrorState
+                      compact
+                      error={storesResult.error}
+                      onRetry={() => void storesResult.refetch()}
+                      title="Could not load stores"
+                    />
+                  </li>
+                )}
+
+                {storesResult.isSuccess && stores.length === 0 && <li className="p-4 text-sm text-muted-foreground">No stores listed in this city yet — you can add them later.</li>}
               </ul>
             </div>
 

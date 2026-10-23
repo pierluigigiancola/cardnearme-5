@@ -1,6 +1,6 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
-import { ExternalLink, MapPin, Plus } from 'lucide-react'
+import { MapPin, Plus } from 'lucide-react'
 import { useState } from 'react'
 
 import { GatedPanel, SignedIn, SignedOut, useRequireAuth } from '#/auth/AuthGate'
@@ -9,6 +9,7 @@ import { AddCardDialog, sectionLabels } from '#/components/binder/AddCardDialog'
 import { CardArt } from '#/components/cards/CardArt'
 import { Price, PriceChange, RarityLabel } from '#/components/cards/CardBits'
 import { CardList } from '#/components/cards/CardList'
+import { ErrorState } from '#/components/layout/ErrorState'
 import { PageHeader, Section } from '#/components/layout/PageHeader'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
@@ -102,24 +103,7 @@ function CardPage() {
           )}
 
           <div className="flex gap-2">
-            <Button
-              asChild
-              className="flex-1"
-              variant="outline"
-            >
-              <a
-                href="#"
-                rel="noreferrer"
-              >
-                <ExternalLink />
-                Buy
-
-                {' '}
-
-                <Price amount={price} />
-              </a>
-            </Button>
-
+            {/* The Buy link returns once a pricing or affiliate source is chosen (ticket 17-buy-link). */}
             <Button
               className="flex-1"
               onClick={() => requireAuth('addToCollection', () => setAdding(true))}
@@ -326,8 +310,19 @@ function CardPage() {
 /** Copies of this card (any printing) in the viewer's binder. */
 function OwnershipCounts({ card }: { card: Card }) {
   const viewer = useSignedInViewer()
-  const { data } = useQuery(ownershipQuery(viewer.id, [card.id]))
-  const ownership = data?.[card.id]
+  const result = useQuery(ownershipQuery(viewer.id, [card.id]))
+  if (result.isError) {
+    return (
+      <ErrorState
+        className="rounded-xl border bg-card"
+        compact
+        error={result.error}
+        onRetry={() => void result.refetch()}
+        title="Could not load your copies"
+      />
+    )
+  }
+  const ownership = result.data?.[card.id]
   return (
     <div className="grid grid-cols-3 gap-2 rounded-xl border bg-card p-4 text-center text-sm">
       {(['collection', 'haves', 'wants'] as const).map(section => (

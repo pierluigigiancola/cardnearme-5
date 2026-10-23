@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 
 import { CardArt } from '#/components/cards/CardArt'
 import { Price } from '#/components/cards/CardBits'
+import { ErrorState } from '#/components/layout/ErrorState'
 import { Input } from '#/components/ui/input'
 import { Popover, PopoverAnchor, PopoverContent } from '#/components/ui/popover'
 import { cardSearchQuery } from '#/services/queries'
@@ -28,10 +29,11 @@ export function CardSearchBox({ autoFocus, gameId, initialQuery = '', onPick, pl
   }, [query])
 
   const enabled = debounced.trim().length > 1
-  const { data: results = [], isFetching } = useQuery({
+  const search = useQuery({
     ...cardSearchQuery(debounced, gameId),
     enabled,
   })
+  const { data: results = [], isFetching } = search
 
   return (
     <Popover
@@ -95,7 +97,18 @@ export function CardSearchBox({ autoFocus, gameId, initialQuery = '', onPick, pl
             </li>
           ))}
 
-          {query === debounced && !isFetching && results.length === 0 && <EmptyRow>No cards found.</EmptyRow>}
+          {search.isError && (
+            <li>
+              <ErrorState
+                compact
+                error={search.error}
+                onRetry={() => void search.refetch()}
+                title="Search failed"
+              />
+            </li>
+          )}
+
+          {query === debounced && !isFetching && !search.isError && results.length === 0 && <EmptyRow>No cards found.</EmptyRow>}
         </ul>
       </PopoverContent>
     </Popover>
