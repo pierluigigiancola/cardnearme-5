@@ -3,7 +3,7 @@ import { cities, games } from '../data'
 import { listedItems, priceOf, printingsById, printingsOf, requireTrader, shownPrinting, wantDetails } from '../store'
 import type { CollectionRecord, ItemRecord, ListRecord, TraderRecord, WantRecord } from '../store'
 
-import { clampQuantity, MAX_QUANTITY, now, requirePrinting } from './context'
+import { checkQuantity, MAX_QUANTITY, now, requirePrinting } from './context'
 import type { TraderContext } from './context'
 
 import { checkForTradeQuantity, checkWantFilters, isCondition, isFinish, isHave, isLanguage, reservedQuantities } from '#/domain'
@@ -68,6 +68,13 @@ export function toBinderItems(ctx: TraderContext, records: ItemRecord[]): Binder
 /** The Printing a record shows: the one owned, or the one shown for a Want. */
 export function printingOf(record: ItemRecord) {
   return record.kind === 'collection' ? printingsById.get(record.printingId) : shownPrinting(record)
+}
+
+/** The Printing a record shows; throws "not found" when it has none. */
+export function requirePrintingOf(record: ItemRecord) {
+  const printing = printingOf(record)
+  if (!printing) throw new Error('Card not found')
+  return printing
 }
 
 export function itemsIn(ctx: TraderContext, section: BinderSection) {
@@ -200,7 +207,7 @@ function sameFilters(a: WantFilters, b: WantFilters) {
 export function addRecords(ctx: TraderContext, inputs: BinderItemInput[]) {
   const touched: ItemRecord[] = []
   for (const input of inputs) {
-    const quantity = clampQuantity(input.quantity)
+    const quantity = checkQuantity(input.quantity)
     if (input.kind === 'collection') {
       const card = requirePrinting(input.printingId)
       if (!isCondition(input.condition) || !isFinish(input.finish) || !isLanguage(input.language)) throw new Error('Invalid card details')

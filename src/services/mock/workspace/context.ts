@@ -35,10 +35,10 @@ export function now() {
   return new Date().toISOString()
 }
 
-export function requirePrinting(cardId: string) {
-  const card = printingsById.get(cardId)
-  if (!card) throw new Error('Card not found')
-  return card
+export function requirePrinting(printingId: string) {
+  const printing = printingsById.get(printingId)
+  if (!printing) throw new Error('Card not found')
+  return printing
 }
 
 /** Printings of the same Card share this key. */
@@ -46,7 +46,8 @@ export function cardKey(printing: Pick<Printing, 'cardId'>) {
   return printing.cardId
 }
 
-export function clampQuantity(quantity: number) {
+/** Throws unless `quantity` is a whole number of at least 1; larger ones are capped at `MAX_QUANTITY`. */
+export function checkQuantity(quantity: number) {
   if (!Number.isInteger(quantity) || quantity < 1) throw new Error('Quantity must be at least 1')
   return Math.min(quantity, MAX_QUANTITY)
 }

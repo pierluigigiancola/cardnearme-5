@@ -7,9 +7,9 @@ import { resolveImportRows } from '../resolveImportRows'
 import { printingsById, printingsOf } from '../store'
 import type { ItemRecord } from '../store'
 
-import { cardKey, clampQuantity, now, requirePrinting } from './context'
+import { cardKey, checkQuantity, now, requirePrinting } from './context'
 import type { TraderContext } from './context'
-import { addRecords, inSection, listTypeOf, markForTrade, myReserved, printingOf, requireItem, requireList, resolveList, toBinderItems, touchList } from './records'
+import { addRecords, inSection, listTypeOf, markForTrade, myReserved, printingOf, requireItem, requirePrintingOf, requireList, resolveList, toBinderItems, touchList } from './records'
 
 import { checkOwnedQuantity, checkWantFilters } from '#/domain'
 import { conditionLabels, isCondition, isLanguage, languageLabels } from '#/lib/cardOptions'
@@ -157,7 +157,7 @@ export function binderService(ctx: TraderContext): BinderService {
             ...row,
             card,
             include: card !== null,
-            quantity: clampQuantity(row.quantity),
+            quantity: checkQuantity(row.quantity),
           }
         }),
         section: input.section,
@@ -227,7 +227,7 @@ export function binderService(ctx: TraderContext): BinderService {
         const record = requireItem(ctx, itemId)
         if (target.listId === null && record.kind === 'want') throw new Error('Wants always belong to a Wants List')
         return {
-          list: target.listId === null ? null : resolveList(ctx, listTypeOf(record), target.listId, requirePrinting(printingOf(record)?.id ?? '')),
+          list: target.listId === null ? null : resolveList(ctx, listTypeOf(record), target.listId, requirePrintingOf(record)),
           record,
         }
       })
@@ -270,7 +270,7 @@ export function binderService(ctx: TraderContext): BinderService {
     },
     updateItem: async (itemId, patch) => {
       const record = requireItem(ctx, itemId)
-      if (patch.quantity !== undefined) record.quantity = checkOwnedQuantity(clampQuantity(patch.quantity), myReserved(ctx).get(record.id) ?? 0)
+      if (patch.quantity !== undefined) record.quantity = checkOwnedQuantity(checkQuantity(patch.quantity), myReserved(ctx).get(record.id) ?? 0)
       if (record.kind === 'collection') {
         if (patch.filters !== undefined) throw new Error('Only Wants have filters')
         const card = requirePrinting(record.printingId)
@@ -301,7 +301,7 @@ export function binderService(ctx: TraderContext): BinderService {
             ...patch.filters,
           })
         }
-        const shown = requirePrinting(printingOf(record)?.id ?? '')
+        const shown = requirePrintingOf(record)
         if (patch.listId) record.listId = resolveList(ctx, 'wants', patch.listId, shown).id
         touchList(ctx, record.listId)
       }
