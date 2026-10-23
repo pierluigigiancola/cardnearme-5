@@ -10,6 +10,8 @@ export interface CollectionQuantities {
   quantity: number
   /** Copies marked for trade, from 0 to `quantity`. */
   forTradeQuantity: number
+  /** Copies promised to other Traders in accepted Trades (ADR 0003); 0 when left out. */
+  reservedQuantity?: number
 }
 
 /** A Collection entry is a Have while at least one of its copies is for trade. */
@@ -26,13 +28,16 @@ export function checkForTradeQuantity(quantity: number, forTradeQuantity: number
 
 /**
  * A Collection entry after its owner gives `given` copies away. The given
- * copies come out of the for-trade ones first. A `quantity` of 0 means the
+ * copies come out of the for-trade ones first and release as many reserved
+ * copies, since they were reserved for this give. A `quantity` of 0 means the
  * entry is gone.
  */
 export function afterGiving(entry: CollectionQuantities, given: number): CollectionQuantities {
   const quantity = Math.max(0, entry.quantity - given)
-  return {
+  const after: CollectionQuantities = {
     forTradeQuantity: Math.min(quantity, Math.max(0, entry.forTradeQuantity - given)),
     quantity,
   }
+  if (entry.reservedQuantity !== undefined) after.reservedQuantity = Math.min(quantity, Math.max(0, entry.reservedQuantity - given))
+  return after
 }

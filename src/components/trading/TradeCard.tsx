@@ -8,7 +8,7 @@ import { TradeStatusPill } from './TradeStatusPill'
 import { CardArt } from '#/components/cards/CardArt'
 import { ConditionBadge, FinishBadge, Price } from '#/components/cards/CardBits'
 import { Button } from '#/components/ui/button'
-import { marketValue, tradeFromPerspective } from '#/domain'
+import { hasConfirmed, marketValue, tradeFromPerspective } from '#/domain'
 import { formatPrice, formatRelative } from '#/lib/format'
 import { usePricingSource } from '#/lib/pricing'
 import { cn } from '#/lib/utils'
@@ -35,10 +35,12 @@ export function TradeCard({ me, partnerName, trade }: {
   const source = usePricingSource()
   const sides = tradeFromPerspective(trade, me)
   const openTradeBuilder = useTradeBuilder()
-  const action = useWorkspaceMutation((services, run: 'accept' | 'cancel' | 'complete') => services.trades[run](trade.id))
+  const action = useWorkspaceMutation((services, run: 'accept' | 'cancel' | 'confirm') => services.trades[run](trade.id))
   const awaitingMe = trade.status === 'pending' && trade.awaiting === me
+  const iConfirmed = hasConfirmed(trade, me)
+  const partnerConfirmed = hasConfirmed(trade, sides.partner)
 
-  const run = (kind: 'accept' | 'cancel' | 'complete', message: string) => {
+  const run = (kind: 'accept' | 'cancel' | 'confirm', message: string) => {
     action.mutate(kind, { onSuccess: () => toast.success(message) })
   }
 
@@ -150,13 +152,30 @@ export function TradeCard({ me, partnerName, trade }: {
 
       {trade.note && <p className="mt-3 border-l-2 pl-3 text-sm text-muted-foreground italic">{trade.note}</p>}
 
+      {(trade.status === 'accepted' || trade.status === 'completed') && (
+        <ul
+          aria-label="Confirmations"
+          className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm"
+        >
+          <ConfirmationItem
+            at={trade.confirmedAt[me]}
+            who="You"
+          />
+
+          <ConfirmationItem
+            at={trade.confirmedAt[sides.partner]}
+            who={partnerName}
+          />
+        </ul>
+      )}
+
       <footer className="mt-4 flex flex-wrap items-center gap-2">
         <p className="mr-auto text-sm font-semibold text-muted-foreground">
           {trade.status === 'pending' && (awaitingMe ? 'Waiting for your answer' : `Awaiting @${partnerName}`)}
 
-          {trade.status === 'accepted' && 'Accepted — meet up, swap the cards, then mark it completed'}
+          {trade.status === 'accepted' && acceptedCopy(iConfirmed, partnerConfirmed, partnerName)}
 
-          {trade.status === 'completed' && 'Completed — the cards moved between your binders'}
+          {trade.status === 'completed' && 'Completed — both of you confirmed, and the cards moved between your binders'}
 
           {trade.status === 'cancelled' && cancelledCopy(trade, me, partnerName)}
         </p>
@@ -234,18 +253,39 @@ export function TradeCard({ me, partnerName, trade }: {
               Cancel trade
             </Button>
 
-            <Button
-              disabled={action.isPending}
-              onClick={() => run('complete', 'Trade completed — binder updated')}
-              size="sm"
-            >
-              <CheckCheck />
-              Mark completed
-            </Button>
+            {!iConfirmed && (
+              <Button
+                disabled={action.isPending}
+                onClick={() => run('confirm', partnerConfirmed ? 'Trade completed — binder updated' : 'Confirmed — waiting for the other Trader')}
+                size="sm"
+              >
+                <CheckCheck />
+                Confirm trade
+              </Button>
+            )}
           </>
         )}
       </footer>
     </article>
+  )
+}
+
+function acceptedCopy(iConfirmed: boolean, partnerConfirmed: boolean, partnerName: string) {
+  if (iConfirmed) return `You confirmed — waiting for @${partnerName} to confirm`
+  if (partnerConfirmed) return `@${partnerName} confirmed — confirm once you have swapped the cards`
+  return 'Accepted — meet up, swap the cards, then each of you confirms'
+}
+
+function ConfirmationItem({ at, who }: {
+  who: string;
+  at: string | undefined
+}) {
+  return (
+    <li className={cn('flex items-center gap-1', at ? 'text-want' : 'text-muted-foreground')}>
+      {at ? <Check className="size-4" /> : <CalendarClock className="size-4" />}
+
+      {at ? `${who} confirmed ${formatRelative(at)}` : `${who}: not confirmed yet`}
+    </li>
   )
 }
 

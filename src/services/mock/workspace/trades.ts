@@ -1,14 +1,14 @@
 import type { TradesService } from '../../services'
 import type { MeetupLocation, Trade, TradeDraft, TradeLine } from '../../types'
-import { printingsById, participant, priceOf, requireTrader, storesBySlug, usernameOf } from '../store'
-import type { ItemRecord } from '../store'
+import { participant, priceOf, requireTrader, storesBySlug, usernameOf } from '../store'
 
 import { cardKey, now, requirePrinting, validPrice } from './context'
 import type { TraderContext } from './context'
 import { chatWith, partnerOf, post, requireChat, requireTrade } from './conversations'
-import { addRecords, collectionRecords, itemsIn, myHaves, partnerItems, requireItem, toBinderItems } from './records'
+import { acceptAs, confirmAs } from './lifecycle'
+import { collectionRecords, itemsIn, myHaves, myReserved, partnerItems, requireItem, toBinderItems } from './records'
 
-import { afterGiving, giveLineQuantity } from '#/domain'
+import { cancelTrade, counterOffer, giveLineQuantity, proposeTrade, reservedQuantities } from '#/domain'
 
 export function tradesService(ctx: TraderContext): TradesService {
   const { me, store, trader } = ctx
@@ -16,6 +16,8 @@ export function tradesService(ctx: TraderContext): TradesService {
   const resolveDraft = (draft: TradeDraft) => {
     const partner = participant(store, draft.partner).id
     if (partner === me) throw new Error('You cannot trade with yourself')
+    const reserved = myReserved(ctx)
+    const partnerReserved = reservedQuantities(store.trades, partner)
     const give = draft.give.map((line): TradeLine => {
       // Your side: any of your own Collection entries.
       const record = requireItem(ctx, line.sourceId)
@@ -29,7 +31,10 @@ export function tradesService(ctx: TraderContext): TradesService {
         language: record.language,
         marketPrice: priceOf(card, record.finish),
         price: validPrice(line, priceOf(card, record.finish)),
-        quantity: giveLineQuantity(record, 'giver', line.quantity),
+        quantity: giveLineQuantity({
+          ...record,
+          reservedQuantity: reserved.get(record.id) ?? 0,
+        }, 'giver', line.quantity),
         sourceId: record.id,
       }
     })
@@ -48,7 +53,10 @@ export function tradesService(ctx: TraderContext): TradesService {
         language: item.language,
         marketPrice: item.price,
         price: validPrice(line, item.price),
-        quantity: giveLineQuantity(source, 'partner', line.quantity),
+        quantity: giveLineQuantity({
+          ...source,
+          reservedQuantity: partnerReserved.get(source.id) ?? 0,
+        }, 'partner', line.quantity),
         sourceId: item.id,
       }
     })
@@ -88,44 +96,9 @@ export function tradesService(ctx: TraderContext): TradesService {
     }
   }
 
-  /** Applies a completed trade to the Trader's Binder: given copies leave the Collection, received ones join it. */
-  const applyCompletion = (trade: Trade) => {
-    const given = trade.proposer === me ? trade.proposerGives : trade.recipientGives
-    const received = trade.proposer === me ? trade.recipientGives : trade.proposerGives
-    const dropEmpty = (record: ItemRecord) => {
-      record.updatedAt = now()
-      if (record.quantity <= 0) trader.items = trader.items.filter(candidate => candidate !== record)
-    }
-    for (const line of given) {
-      const source = collectionRecords(ctx).find(record => record.id === line.sourceId)
-      if (!source) continue
-      Object.assign(source, afterGiving(source, line.quantity))
-      dropEmpty(source)
-    }
-    for (const line of received) {
-      addRecords(ctx, [{
-        condition: line.condition,
-        finish: line.finish,
-        kind: 'collection',
-        language: line.language,
-        printingId: line.card.id,
-        quantity: line.quantity,
-      }])
-      const want = trader.items.find(record => record.kind === 'want' && printingsById.get(record.cardId)?.name === line.card.name)
-      if (want) {
-        want.quantity -= line.quantity
-        dropEmpty(want)
-      }
-    }
-  }
-
   return {
     accept: async (tradeId) => {
-      const trade = requireTrade(ctx, tradeId)
-      if (trade.status !== 'pending' || trade.awaiting !== me) throw new Error('This trade is not waiting for you')
-      trade.status = 'accepted'
-      trade.awaiting = null
-      trade.updatedAt = now()
+      const trade = acceptAs(store, requireTrade(ctx, tradeId), me)
       post(ctx, requireChat(ctx, trade.chatId), {
         author: me,
         body: 'accepted the trade',
@@ -135,12 +108,8 @@ export function tradesService(ctx: TraderContext): TradesService {
     },
     cancel: async (tradeId) => {
       const trade = requireTrade(ctx, tradeId)
-      if (trade.status !== 'pending' && trade.status !== 'accepted') throw new Error('This trade is already closed')
       const declined = trade.status === 'pending' && trade.awaiting === me
-      trade.status = 'cancelled'
-      trade.cancelledBy = me
-      trade.awaiting = null
-      trade.updatedAt = now()
+      Object.assign(trade, cancelTrade(trade, me), { updatedAt: now() })
       post(ctx, requireChat(ctx, trade.chatId), {
         author: me,
         body: declined ? 'declined the trade' : 'cancelled the trade',
@@ -148,15 +117,11 @@ export function tradesService(ctx: TraderContext): TradesService {
       })
       return trade
     },
-    complete: async (tradeId) => {
-      const trade = requireTrade(ctx, tradeId)
-      if (trade.status !== 'accepted') throw new Error('Only accepted trades can be completed')
-      trade.status = 'completed'
-      trade.updatedAt = now()
-      applyCompletion(trade)
+    confirm: async (tradeId) => {
+      const trade = confirmAs(store, requireTrade(ctx, tradeId), me)
       post(ctx, requireChat(ctx, trade.chatId), {
         author: me,
-        body: 'marked the trade as completed',
+        body: trade.status === 'completed' ? 'confirmed the trade, which is now completed' : 'confirmed the trade took place',
         kind: 'event',
       })
       return trade
@@ -211,8 +176,7 @@ export function tradesService(ctx: TraderContext): TradesService {
       const resolved = resolveDraft(draft)
       const chat = chatWith(ctx, resolved.partner)
       const trade: Trade = {
-        awaiting: resolved.partner,
-        cancelledBy: null,
+        ...proposeTrade(me, resolved.partner),
         cashAmount: resolved.cashAmount,
         cashPayer: resolved.cashPayer,
         chatId: chat.id,
@@ -221,11 +185,8 @@ export function tradesService(ctx: TraderContext): TradesService {
         meetAt: resolved.meetAt,
         meetup: resolved.meetup,
         note: resolved.note,
-        proposer: me,
         proposerGives: resolved.give,
-        recipient: resolved.partner,
         recipientGives: resolved.get,
-        status: 'pending',
         updatedAt: now(),
       }
       store.trades.push(trade)
@@ -238,7 +199,7 @@ export function tradesService(ctx: TraderContext): TradesService {
     },
     revise: async (tradeId, draft) => {
       const trade = requireTrade(ctx, tradeId)
-      if (trade.status !== 'pending') throw new Error('Only pending trades can be changed')
+      const terms = counterOffer(trade, me)
       const partner = partnerOf(ctx, trade)
       const resolved = resolveDraft({
         ...draft,
@@ -246,15 +207,13 @@ export function tradesService(ctx: TraderContext): TradesService {
       })
       const countering = trade.awaiting === me
       Object.assign(trade, {
-        awaiting: partner,
+        ...terms,
         cashAmount: resolved.cashAmount,
         cashPayer: resolved.cashPayer,
         meetAt: resolved.meetAt,
         meetup: resolved.meetup,
         note: resolved.note,
-        proposer: me,
         proposerGives: resolved.give,
-        recipient: partner,
         recipientGives: resolved.get,
         updatedAt: now(),
       } satisfies Partial<Trade>)

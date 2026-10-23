@@ -26,6 +26,7 @@ function makeTrade(overrides: Partial<Trade> = {}): Trade {
     cashAmount: 0,
     cashPayer: null,
     chatId: 'chat-1',
+    confirmedAt: {},
     createdAt: '2026-10-18T10:00:00.000Z',
     id: 'trade-1',
     meetAt: null,

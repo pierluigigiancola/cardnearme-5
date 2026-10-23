@@ -70,3 +70,17 @@ describe('afterGiving', () => {
     })
   })
 })
+
+describe('afterGiving reserved copies', () => {
+  it('releases the reserved copies that were given', () => {
+    expect(afterGiving({
+      forTradeQuantity: 2,
+      quantity: 4,
+      reservedQuantity: 3,
+    }, 2)).toEqual({
+      forTradeQuantity: 0,
+      quantity: 2,
+      reservedQuantity: 1,
+    })
+  })
+})

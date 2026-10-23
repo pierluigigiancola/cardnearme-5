@@ -24,7 +24,7 @@ import { Label } from '#/components/ui/label'
 import { Textarea } from '#/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { QuantityStepper } from '#/components/workspace/QuantityStepper'
-import { tradeFromPerspective, tradeValue } from '#/domain'
+import { freeQuantity, tradeFromPerspective, tradeValue } from '#/domain'
 import { formatPrice } from '#/lib/format'
 import { usePricingSource } from '#/lib/pricing'
 import { cn } from '#/lib/utils'
@@ -289,11 +289,18 @@ function TradeBuilderForm({ context, onClose, request }: {
 
   const myItems = useMemo(() => {
     const wanted = new Set(context.suggestedGive)
-    return context.myItems.map((item): PickableItem => ({
-      ...item,
-      matched: wanted.has(item.id),
-      note: item.forTradeQuantity > 0 ? `${item.forTradeQuantity} for trade` : 'Collection',
-    }))
+    // Copies reserved by accepted Trades can't go on another one (ADR 0003).
+    return context.myItems
+      .filter(item => freeQuantity(item) > 0)
+      .map((item): PickableItem => ({
+        ...item,
+        matched: wanted.has(item.id),
+        note: [
+          item.forTradeQuantity > 0 ? `${item.forTradeQuantity} for trade` : 'Collection',
+          item.reservedQuantity > 0 ? `${item.reservedQuantity} reserved` : null,
+        ].filter(Boolean).join(' · '),
+        quantity: freeQuantity(item),
+      }))
   }, [context])
   const theirItems = useMemo(() => {
     const wanted = new Set(context.suggestedGet)
