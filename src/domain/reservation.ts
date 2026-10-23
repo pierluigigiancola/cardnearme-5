@@ -29,6 +29,14 @@ export function reservedQuantities(trades: (TradeSides & Pick<Trade, 'status'>)[
   return reserved
 }
 
+/** The entry with its reserved copies, read from `reservedQuantities`'s map. */
+export function withReserved<TEntry extends { id: string }>(entry: TEntry, reserved: ReadonlyMap<string, number>) {
+  return {
+    ...entry,
+    reservedQuantity: reserved.get(entry.id) ?? 0,
+  }
+}
+
 /** Copies of a Collection entry not reserved by an accepted Trade. */
 export function freeQuantity(entry: CollectionQuantities) {
   return Math.max(0, entry.quantity - (entry.reservedQuantity ?? 0))

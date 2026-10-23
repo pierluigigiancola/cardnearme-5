@@ -1,5 +1,5 @@
 import type { TradesService } from '../../services'
-import type { MeetupLocation, Trade, TradeDraft, TradeLine, TradeMatch } from '../../types'
+import type { MeetupLocation, Trade, TradeDraft, TradeDraftLine, TradeLine, TradeMatch } from '../../types'
 import { listedItems, participant, priceOf, requireTrader, storesBySlug, usernameOf } from '../store'
 
 import { now, requirePrinting, validPrice } from './context'
@@ -21,6 +21,7 @@ import {
   reservedQuantities,
   tradeCash,
   tradeEligibility,
+  withReserved,
 } from '#/domain'
 
 export function tradesService(ctx: TraderContext): TradesService {
@@ -34,47 +35,42 @@ export function tradesService(ctx: TraderContext): TradesService {
     })
     const reserved = myReserved(ctx)
     const partnerReserved = reservedQuantities(store.trades, partner)
-    const give = draft.give.map((line): TradeLine => {
+    /** One side's line: the copy's details, its market price, and the price and quantity the draft asks for. */
+    const toLine = (copy: Pick<TradeLine, 'card' | 'condition' | 'finish' | 'language' | 'marketPrice' | 'sourceId'>, line: TradeDraftLine, quantity: number): TradeLine => ({
+      card: copy.card,
+      condition: copy.condition,
+      finish: copy.finish,
+      id: ctx.id('line'),
+      language: copy.language,
+      marketPrice: copy.marketPrice,
+      price: validPrice(line, copy.marketPrice),
+      quantity,
+      sourceId: copy.sourceId,
+    })
+    const give = draft.give.map((line) => {
       // Your side: any of your own Collection entries.
       const record = requireItem(ctx, line.sourceId)
       if (record.kind !== 'collection') throw new Error('Wanted cards cannot be offered')
       const card = requirePrinting(record.printingId)
-      return {
+      return toLine({
+        ...record,
         card,
-        condition: record.condition,
-        finish: record.finish,
-        id: ctx.id('line'),
-        language: record.language,
         marketPrice: priceOf(card, record.finish),
-        price: validPrice(line, priceOf(card, record.finish)),
-        quantity: giveLineQuantity({
-          ...record,
-          reservedQuantity: reserved.get(record.id) ?? 0,
-        }, 'giver', line.quantity),
         sourceId: record.id,
-      }
+      }, line, giveLineQuantity(withReserved(record, reserved), 'giver', line.quantity))
     })
     // Their side: only the partner's Haves (Collection entries with copies for trade, on a public List).
     const theirHaves = partnerItems(ctx, partner, 'haves')
     const partnerRecords = requireTrader(store, partner).items
-    const get = draft.get.map((line): TradeLine => {
+    const get = draft.get.map((line) => {
       const item = theirHaves.find(candidate => candidate.id === line.sourceId)
       const source = partnerRecords.find(record => record.id === line.sourceId)
       if (!item || source?.kind !== 'collection') throw new Error(`${usernameOf(store, partner)} no longer has one of these cards for trade`)
-      return {
-        card: item.card,
-        condition: item.condition,
-        finish: item.finish,
-        id: ctx.id('line'),
-        language: item.language,
+      return toLine({
+        ...item,
         marketPrice: item.price,
-        price: validPrice(line, item.price),
-        quantity: giveLineQuantity({
-          ...source,
-          reservedQuantity: partnerReserved.get(source.id) ?? 0,
-        }, 'partner', line.quantity),
         sourceId: item.id,
-      }
+      }, line, giveLineQuantity(withReserved(source, partnerReserved), 'partner', line.quantity))
     })
     let meetup: MeetupLocation | null = null
     if (draft.meetup?.kind === 'store') {

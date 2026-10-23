@@ -5,7 +5,7 @@ import type { ItemRecord, MockStore } from '../store'
 import { now, traderContext } from './context'
 import { addRecords, collectionRecords, wantRecords } from './records'
 
-import { acceptTrade, afterGiving, checkReservable, completionChanges, confirmTrade, freeQuantity, fulfilWants, linesGivenBy, reservedQuantities } from '#/domain'
+import { acceptTrade, afterGiving, checkReservable, completionChanges, confirmTrade, freeQuantity, fulfilWants, linesGivenBy, reservedQuantities, withReserved } from '#/domain'
 import type { BinderChange } from '#/domain'
 
 /**
@@ -24,10 +24,7 @@ export function acceptAs(store: MockStore, trade: Trade, by: UserId) {
     checkReservable(linesGivenBy(trade, giver), (sourceId) => {
       const record = records.find(candidate => candidate.id === sourceId)
       if (record?.kind !== 'collection') return 0
-      return freeQuantity({
-        ...record,
-        reservedQuantity: reserved.get(sourceId) ?? 0,
-      })
+      return freeQuantity(withReserved(record, reserved))
     })
   }
   Object.assign(trade, next, { updatedAt: now() })
