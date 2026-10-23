@@ -8,9 +8,9 @@ import { TradeStatusPill } from './TradeStatusPill'
 import { CardArt } from '#/components/cards/CardArt'
 import { ConditionBadge, FinishBadge, Price } from '#/components/cards/CardBits'
 import { Button } from '#/components/ui/button'
+import { marketValue, tradeFromPerspective } from '#/domain'
 import { formatPrice, formatRelative } from '#/lib/format'
 import { usePricingSource } from '#/lib/pricing'
-import { linesMarketValue, tradeFromPerspective } from '#/lib/tradeMath'
 import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
 import type { Trade, TradeLine } from '#/services/types'
@@ -270,7 +270,7 @@ function TradeColumn({ lines, title }: {
           {'market '}
 
           <Price
-            amount={linesMarketValue(lines)}
+            amount={marketValue(lines)}
             className="text-xs"
           />
         </span>

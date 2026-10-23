@@ -1,4 +1,4 @@
-import type { Card, ChatMessage, TradeDraftLine, TradeLine } from '../../types'
+import type { Card, ChatMessage, TradeDraftLine } from '../../types'
 import { cardsById, nextId } from '../store'
 import type { MockStore, TraderRecord } from '../store'
 
@@ -52,8 +52,4 @@ export function clampQuantity(quantity: number) {
 
 export function validPrice(line: TradeDraftLine, fallback: number) {
   return Number.isFinite(line.price) && line.price >= 0 ? Math.round(line.price * 100) / 100 : fallback
-}
-
-export function sum(lines: Pick<TradeLine, 'price' | 'quantity'>[]) {
-  return lines.reduce((total, line) => total + line.price * line.quantity, 0)
 }

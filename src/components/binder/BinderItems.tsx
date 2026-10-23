@@ -42,6 +42,7 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
+import { ConfirmDialog } from '#/components/workspace/ConfirmDialog'
 import { QuantityStepper } from '#/components/workspace/QuantityStepper'
 import { conditionLabels, conditions, finishLabels, isCondition, isFinish, isLanguage, languageLabels, languages } from '#/lib/cardOptions'
 import { formatRelative } from '#/lib/format'
@@ -353,40 +354,20 @@ function RemoveItemDialog({ item, onClose }: {
   if (item && item !== shown) setShown(item)
 
   return (
-    <Dialog
+    <ConfirmDialog
+      confirmLabel="Remove"
+      description={`${shown && shown.quantity > 1 ? `All ${shown.quantity} copies are` : 'It is'} removed from your binder. This cannot be undone.`}
+      onConfirm={() => item && remove.mutate(item.id, {
+        onSuccess: () => {
+          toast.success(`Removed ${item.card.name}`)
+          onClose()
+        },
+      })}
       onOpenChange={open => !open && onClose()}
       open={item !== null}
-    >
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>{`Remove ${shown?.card.name ?? 'card'}?`}</DialogTitle>
-
-          <DialogDescription>{`${shown && shown.quantity > 1 ? `All ${shown.quantity} copies are` : 'It is'} removed from your binder. This cannot be undone.`}</DialogDescription>
-        </DialogHeader>
-
-        <DialogFooter>
-          <Button
-            onClick={onClose}
-            variant="ghost"
-          >
-            Cancel
-          </Button>
-
-          <Button
-            disabled={remove.isPending}
-            onClick={() => item && remove.mutate(item.id, {
-              onSuccess: () => {
-                toast.success(`Removed ${item.card.name}`)
-                onClose()
-              },
-            })}
-            variant="destructive"
-          >
-            Remove
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      pending={remove.isPending}
+      title={`Remove ${shown?.card.name ?? 'card'}?`}
+    />
   )
 }
 
@@ -665,41 +646,21 @@ export function BulkActions({ lists, onClear, selected }: {
         <X />
       </Button>
 
-      <Dialog
+      <ConfirmDialog
+        confirmLabel="Delete"
+        description="They are removed from your binder. This cannot be undone."
+        onConfirm={() => remove.mutate(undefined, {
+          onSuccess: () => {
+            toast.success('Cards deleted')
+            setConfirming(false)
+            onClear()
+          },
+        })}
         onOpenChange={setConfirming}
         open={confirming}
-      >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{`Delete ${selected.size} cards?`}</DialogTitle>
-
-            <DialogDescription>They are removed from your binder. This cannot be undone.</DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter>
-            <Button
-              onClick={() => setConfirming(false)}
-              variant="ghost"
-            >
-              Cancel
-            </Button>
-
-            <Button
-              disabled={remove.isPending}
-              onClick={() => remove.mutate(undefined, {
-                onSuccess: () => {
-                  toast.success('Cards deleted')
-                  setConfirming(false)
-                  onClear()
-                },
-              })}
-              variant="destructive"
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        pending={remove.isPending}
+        title={`Delete ${selected.size} cards?`}
+      />
     </div>
   )
 }

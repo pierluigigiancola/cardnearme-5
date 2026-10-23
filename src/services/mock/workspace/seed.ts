@@ -15,9 +15,10 @@ import type { Random } from '../random'
 import { hashString, listedItems, priceOf, storesBySlug, traderByUsername } from '../store'
 import type { ItemRecord, ListRecord, MockStore, TraderRecord } from '../store'
 
-import { requireCard, sum, traderContext } from './context'
+import { requireCard, traderContext } from './context'
 import type { NewMessage, TraderContext } from './context'
 
+import { tradeValue } from '#/domain'
 import { conditionLabels } from '#/lib/cardOptions'
 
 /**
@@ -267,7 +268,7 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
   if (alice) {
     const theirs = wantSources.filter(source => source.ownerUsername === alice).map(lineFromTradeItem)
     const mine = random.sample(myHaves, 1).map(lineFromItem)
-    const difference = sum(theirs) - sum(mine)
+    const difference = tradeValue(theirs) - tradeValue(mine)
     const trade = addTrade({
       awaiting: me,
       cancelledBy: null,

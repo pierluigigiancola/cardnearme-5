@@ -5,6 +5,7 @@ import { createStore } from './store'
 import { workspaceFor } from './workspace'
 
 import type { Viewer } from '#/auth/viewer'
+import { ANONYMOUS_RESULT_CAP } from '#/domain'
 
 const viewer: Viewer = {
   demo: true,
@@ -88,4 +89,21 @@ describe('mock store RPC', () => {
     })
     expect(page).toMatchObject({ total: expect.any(Number) })
   })
+
+  it('caps public results for anonymous visitors from the session viewer, not the query', async () => {
+    const call = {
+      args: [{
+        limit: 1000,
+        listType: 'haves',
+      }],
+      method: 'listTradeItems',
+      service: 'trading',
+    }
+    const store = createStore()
+    const anonymousPage = await dispatchMockCall(store, anonymous, call)
+    const traderPage = await dispatchMockCall(store, viewer, call)
+    expect(anonymousPage).toMatchObject({ cappedAt: ANONYMOUS_RESULT_CAP })
+    expect(traderPage).toMatchObject({ cappedAt: null })
+  })
 })
+

@@ -1,31 +1,9 @@
-import type { Viewer } from './viewer'
+/** Transitional re-export of the domain caps; ticket 16 removes it. */
+import { ANONYMOUS_RESULT_CAP, STORE_JOIN_CAP } from '#/domain/caps'
 
-/**
- * Product limits. Tune these here; the UI reads them and the service layer
- * enforces them (`limit` on list queries, store joins).
- */
+export { resultCapFor as tradeResultLimit } from '#/domain/caps'
+
 export const viewerLimits = {
-  /** Cards shown when an anonymous visitor browses a city's haves or wants. */
-  anonymousTradeResults: 30,
-  /** Stores a signed-in trader can join as trading locations. */
-  tradingStores: 5,
+  anonymousTradeResults: ANONYMOUS_RESULT_CAP,
+  tradingStores: STORE_JOIN_CAP,
 }
-
-export function tradeResultLimit(viewer: Viewer): number | undefined {
-  return viewer.kind === 'anonymous' ? viewerLimits.anonymousTradeResults : undefined
-}
-
-/** Actions that need an account; the copy is shown in the sign-up prompt. */
-export const gatedActions = {
-  addToCollection: 'add cards to your collection or trade lists',
-  comment: 'leave a comment',
-  joinStore: 'join a store',
-  like: 'like decks',
-  matches: 'see your matches',
-  message: 'message other traders',
-  ownership: 'track which cards you own',
-  priceHistory: 'see price history',
-  trade: 'start a trade',
-} as const
-
-export type GatedAction = keyof typeof gatedActions

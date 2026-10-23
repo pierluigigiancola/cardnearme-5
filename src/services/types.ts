@@ -224,7 +224,7 @@ export type ViewMode = 'visual' | 'table'
 export interface Page<T> {
   items: T[]
   total: number
-  /** Set when the viewer is capped (e.g. anonymous); total is still the real count. */
+  /** The cap that held results back (e.g. the anonymous result cap), or null. `total` is still the real count. */
   cappedAt: number | null
 }
 
@@ -260,6 +260,13 @@ export interface TradeItemQuery {
   sort?: 'name' | 'price' | 'updated' | 'quantity'
   order?: SortOrder
   facets?: FacetSelection
+  /**
+   * Paging only: how many results this page should hold. It never raises the
+   * viewer's cap. The server works the cap out from the session (anonymous
+   * visitors get `ANONYMOUS_RESULT_CAP`), clamps this limit to it and reports
+   * `cappedAt` when the cap held results back. Omit it to get every result the
+   * viewer may see.
+   */
   limit?: number
 }
 
@@ -620,7 +627,7 @@ export interface WorkspaceProfile {
   bio: string
   avatarHue: number
   citySlug: string | null
-  /** Joined stores ("trading locations"); capped by `viewerLimits.tradingStores`. */
+  /** Joined stores ("trading locations"); capped by `STORE_JOIN_CAP` in `#/domain`. */
   storeSlugs: string[]
   showStoresOnProfile: boolean
   storeSettings: Record<string, StoreSettings>

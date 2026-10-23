@@ -3,8 +3,8 @@ import { LockKeyhole } from 'lucide-react'
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { gatedActions } from './limits'
-import type { GatedAction } from './limits'
+import { gatedActions } from './gatedActions'
+import type { GatedAction } from './gatedActions'
 import { useViewer } from './useViewer'
 
 

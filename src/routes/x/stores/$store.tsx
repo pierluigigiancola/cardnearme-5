@@ -4,7 +4,6 @@ import { Copy, ExternalLink, LogOut, Plus, Settings, UserPlus, Users } from 'luc
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { viewerLimits } from '#/auth/limits'
 import { PageHeader, Section } from '#/components/layout/PageHeader'
 import { MatchList } from '#/components/trading/MatchList'
 import { HeadStartSteps, UnlockProgress } from '#/components/trading/Promos'
@@ -21,6 +20,7 @@ import {
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { Switch } from '#/components/ui/switch'
+import { STORE_JOIN_CAP } from '#/domain'
 import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
 import { cityQuery, matchesQuery, profileQuery, storeQuery, storesQuery, tradeItemsQuery } from '#/services/queries'
@@ -99,7 +99,7 @@ function MyStorePage() {
             </Link>
           ))}
 
-          {joinedStores.length < viewerLimits.tradingStores && (
+          {joinedStores.length < STORE_JOIN_CAP && (
             <Link
               className="flex shrink-0 items-center gap-1 rounded-full border border-dashed px-3 py-1 text-sm text-muted-foreground hover:text-foreground"
               search={{ city: city.slug }}

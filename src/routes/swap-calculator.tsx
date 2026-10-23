@@ -4,6 +4,7 @@ import { ChevronsLeft, ChevronsRight, Minus, Plus, Search, Trash2 } from 'lucide
 import { useEffect, useRef, useState } from 'react'
 
 import { Price } from '#/components/cards/CardBits'
+import { ErrorState } from '#/components/layout/ErrorState'
 import { PageHeader } from '#/components/layout/PageHeader'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
@@ -104,10 +105,11 @@ function TradeSide({ lines, onChange, title }: {
   const [debounced, setDebounced] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [finish, setFinish] = useState<Finish>('nonfoil')
-  const { data: results = [] } = useQuery({
+  const search = useQuery({
     ...cardSearchQuery(debounced),
     enabled: debounced.trim().length > 1,
   })
+  const results = search.data ?? []
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebounced(q), 200)
@@ -164,6 +166,17 @@ function TradeSide({ lines, onChange, title }: {
             placeholder="Search for a card"
             value={q}
           />
+
+          {search.isError && q.trim().length > 1 && (
+            <div className="absolute top-full right-0 left-0 z-20 mt-1 rounded-xl border bg-popover p-1 shadow-xl">
+              <ErrorState
+                compact
+                error={search.error}
+                onRetry={() => void search.refetch()}
+                title="Search failed"
+              />
+            </div>
+          )}
 
           {results.length > 0 && q.trim().length > 1 && (
             <ul className="absolute top-full right-0 left-0 z-20 mt-1 max-h-72 overflow-auto rounded-xl border bg-popover p-1 shadow-xl">

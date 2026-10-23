@@ -284,7 +284,7 @@ export async function dispatchMockCall(store: MockStore, viewer: Viewer, call: M
   if (!Array.isArray(call.args) || !check(call.args)) throw new Error(`Invalid arguments for ${call.service}.${call.method}`)
 
   if (publicCheck) {
-    const services = publicServices(store)
+    const services = publicServices(store, viewer)
     return invoke(Reflect.get(services, call.service) as object, call.method, call.args)
   }
   if (viewer.kind !== 'user') throw new Error('Sign in to continue')

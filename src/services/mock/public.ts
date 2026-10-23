@@ -2,9 +2,12 @@ import type { CatalogueService, CommunityService, TradingService } from '../serv
 import type { Deck, OwnedDeck, UserProfile } from '../types'
 
 import { cities, deckComments, stores } from './data'
-import { buildFacets, compare, matchesFacets, matchesText, tradeItemFacets } from './queryHelpers'
+import { compare } from './queryHelpers'
 import { listedItems, mockStore, traderByUsername } from './store'
 import type { MockStore, TraderRecord } from './store'
+import { listTradeItemsFor } from './tradeItems'
+
+import type { CapViewer } from '#/domain'
 
 /**
  * The public services that read Traders' data. They run on the server
@@ -43,7 +46,8 @@ function publicDecks(store: MockStore) {
   return [...store.traders.values()].flatMap(trader => trader.decks.filter(deck => deck.visibility === 'public').map(toDeck))
 }
 
-export function publicServices(store: MockStore = mockStore): StorePublicServices {
+/** `viewer` comes from the session; it decides the anonymous result cap. */
+export function publicServices(store: MockStore = mockStore, viewer: CapViewer = { kind: 'anonymous' }): StorePublicServices {
   return {
     catalogue: {
       getCardAvailability: async (card) => {
@@ -85,28 +89,7 @@ export function publicServices(store: MockStore = mockStore): StorePublicService
         haves: listedItems(store, 'haves').filter(item => item.citySlug === citySlug).length,
         wants: listedItems(store, 'wants').filter(item => item.citySlug === citySlug).length,
       }),
-      listTradeItems: async ({ citySlug, facets, limit, listType, order = 'desc', ownerUsername, q, sort = 'updated', storeSlug }) => {
-        const scoped = listedItems(store, listType).filter(item =>
-          (!citySlug || item.citySlug === citySlug)
-          && (!storeSlug || item.storeSlugs.includes(storeSlug))
-          && (!ownerUsername || item.ownerUsername === ownerUsername))
-        const filtered = scoped
-          .filter(item => matchesText(item.card.name, q) && matchesFacets(item, tradeItemFacets, facets))
-          .sort((a, b) => {
-            switch (sort) {
-              case 'name': return compare(a.card.name, b.card.name, order)
-              case 'price': return compare(a.price, b.price, order)
-              case 'quantity': return compare(a.quantity, b.quantity, order)
-              case 'updated': return compare(a.updatedAt, b.updatedAt, order)
-            }
-          })
-        return {
-          cappedAt: limit !== undefined && filtered.length > limit ? limit : null,
-          facets: buildFacets(scoped, tradeItemFacets),
-          items: limit !== undefined ? filtered.slice(0, limit) : filtered,
-          total: filtered.length,
-        }
-      },
+      listTradeItems: async query => listTradeItemsFor(viewer, query, store),
     },
   }
 }

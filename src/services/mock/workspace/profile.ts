@@ -5,7 +5,7 @@ import { storesBySlug } from '../store'
 import { now } from './context'
 import type { TraderContext } from './context'
 
-import { viewerLimits } from '#/auth/limits'
+import { canJoinAnotherStore, STORE_JOIN_CAP } from '#/domain'
 
 function requireStore(storeSlug: string) {
   const store = storesBySlug.get(storeSlug)
@@ -19,7 +19,7 @@ export function profileService({ trader }: TraderContext): ProfileService {
     completeOnboarding: async ({ citySlug, showStoresOnProfile, storeSlugs }) => {
       if (!cities.some(city => city.slug === citySlug)) throw new Error('Pick your city')
       const unique = [...new Set(storeSlugs)]
-      if (unique.length > viewerLimits.tradingStores) throw new Error(`Pick up to ${viewerLimits.tradingStores} stores`)
+      if (unique.length > STORE_JOIN_CAP) throw new Error(`Pick up to ${STORE_JOIN_CAP} stores`)
       unique.forEach(requireStore)
       Object.assign(profile, {
         citySlug,
@@ -33,8 +33,8 @@ export function profileService({ trader }: TraderContext): ProfileService {
     joinStore: async (storeSlug) => {
       const store = requireStore(storeSlug)
       if (profile.storeSlugs.includes(store.slug)) return profile
-      if (profile.storeSlugs.length >= viewerLimits.tradingStores) {
-        throw new Error(`You can trade at up to ${viewerLimits.tradingStores} stores. Leave one first.`)
+      if (!canJoinAnotherStore(profile.storeSlugs.length)) {
+        throw new Error(`You can trade at up to ${STORE_JOIN_CAP} stores. Leave one first.`)
       }
       profile.storeSlugs = [...profile.storeSlugs, store.slug]
       profile.citySlug ??= store.citySlug
