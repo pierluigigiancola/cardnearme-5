@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { linesMarketValue, linesValue, tradeFromPerspective } from './tradeMath'
+import { marketValue, tradeFromPerspective, tradeValue } from './tradeValue'
 
 import type { Trade, TradeLine } from '#/services/types'
 import { makeCard } from '#/test/fixtures'
@@ -43,13 +43,13 @@ function makeTrade(overrides: Partial<Trade> = {}): Trade {
   }
 }
 
-describe('linesValue / linesMarketValue', () => {
+describe('tradeValue / marketValue', () => {
   it('multiplies by quantity and rounds to cents', () => {
     // 0.1 × 3 + 0.2 and 0.2 × 3 + 1.25 both carry float residue before rounding.
     const lines = [line('a', 0.1, 3, 0.2), line('b', 0.2, 1, 1.25)]
-    expect(linesValue(lines)).toBe(0.5)
-    expect(linesMarketValue(lines)).toBe(1.85)
-    expect(linesValue([])).toBe(0)
+    expect(tradeValue(lines)).toBe(0.5)
+    expect(marketValue(lines)).toBe(1.85)
+    expect(tradeValue([])).toBe(0)
   })
 })
 

@@ -31,6 +31,8 @@ export function useRefreshViewer() {
       exact: true,
       queryKey: ['viewer'],
     })
+    // Trade results are capped by session, so cached pages belong to the old viewer.
+    queryClient.removeQueries({ queryKey: ['trade-items'] })
     await router.invalidate()
   }, [queryClient, router])
 }

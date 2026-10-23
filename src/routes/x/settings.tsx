@@ -4,7 +4,6 @@ import { Loader2, Plus, Save, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { viewerLimits } from '#/auth/limits'
 import { PageHeader } from '#/components/layout/PageHeader'
 import { TraderAvatar } from '#/components/trading/TraderAvatar'
 import { Button } from '#/components/ui/button'
@@ -20,6 +19,7 @@ import {
 import { Slider } from '#/components/ui/slider'
 import { Switch } from '#/components/ui/switch'
 import { Textarea } from '#/components/ui/textarea'
+import { STORE_JOIN_CAP } from '#/domain'
 import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
 import { citiesQuery, gamesQuery, profileQuery, storesQuery } from '#/services/queries'
@@ -264,7 +264,7 @@ function SettingsForm({ profile }: { profile: WorkspaceProfile }) {
         </div>
 
         <div className="space-y-1.5">
-          <Label>{`Stores (${joinedStores.length} / ${viewerLimits.tradingStores})`}</Label>
+          <Label>{`Stores (${joinedStores.length} / ${STORE_JOIN_CAP})`}</Label>
 
           <p className="text-sm text-muted-foreground">
             {joinedStores.length > 0 ? joinedStores.map(store => store.name).join(' · ') : 'No stores yet.'}
