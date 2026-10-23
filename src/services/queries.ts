@@ -289,7 +289,7 @@ export const chatThreadQuery = (viewerId: string, chatId: string) =>
     refetchInterval: 5_000,
   })
 
-export const matchesQuery = (viewerId: string, scope: MatchScope = {}) =>
+export const matchesQuery = (viewerId: string, scope: MatchScope) =>
   queryOptions({
     queryFn: fromServices(services => services.trades.listMatches(scope)),
     queryKey: [...workspaceKey(viewerId), 'matches', scope],

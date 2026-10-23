@@ -38,7 +38,10 @@ export const Route = createFileRoute('/stores/$store')({
       // Signed-in traders see their matches at this store first.
       viewer.kind === 'user'
         ? Promise.all([
-          queryClient.ensureQueryData(matchesQuery(viewer.id, { storeSlug: store.slug })),
+          queryClient.ensureQueryData(matchesQuery(viewer.id, {
+            citySlug: store.citySlug,
+            storeSlug: store.slug,
+          })),
           queryClient.ensureQueryData(storesQuery()),
         ])
         : null,
@@ -259,7 +262,10 @@ function StoreMatches({ joined, store, viewerId }: {
   viewerId: string;
   joined: boolean
 }) {
-  const { data: matches } = useSuspenseQuery(matchesQuery(viewerId, { storeSlug: store.slug }))
+  const { data: matches } = useSuspenseQuery(matchesQuery(viewerId, {
+    citySlug: store.citySlug,
+    storeSlug: store.slug,
+  }))
   const { data: stores } = useSuspenseQuery(storesQuery())
   return (
     <Section

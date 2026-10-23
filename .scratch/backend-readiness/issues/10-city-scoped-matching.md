@@ -4,14 +4,14 @@
 
 **Blocked by:** 08, 09
 
-**Status:** ready-for-agent
+**Status:** done
 
 Spec: [../spec.md](../spec.md), decisions 4–6 · ADR: [0002](../../../docs/adr/0002-one-record-per-owned-card.md)
 
-- [ ] `MatchScope` is City-level, with an optional Store filter.
-- [ ] The domain module has a tested matching rule: a Have on a public List matches another Trader's Want in the same City. Your own Matches use all your Wants, including those on private Lists. Shared Stores only filter or rank.
-- [ ] The domain module has a tested trade-eligibility rule: proposing is refused in a City that hasn't unlocked, and Traders in different Cities may trade.
-- [ ] The propose service method enforces eligibility, and its doc comment says so.
-- [ ] The matched page shows Matches whether or not the City has unlocked. In a locked City, "Propose trade" is disabled with an explanation.
-- [ ] In the browser, a Have added by one seeded Trader appears as a Match for another Trader in the same City.
-- [ ] `pnpm lint`, `pnpm exec tsc --noEmit` and `pnpm test` pass.
+- [x] `MatchScope` is City-level, with an optional Store filter.
+- [x] The domain module has a tested matching rule: a Have on a public List matches another Trader's Want in the same City. Your own Matches use all your Wants, including those on private Lists. Shared Stores only filter or rank.
+- [x] The domain module has a tested trade-eligibility rule: proposing is refused in a City that hasn't unlocked, and Traders in different Cities may trade.
+- [x] The propose service method enforces eligibility, and its doc comment says so.
+- [x] The matched page shows Matches whether or not the City has unlocked. In a locked City, "Propose trade" is disabled with an explanation.
+- [x] In the browser, a Have added by one seeded Trader appears as a Match for another Trader in the same City.
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit` and `pnpm test` pass.

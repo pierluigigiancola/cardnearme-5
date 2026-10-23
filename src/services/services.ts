@@ -198,9 +198,23 @@ export interface ChatService {
 }
 
 export interface TradesService {
+  /**
+   * The viewer's Matches with other Traders in a City (the viewer's own when no
+   * scope is given; none if they have no City). A Match is another Trader's Have
+   * on a public List that fulfils one of the viewer's Wants (filters included,
+   * private Lists too), or a Have of the viewer's that fulfils one of the other
+   * Trader's public Wants. A Store in the scope only narrows the City to its
+   * Traders; shared Stores rank the rest first. Matches are listed whether or
+   * not the City has unlocked; each one says whether a Trade may be proposed.
+   */
   listMatches: (scope?: MatchScope) => Promise<TradeMatch[]>
   getContext: (partner: UserId) => Promise<TradeContext>
-  /** Posts a proposal into the chat with the partner; returns the new trade. */
+  /**
+   * Posts a proposal into the chat with the partner; returns the new trade.
+   * Refused unless the Trade is eligible (`#/domain` `tradeEligibility`): the
+   * viewer must have picked a City, and neither Trader's City may still be
+   * locked. Traders in different unlocked Cities may trade.
+   */
   propose: (draft: TradeDraft) => Promise<Trade>
   /** Counter-offer or edit: replaces the terms and hands the turn to the other side. */
   revise: (tradeId: string, draft: TradeDraft) => Promise<Trade>

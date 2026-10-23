@@ -227,7 +227,7 @@ const workspaceMethods: { [TName in keyof WorkspaceServices]: MethodTable<Worksp
     confirm: args(str),
     getContext: args(str),
     listMatches: args(optional(shape({
-      citySlug: optional(str),
+      citySlug: str,
       storeSlug: optional(str),
     }))),
     propose: args(tradeDraft),

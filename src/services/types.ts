@@ -718,12 +718,31 @@ export interface TradeMatch {
   theyHave: TradeItem[]
   /** Viewer's Haves that are on the partner's wants. */
   theyWant: CollectionEntry[]
+  /** Whether the viewer may propose a Trade to this partner yet (a locked City still shows its Matches). */
+  eligibility: TradeEligibility
 }
 
+/**
+ * Where Matches are looked for (spec decision 4). Matching is scoped to a City;
+ * a Store only narrows that City to the Traders who joined it.
+ */
 export interface MatchScope {
+  citySlug: string
+  /** Optional filter: only Traders who joined this Store (in the City). */
   storeSlug?: string
-  citySlug?: string
 }
+
+/**
+ * Whether the viewer may propose a Trade (spec decisions 5 and 6). Proposing
+ * waits until the City has unlocked; Traders in different Cities may trade.
+ */
+export type TradeEligibility
+  = | { canPropose: true }
+    | {
+      canPropose: false
+      /** Why proposing is refused, for the UI. */
+      reason: string
+    }
 
 export type NotificationKind = 'message' | 'trade' | 'item-available' | 'item-wanted'
 

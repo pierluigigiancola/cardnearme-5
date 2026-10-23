@@ -36,7 +36,10 @@ export const Route = createFileRoute('/x/stores/$store')({
     if (!city) throw notFound()
     await Promise.all([
       queryClient.ensureQueryData(storesQuery()),
-      queryClient.ensureQueryData(matchesQuery(user.id, { storeSlug: store.slug })),
+      queryClient.ensureQueryData(matchesQuery(user.id, {
+        citySlug: store.citySlug,
+        storeSlug: store.slug,
+      })),
       queryClient.ensureQueryData(tradeItemsQuery({
         limit: PREVIEW,
         listType: 'haves',
@@ -62,7 +65,10 @@ function MyStorePage() {
   const { user } = Route.useRouteContext()
   const { data: profile } = useSuspenseQuery(profileQuery(user.id))
   const { data: allStores } = useSuspenseQuery(storesQuery())
-  const { data: matches } = useSuspenseQuery(matchesQuery(user.id, { storeSlug: store.slug }))
+  const { data: matches } = useSuspenseQuery(matchesQuery(user.id, {
+    citySlug: store.citySlug,
+    storeSlug: store.slug,
+  }))
   const { data: haves } = useSuspenseQuery(tradeItemsQuery({
     limit: PREVIEW,
     listType: 'haves',

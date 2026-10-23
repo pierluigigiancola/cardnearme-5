@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowLeftRight, MessageSquare, Sparkles } from 'lucide-react'
+import { ArrowLeftRight, Lock, MessageSquare, Sparkles } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { useTradeBuilder } from './TradeBuilder'
@@ -87,9 +87,22 @@ export function MatchList({ empty, matches, storeNames }: {
             />
           </div>
 
+          {!match.eligibility.canPropose && (
+            <p
+              className="mt-auto flex items-start gap-2 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground"
+              id={`propose-locked-${match.partner.id}`}
+            >
+              <Lock className="mt-0.5 size-3.5 shrink-0" />
+
+              {match.eligibility.reason}
+            </p>
+          )}
+
           <div className="mt-auto flex gap-2">
             <Button
+              aria-describedby={match.eligibility.canPropose ? undefined : `propose-locked-${match.partner.id}`}
               className="flex-1"
+              disabled={!match.eligibility.canPropose}
               onClick={() => requireAuth('trade', () => openTradeBuilder({
                 partner: match.partner.id,
                 useMatches: true,
@@ -97,7 +110,7 @@ export function MatchList({ empty, matches, storeNames }: {
               size="sm"
             >
               <ArrowLeftRight />
-              Trade
+              Propose trade
             </Button>
 
             <Button

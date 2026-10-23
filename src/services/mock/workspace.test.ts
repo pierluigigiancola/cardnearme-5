@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { createStore } from './store'
 import { workspaceFor } from './workspace'
 
 let ownerSeq = 0
@@ -10,7 +11,7 @@ async function proposeToFirstMatch() {
     id: `test-owner-${ownerSeq}`,
     onboarded: true,
     username: `tester${ownerSeq}`,
-  })
+  }, createStore())
   const match = (await workspace.trades.listMatches()).at(0)
   if (!match) throw new Error('Seeded workspace has no matches')
   const context = await workspace.trades.getContext(match.partner.id)
