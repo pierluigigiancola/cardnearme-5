@@ -55,10 +55,10 @@ describe('mock store RPC', () => {
     })).rejects.toThrow('Invalid arguments')
     await expect(dispatchMockCall(store, viewer, {
       args: [[{
-        cardId: 42,
         condition: 'NM',
         finish: 'nonfoil',
         language: 'en',
+        printingId: 42,
         quantity: 1,
         section: 'haves',
       }]],

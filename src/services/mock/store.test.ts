@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { cards } from './data'
+import { printings } from './data'
 import { publicServices } from './public'
 import { createStore } from './store'
 import { workspaceFor } from './workspace'
@@ -11,17 +11,17 @@ const trader = {
   username: 'storetester',
 }
 
-const cardId = cards.find(card => card.gameId === 'mtg')?.id ?? ''
+const printingId = printings.find(card => card.gameId === 'mtg')?.id ?? ''
 
 async function addHave() {
   const store = createStore()
   const workspace = workspaceFor(trader, store)
   const profile = await workspace.profile.get()
   const added = await workspace.binder.addItems([{
-    cardId,
     condition: 'NM',
     finish: 'nonfoil',
     language: 'en',
+    printingId,
     quantity: 1,
     section: 'haves',
   }])

@@ -63,7 +63,7 @@ export interface Ruling {
 }
 
 /** One printing of a card in a set. */
-export interface Card {
+export interface Printing {
   id: string
   gameId: GameId
   setCode: string
@@ -145,7 +145,7 @@ export type TradeListType = 'haves' | 'wants'
 export interface TradeItem {
   id: string
   listType: TradeListType
-  card: Card
+  card: Printing
   ownerUsername: string
   storeSlugs: string[]
   citySlug: string
@@ -158,7 +158,7 @@ export interface TradeItem {
 }
 
 export interface DeckCard {
-  card: Card
+  card: Printing
   quantity: number
   section: 'commander' | 'mainboard' | 'sideboard' | 'considering'
 }
@@ -242,7 +242,7 @@ export interface Facet {
 
 export type FacetSelection = Partial<Record<string, string[]>>
 
-export interface CardQuery {
+export interface PrintingQuery {
   gameId: GameId
   setCode: string
   q?: string
@@ -271,7 +271,7 @@ export interface TradeItemQuery {
 }
 
 export interface SearchResult {
-  cards: Card[]
+  cards: Printing[]
   cities: City[]
 }
 
@@ -325,7 +325,7 @@ export interface BinderItem {
   section: BinderSection
   /** Trade list the item belongs to (haves and wants only). */
   listId: string | null
-  card: Card
+  card: Printing
   /** For wants this is the minimum acceptable condition. */
   condition: Condition
   finish: Finish
@@ -342,10 +342,10 @@ export interface BinderItem {
 export interface BinderItemInput {
   section: BinderSection
   listId?: string | null
-  cardId: string
   condition: Condition
   finish: Finish
   language: Language
+  printingId: string
   quantity: number
 }
 
@@ -394,7 +394,7 @@ export interface ParsedImportRow {
 }
 
 export interface ImportRow extends ParsedImportRow {
-  card: Card | null
+  card: Printing | null
   include: boolean
 }
 
@@ -428,7 +428,7 @@ export interface DeckInput {
   description: string
   visibility: Visibility
   cards: {
-    cardId: string
+    printingId: string
     quantity: number
     section: DeckSection
   }[]
@@ -488,7 +488,7 @@ export interface TradeLine {
   id: string
   /** Binder item (viewer's side) or trade item (partner's side) this line came from. */
   sourceId: string
-  card: Card
+  card: Printing
   condition: Condition
   finish: Finish
   language: Language

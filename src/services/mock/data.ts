@@ -1,5 +1,5 @@
 import type {
-  Card,
+  Printing,
   CardColor,
   CardSet,
   ChangelogEntry,
@@ -221,13 +221,13 @@ const priceCeiling: Record<Rarity, number> = {
 }
 
 export const sets: CardSet[] = []
-export const cards: Card[] = []
+export const printings: Printing[] = []
 
 for (const game of games) {
   setNames[game.id].forEach(([name, type], setIndex) => {
     const code = makeCode(game.id, name, setIndex + 1)
     const cardCount = type === 'promo' ? 12 : 36
-    const setCards: Card[] = []
+    const setCards: Printing[] = []
 
     for (let index = 1; index <= cardCount; index++) {
       const isLand = game.id === 'mtg' && index > cardCount - 6
@@ -238,7 +238,7 @@ for (const game of games) {
       const finishes: Finish[] = random.chance(0.15) ? ['nonfoil', 'foil', 'etched'] : ['nonfoil', 'foil']
       const nonfoil = random.price(priceCeiling[rarity])
       const colors = isLand ? (['C'] as CardColor[]) : random.sample(colorsPool, random.int(1, 2))
-      const legalities: Card['legalities'] = {}
+      const legalities: Printing['legalities'] = {}
       if (game.capabilities.legalities) {
         for (const format of mtgFormats) {
           legalities[format] = type === 'promo' && format === 'standard' ? 'not_legal' : random.chance(0.03) ? 'banned' : 'legal'
@@ -283,7 +283,7 @@ for (const game of games) {
       })
     }
 
-    cards.push(...setCards)
+    printings.push(...setCards)
     sets.push({
       cardCount,
       code,
@@ -467,9 +467,9 @@ const conditions: Condition[] = ['NM', 'NM', 'NM', 'NM', 'EX', 'GD', 'LP', 'M']
 const languages: Language[] = ['en', 'en', 'en', 'en', 'it', 'de', 'ja', 'fr']
 
 export const tradeItems: TradeItem[] = users.flatMap((user) => {
-  const pool = cards.filter(card => user.games.includes(card.gameId))
+  const pool = printings.filter(card => user.games.includes(card.gameId))
   const citySlug = user.citySlugs[0] ?? 'milan--italy'
-  const makeItem = (listType: TradeItem['listType']) => (card: Card, index: number): TradeItem => {
+  const makeItem = (listType: TradeItem['listType']) => (card: Printing, index: number): TradeItem => {
     const finish: Finish = random.chance(0.2) ? 'foil' : 'nonfoil'
     return {
       card,
@@ -497,7 +497,7 @@ export const tradeItems: TradeItem[] = users.flatMap((user) => {
 // ---------------------------------------------------------------------------
 
 function buildDeck(gameId: GameId, format: string): DeckCard[] {
-  const pool = cards.filter(card => card.gameId === gameId)
+  const pool = printings.filter(card => card.gameId === gameId)
   const lands = pool.filter(card => card.typeLine === 'Land')
   const spells = pool.filter(card => card.typeLine !== 'Land')
 

@@ -3,7 +3,7 @@ import type { DeckInput, OwnedDeck } from '../../types'
 import { games } from '../data'
 import { compare } from '../queryHelpers'
 
-import { clampQuantity, now, requireCard } from './context'
+import { clampQuantity, now, requirePrinting } from './context'
 import type { TraderContext } from './context'
 
 const deckSections = new Set(['commander', 'mainboard', 'sideboard', 'considering'])
@@ -20,7 +20,7 @@ export function deckBuilderService(ctx: TraderContext): DeckBuilderService {
       cards: input.cards.slice(0, 500).map((entry) => {
         if (!deckSections.has(entry.section)) throw new Error('Unknown deck section')
         return {
-          card: requireCard(entry.cardId),
+          card: requirePrinting(entry.printingId),
           quantity: clampQuantity(entry.quantity),
           section: entry.section,
         }

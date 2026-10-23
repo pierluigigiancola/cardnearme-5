@@ -11,10 +11,10 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
-import type { Card, ViewMode } from '#/services/types'
+import type { Printing, ViewMode } from '#/services/types'
 
 function CardPageLink({ card, children, className }: {
-  card: Card;
+  card: Printing;
   children: React.ReactNode;
   className?: string
 }) {
@@ -35,7 +35,7 @@ function CardPageLink({ card, children, className }: {
 }
 
 export function CardList({ cards, view }: {
-  cards: Card[];
+  cards: Printing[];
   view: ViewMode
 }) {
   if (cards.length === 0) {

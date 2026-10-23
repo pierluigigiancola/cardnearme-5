@@ -30,7 +30,7 @@ import { QuantityStepper } from '#/components/workspace/QuantityStepper'
 import { conditionLabels, conditions, finishLabels, isCondition, isFinish, isLanguage, languageLabels, languages } from '#/lib/cardOptions'
 import { useWorkspaceMutation } from '#/services/mutations'
 import { cardSearchQuery, printingsQuery, tradeListsQuery } from '#/services/queries'
-import type { BinderItemInput, BinderSection, Card, Condition, Finish, Language } from '#/services/types'
+import type { BinderItemInput, BinderSection, Printing, Condition, Finish, Language } from '#/services/types'
 
 export const sectionLabels: Record<BinderSection, string> = {
   collection: 'Collection',
@@ -52,7 +52,7 @@ export function AddCardDialog({ card: presetCard, defaultListId, defaultSection,
   defaultSection: BinderSection;
   defaultListId?: string;
   /** Skip the search step (e.g. from a card page). */
-  card?: Card
+  card?: Printing
 }) {
   return (
     <Dialog
@@ -76,10 +76,10 @@ export function AddCardDialog({ card: presetCard, defaultListId, defaultSection,
 function AddCardForm({ defaultListId, defaultSection, onDone, presetCard }: {
   defaultSection: BinderSection;
   defaultListId?: string;
-  presetCard?: Card;
+  presetCard?: Printing;
   onDone: () => void
 }) {
-  const [picked, setPicked] = useState<Card | null>(presetCard ?? null)
+  const [picked, setPicked] = useState<Printing | null>(presetCard ?? null)
 
   return (
     <>
@@ -105,7 +105,7 @@ function AddCardForm({ defaultListId, defaultSection, onDone, presetCard }: {
   )
 }
 
-function CardSearchStep({ onPick }: { onPick: (card: Card) => void }) {
+function CardSearchStep({ onPick }: { onPick: (card: Printing) => void }) {
   const [query, setQuery] = useState('')
   const [debounced, setDebounced] = useState('')
 
@@ -179,7 +179,7 @@ function CardSearchStep({ onPick }: { onPick: (card: Card) => void }) {
 }
 
 function CardDetailsStep({ card, defaultListId, defaultSection, onBack, onDone }: {
-  card: Card;
+  card: Printing;
   defaultSection: BinderSection;
   defaultListId?: string;
   /** Back to the search step; omitted when the card was given. */
@@ -214,11 +214,11 @@ function CardDetailsStep({ card, defaultListId, defaultSection, onBack, onDone }
 
   const submit = (another: boolean) => {
     add.mutate([{
-      cardId: printing.id,
       condition,
       finish: printing.finishes.includes(finish) ? finish : 'nonfoil',
       language,
       listId: section === 'collection' ? null : selectedList?.id ?? null,
+      printingId: printing.id,
       quantity,
       section,
     }], {

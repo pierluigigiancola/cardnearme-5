@@ -16,14 +16,14 @@ import { Button } from '#/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { formatDate } from '#/lib/format'
 import { cn } from '#/lib/utils'
-import { cardAvailabilityQuery, cardQuery, gameQuery, ownershipQuery, printingsQuery } from '#/services/queries'
-import type { Card, Finish } from '#/services/types'
+import { cardAvailabilityQuery, printingQuery, gameQuery, ownershipQuery, printingsQuery } from '#/services/queries'
+import type { Printing, Finish } from '#/services/types'
 
 export const Route = createFileRoute('/sets/$game/$set/$card/$number')({
   loader: async ({ context: { queryClient }, params }) => {
     const game = await queryClient.ensureQueryData(gameQuery(params.game))
     if (!game) throw notFound()
-    const card = await queryClient.ensureQueryData(cardQuery(game.id, params.set, params.number))
+    const card = await queryClient.ensureQueryData(printingQuery(game.id, params.set, params.number))
     if (!card) throw notFound()
     await Promise.all([
       queryClient.ensureQueryData(printingsQuery(card)),
@@ -308,7 +308,7 @@ function CardPage() {
 }
 
 /** Copies of this card (any printing) in the viewer's binder. */
-function OwnershipCounts({ card }: { card: Card }) {
+function OwnershipCounts({ card }: { card: Printing }) {
   const viewer = useSignedInViewer()
   const result = useQuery(ownershipQuery(viewer.id, [card.id]))
   if (result.isError) {

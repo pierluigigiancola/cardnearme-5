@@ -7,9 +7,9 @@ import type {
   BinderItemPatch,
   BinderPage,
   BinderQuery,
-  Card,
+  Printing,
   CardAvailability,
-  CardQuery,
+  PrintingQuery,
   CardSet,
   ChangelogEntry,
   ChatSummary,
@@ -65,19 +65,19 @@ export interface CatalogueService {
     order?: SortOrder
   }) => Promise<CardSet[]>
   getSet: (gameId: GameId, setCode: string) => Promise<CardSet | null>
-  listCards: (query: CardQuery) => Promise<{
-    items: Card[];
+  listSetPrintings: (query: PrintingQuery) => Promise<{
+    items: Printing[];
     total: number;
     facets: Facet[]
   }>
-  getCard: (gameId: GameId, setCode: string, number: string) => Promise<Card | null>
-  listPrintings: (card: Card) => Promise<Card[]>
+  getPrinting: (gameId: GameId, setCode: string, number: string) => Promise<Printing | null>
+  listPrintings: (card: Printing) => Promise<Printing[]>
   listSealed: (gameId: GameId, setCode: string) => Promise<SealedProduct[]>
   searchCards: (q: string, options?: {
     gameId?: GameId;
     limit?: number
-  }) => Promise<Card[]>
-  getCardAvailability: (card: Card) => Promise<CardAvailability[]>
+  }) => Promise<Printing[]>
+  getCardAvailability: (card: Printing) => Promise<CardAvailability[]>
 }
 
 export interface PlacesService {
@@ -139,8 +139,8 @@ export interface BinderService {
   createImport: (input: BinderImportInput) => Promise<BinderImport>
   getImport: (importId: string) => Promise<BinderImport | null>
   updateImportRow: (importId: string, line: number, patch: {
-    cardId?: string;
     include?: boolean
+    printingId?: string;
   }) => Promise<BinderImport>
   commitImport: (importId: string) => Promise<BinderImport>
 }

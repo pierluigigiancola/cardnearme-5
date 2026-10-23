@@ -1,7 +1,7 @@
-import type { Card } from '#/services/types'
+import type { Printing } from '#/services/types'
 
-/** A complete `Card` for unit tests; pass only the fields the test cares about. */
-export function makeCard(overrides: Partial<Card> = {}): Card {
+/** A complete `Printing` for unit tests; pass only the fields the test cares about. */
+export function makePrinting(overrides: Partial<Printing> = {}): Printing {
   const name = overrides.name ?? 'Test Card'
   return {
     artist: 'Test Artist',

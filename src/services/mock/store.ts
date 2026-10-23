@@ -2,7 +2,7 @@ import type {
   AppNotification,
   BinderImport,
   BinderSection,
-  Card,
+  Printing,
   ChatMessage,
   ChatParticipant,
   Condition,
@@ -17,7 +17,7 @@ import type {
   WorkspaceProfile,
 } from '../types'
 
-import { cards, decks, stores, tradeItems, users } from './data'
+import { printings, decks, stores, tradeItems, users } from './data'
 import { MOCK_NOW } from './random'
 
 /**
@@ -84,10 +84,10 @@ export interface MockStore {
   nextId: number
 }
 
-export const cardsById = new Map(cards.map(card => [card.id, card]))
+export const printingsById = new Map(printings.map(card => [card.id, card]))
 export const storesBySlug = new Map(stores.map(store => [store.slug, store]))
 
-export function priceOf(card: Card, finish: Finish) {
+export function priceOf(card: Printing, finish: Finish) {
   return card.prices[finish] ?? card.prices.nonfoil ?? 0
 }
 
@@ -209,7 +209,7 @@ export function listedItems(store: MockStore, listType: TradeListType, trader?: 
     if (!citySlug) return []
     const publicLists = new Set(owner.lists.filter(list => list.visibility === 'public').map(list => list.id))
     return owner.items.flatMap((record) => {
-      const card = cardsById.get(record.cardId)
+      const card = printingsById.get(record.cardId)
       if (record.section !== listType || !record.listId || !publicLists.has(record.listId) || !card) return []
       return [{
         card,

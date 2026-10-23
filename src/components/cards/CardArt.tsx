@@ -1,5 +1,5 @@
 import { cn } from '#/lib/utils'
-import type { Card, CardColor, Finish } from '#/services/types'
+import type { Printing, CardColor, Finish } from '#/services/types'
 
 const colorHues: Record<CardColor, number> = {
   B: 300,
@@ -15,7 +15,7 @@ const colorHues: Record<CardColor, number> = {
  * (`<img src={card.imageUrl}>`) once a card data source is connected.
  */
 export function CardArt({ card, className, finish = 'nonfoil' }: {
-  card: Pick<Card, 'id' | 'name' | 'colors' | 'typeLine' | 'setCode' | 'number' | 'rarity'>;
+  card: Pick<Printing, 'id' | 'name' | 'colors' | 'typeLine' | 'setCode' | 'number' | 'rarity'>;
   className?: string;
   finish?: Finish
 }) {

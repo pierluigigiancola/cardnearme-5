@@ -30,7 +30,7 @@ import { usePricingSource } from '#/lib/pricing'
 import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
 import { tradeContextQuery } from '#/services/queries'
-import type { Card, Condition, Finish, Language, Trade, TradeContext, TradeDraft, TradeItem } from '#/services/types'
+import type { Printing, Condition, Finish, Language, Trade, TradeContext, TradeDraft, TradeItem } from '#/services/types'
 
 export interface TradeBuilderRequest {
   partner: string
@@ -130,7 +130,7 @@ type MeetupChoice =
 
 interface PickableItem {
   id: string
-  card: Card
+  card: Printing
   condition: Condition
   finish: Finish
   language: Language
