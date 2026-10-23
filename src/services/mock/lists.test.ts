@@ -45,12 +45,9 @@ async function setUp() {
       quantity: 2,
     },
     {
-      condition: 'NM',
-      finish: 'nonfoil',
+      cardId: card.cardId,
       kind: 'want',
-      language: 'en',
       listId: wantsList.id,
-      printingId: card.id,
       quantity: 1,
     },
   ])

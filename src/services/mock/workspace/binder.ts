@@ -1,5 +1,5 @@
 import type { BinderService } from '../../services'
-import type { BinderImport, BinderItem, BinderSection, Ownership } from '../../types'
+import type { BinderImport, BinderItem, BinderItemInput, BinderSection, Ownership } from '../../types'
 import { printings, games } from '../data'
 import { matchCards } from '../matchCards'
 import { baseType, buildFacets, capitalise, compare, labelFrom, matchesFacets, matchesText } from '../queryHelpers'
@@ -9,7 +9,7 @@ import type { ItemRecord } from '../store'
 
 import { cardKey, clampQuantity, now, requirePrinting } from './context'
 import type { TraderContext } from './context'
-import { addRecords, inSection, listTypeOf, markForTrade, requireItem, requireList, resolveList, toBinderItems, touchList } from './records'
+import { addRecords, checkWantFilters, inSection, listTypeOf, markForTrade, printingOf, requireItem, requireList, resolveList, toBinderItems, touchList } from './records'
 
 import { conditionLabels, isCondition, isLanguage, languageLabels } from '#/lib/cardOptions'
 
@@ -18,6 +18,10 @@ function copiesIn(record: Pick<ItemRecord, 'kind' | 'quantity'> & { forTradeQuan
   if (section === 'haves') return record.kind === 'collection' ? record.forTradeQuantity ?? 0 : 0
   return (section === 'wants') === (record.kind === 'want') ? record.quantity : 0
 }
+
+/** A Want facet value for an unset filter. */
+const ANY = 'any'
+const orAny = (label: (value: string) => string) => (value: string) => (value === ANY ? 'Any' : label(value))
 
 const binderFacets: FacetDefinition<BinderItem>[] = [
   {
@@ -29,26 +33,26 @@ const binderFacets: FacetDefinition<BinderItem>[] = [
   {
     key: 'set',
     label: 'Sets',
-    labelFor: value => printings.find(card => card.setCode === value)?.setName ?? value,
-    values: item => [item.card.setCode],
+    labelFor: orAny(value => printings.find(card => card.setCode === value)?.setName ?? value),
+    values: item => [item.kind === 'collection' ? item.card.setCode : item.filters.setCode ?? ANY],
   },
   {
     key: 'condition',
     label: 'Condition',
-    labelFor: value => labelFrom(conditionLabels, value),
-    values: item => [item.condition],
+    labelFor: orAny(value => labelFrom(conditionLabels, value)),
+    values: item => [item.kind === 'collection' ? item.condition : item.filters.minCondition ?? ANY],
   },
   {
     key: 'language',
     label: 'Language',
-    labelFor: value => labelFrom(languageLabels, value),
-    values: item => [item.language],
+    labelFor: orAny(value => labelFrom(languageLabels, value)),
+    values: item => [item.kind === 'collection' ? item.language : item.filters.language ?? ANY],
   },
   {
     key: 'finish',
     label: 'Finishes',
-    labelFor: capitalise,
-    values: item => [item.finish],
+    labelFor: orAny(capitalise),
+    values: item => [item.kind === 'collection' ? item.finish : item.filters.finish ?? ANY],
   },
   {
     key: 'rarity',
@@ -103,19 +107,33 @@ export function binderService(ctx: TraderContext): BinderService {
       const draft = requireImport(importId)
       if (draft.committedAt) throw new Error('This import was already confirmed')
       const rows = draft.rows.filter(row => row.include && row.card)
-      addRecords(ctx, rows.flatMap(row => (row.card
-        ? [{
+      addRecords(ctx, rows.flatMap((row): BinderItemInput[] => {
+        if (!row.card) return []
+        // Importing Wants creates Wants for the row's Card, any printing, narrowed only by a condition or language the row states.
+        if (draft.section === 'wants') {
+          return [{
+            cardId: row.card.cardId,
+            filters: {
+              language: row.language,
+              minCondition: row.condition,
+            },
+            kind: 'want',
+            listId: draft.listId,
+            quantity: row.quantity,
+          }]
+        }
+        return [{
           condition: row.condition ?? 'NM',
           finish: row.card.finishes.includes(row.finish) ? row.finish : 'nonfoil',
           // Importing Haves creates Collection entries with every imported copy for trade.
           forTradeQuantity: draft.section === 'haves' ? row.quantity : 0,
-          kind: draft.section === 'wants' ? 'want' as const : 'collection' as const,
+          kind: 'collection',
           language: row.language ?? 'en',
           listId: draft.listId,
           printingId: row.card.id,
           quantity: row.quantity,
         }]
-        : [])))
+      }))
       draft.committedAt = now()
       draft.importedCount = rows.reduce((total, row) => total + row.quantity, 0)
       return draft
@@ -169,7 +187,7 @@ export function binderService(ctx: TraderContext): BinderService {
           wants: 0,
         }
         for (const record of trader.items) {
-          const other = printingsById.get(record.cardId)
+          const other = printingOf(record)
           if (!other || cardKey(other) !== cardKey(card)) continue
           for (const section of ['collection', 'haves', 'wants'] as const) ownership[section] += copiesIn(record, section)
         }
@@ -207,7 +225,7 @@ export function binderService(ctx: TraderContext): BinderService {
         const record = requireItem(ctx, itemId)
         if (target.listId === null && record.kind === 'want') throw new Error('Wants always belong to a Wants List')
         return {
-          list: target.listId === null ? null : resolveList(ctx, listTypeOf(record), target.listId, requirePrinting(record.cardId)),
+          list: target.listId === null ? null : resolveList(ctx, listTypeOf(record), target.listId, requirePrinting(printingOf(record)?.id ?? '')),
           record,
         }
       })
@@ -245,28 +263,39 @@ export function binderService(ctx: TraderContext): BinderService {
     },
     updateItem: async (itemId, patch) => {
       const record = requireItem(ctx, itemId)
-      const card = requirePrinting(record.cardId)
-      if (patch.condition !== undefined) {
-        if (!isCondition(patch.condition)) throw new Error('Invalid condition')
-        record.condition = patch.condition
-      }
-      if (patch.finish !== undefined) {
-        if (!card.finishes.includes(patch.finish)) throw new Error(`${card.name} has no ${patch.finish} printing`)
-        record.finish = patch.finish
-      }
-      if (patch.language !== undefined) {
-        if (!isLanguage(patch.language)) throw new Error('Invalid language')
-        record.language = patch.language
-      }
       if (patch.quantity !== undefined) record.quantity = clampQuantity(patch.quantity)
       if (record.kind === 'collection') {
+        if (patch.filters !== undefined) throw new Error('Only Wants have filters')
+        const card = requirePrinting(record.printingId)
+        if (patch.condition !== undefined) {
+          if (!isCondition(patch.condition)) throw new Error('Invalid condition')
+          record.condition = patch.condition
+        }
+        if (patch.finish !== undefined) {
+          if (!card.finishes.includes(patch.finish)) throw new Error(`${card.name} has no ${patch.finish} printing`)
+          record.finish = patch.finish
+        }
+        if (patch.language !== undefined) {
+          if (!isLanguage(patch.language)) throw new Error('Invalid language')
+          record.language = patch.language
+        }
         // Fewer copies owned than for trade leaves every remaining copy for trade.
         const forTrade = patch.forTradeQuantity ?? Math.min(record.forTradeQuantity, record.quantity)
         markForTrade(ctx, record, forTrade, patch.listId)
       }
       else {
         if (patch.forTradeQuantity !== undefined) throw new Error('Only cards you own can be marked for trade')
-        if (patch.listId) record.listId = resolveList(ctx, 'wants', patch.listId, card).id
+        if (patch.condition !== undefined || patch.finish !== undefined || patch.language !== undefined) {
+          throw new Error('A Want is narrowed by its filters')
+        }
+        if (patch.filters !== undefined) {
+          record.filters = checkWantFilters(record.cardId, {
+            ...record.filters,
+            ...patch.filters,
+          })
+        }
+        const shown = requirePrinting(printingOf(record)?.id ?? '')
+        if (patch.listId) record.listId = resolveList(ctx, 'wants', patch.listId, shown).id
         touchList(ctx, record.listId)
       }
       record.updatedAt = now()

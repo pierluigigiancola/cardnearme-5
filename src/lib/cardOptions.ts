@@ -36,11 +36,6 @@ export const finishLabels: Record<Finish, string> = {
   nonfoil: 'Non-foil',
 }
 
-/** True when `condition` is at least as good as `minimum` (M is best, PO worst). */
-export function meetsCondition(condition: Condition, minimum: Condition) {
-  return conditions.indexOf(condition) <= conditions.indexOf(minimum)
-}
-
 export function isCondition(value: unknown): value is Condition {
   return conditions.some(condition => condition === value)
 }

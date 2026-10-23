@@ -5,6 +5,7 @@ import { useTradeBuilder } from './TradeBuilder'
 
 import { useRequireAuth } from '#/auth/AuthGate'
 import { useViewer } from '#/auth/useViewer'
+import { WantFilterBadges } from '#/components/binder/WantFilters'
 import { CardArt } from '#/components/cards/CardArt'
 import { ConditionBadge, FinishBadge, Price } from '#/components/cards/CardBits'
 import { Button } from '#/components/ui/button'
@@ -95,13 +96,17 @@ function TradeItemGrid({ items }: { items: TradeItem[] }) {
           </CardLink>
 
           <div className="flex items-center gap-1.5">
-            {item.listType === 'wants' && <span className="text-[10px] text-muted-foreground">min</span>}
+            {item.wantFilters
+              ? <WantFilterBadges filters={item.wantFilters} />
+              : (
+                <>
+                  <ConditionBadge condition={item.condition} />
 
-            <ConditionBadge condition={item.condition} />
+                  <FinishBadge finish={item.finish} />
 
-            <FinishBadge finish={item.finish} />
-
-            <span className="text-xs text-muted-foreground uppercase">{item.language}</span>
+                  <span className="text-xs text-muted-foreground uppercase">{item.language}</span>
+                </>
+              )}
 
             <Price
               amount={item.price}
@@ -158,13 +163,15 @@ function TradeItemTable({ items }: { items: TradeItem[] }) {
 
                 {' '}
 
-                <FinishBadge finish={item.finish} />
+                {item.wantFilters ? <WantFilterBadges filters={item.wantFilters} /> : <FinishBadge finish={item.finish} />}
               </TableCell>
 
-              <TableCell className="text-muted-foreground">{item.card.setName}</TableCell>
+              <TableCell className="text-muted-foreground">{item.wantFilters && !item.wantFilters.setCode ? 'Any set' : item.card.setName}</TableCell>
 
               <TableCell>
-                <ConditionBadge condition={item.condition} />
+                {item.wantFilters && !item.wantFilters.minCondition
+                  ? <span className="text-muted-foreground">Any</span>
+                  : <ConditionBadge condition={item.condition} />}
               </TableCell>
 
               <TableCell className="text-right tabular-nums">{item.quantity}</TableCell>

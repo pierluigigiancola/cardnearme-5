@@ -219,7 +219,7 @@ function initialState(context: TradeContext, request: TradeBuilderRequest, me: U
     })
   }
   if (item?.listType === 'wants') {
-    const mine = context.myItems.find(candidate => candidate.card.name === item.card.name)
+    const mine = context.myItems.find(candidate => candidate.card.cardId === item.card.cardId)
     if (mine) give.set(mine.id, {
       price: mine.price,
       quantity: 1,
