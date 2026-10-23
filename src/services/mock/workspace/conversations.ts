@@ -101,7 +101,7 @@ export function partnerOf({ me }: TraderContext, trade: Trade) {
 /**
  * Mock partners, in development only, so a deployed mock never acts on
  * someone's behalf. After PARTNER_REPLY_MS they accept the Trader's
- * proposals (when the cards can be reserved) and confirm accepted Trades
+ * pending Trades (when the cards can be reserved) and confirm accepted Trades
  * they haven't confirmed yet. Confirming never completes a Trade alone: it
  * completes once the Trader has confirmed too (ADR 0003).
  */
@@ -123,7 +123,7 @@ function autoAccept(ctx: TraderContext, chat: ChatRecord, trade: Trade, partner:
     acceptAs(ctx.store, trade, partner)
   }
   catch {
-    // The cards can't be reserved any more: leave the proposal pending.
+    // The cards can't be reserved any more: leave the Trade pending.
     return
   }
   post(ctx, chat, {

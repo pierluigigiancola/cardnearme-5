@@ -678,7 +678,7 @@ export interface Trade {
   updatedAt: string
 }
 
-/** A trade proposal from the viewer's point of view. */
+/** A Trade from the viewer's point of view. */
 export interface TradeDraft {
   partner: UserId
   give: TradeDraftLine[]

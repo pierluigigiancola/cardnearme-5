@@ -24,7 +24,7 @@ function preview({ lastMessage: message, partner }: ChatSummary, me: UserId) {
   const who = message.author === me ? 'You' : partner.username
   switch (message.kind) {
     case 'text': return message.author === me ? `You: ${message.body}` : message.body
-    case 'trade': return `${who} sent a trade proposal`
+    case 'trade': return `${who} proposed a trade`
     case 'event': return `${who} ${message.body}`
   }
 }

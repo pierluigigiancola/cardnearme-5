@@ -358,7 +358,7 @@ function TradeBuilderForm({ context, onClose, request }: {
     }
     propose.mutate(draft, {
       onSuccess: (trade) => {
-        toast.success(request.trade ? 'Proposal updated' : `Proposal sent to ${partner}`)
+        toast.success(request.trade ? 'Trade updated' : `Trade sent to ${partner}`)
         onClose()
         void router.navigate({
           params: { chatId: trade.chatId },
@@ -381,7 +381,7 @@ function TradeBuilderForm({ context, onClose, request }: {
             username={partner}
           />
 
-          {request.trade ? (request.trade.awaiting === viewer.id ? 'Counter-offer to ' : 'Edit proposal to ') : 'Trade with '}
+          {request.trade ? (request.trade.awaiting === viewer.id ? 'Counter-offer to ' : 'Edit trade with ') : 'Trade with '}
 
           {partner}
         </DialogTitle>
@@ -625,7 +625,7 @@ function TradeBuilderForm({ context, onClose, request }: {
         >
           {propose.isPending ? <Loader2 className="animate-spin" /> : <ArrowLeftRight />}
 
-          {request.trade ? 'Send updated proposal' : 'Send proposal'}
+          {request.trade ? 'Send updated trade' : 'Propose trade'}
         </Button>
       </DialogFooter>
     </>

@@ -202,7 +202,7 @@ describe('Trade eligibility', () => {
     await expect(workspace.trades.revise(trade.id, draftFor(roman.trader.id, added.id, 2))).rejects.toThrow('Trading in Vigevano unlocks')
   })
 
-  it('marks Matches in an unlocked City as open to proposals', async () => {
+  it('marks Matches in an unlocked City as open to proposing', async () => {
     const matches = await workspaceFor(me, createStore()).trades.listMatches()
     expect(matches.every(match => match.eligibility.canPropose)).toBe(true)
   })

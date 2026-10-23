@@ -24,7 +24,7 @@ const meetFormatter = new Intl.DateTimeFormat('en-GB', {
 })
 
 /**
- * A trade proposal as it appears in the conversation, with the actions open to the viewer.
+ * A Trade as it appears in the conversation, with the actions open to the viewer.
  * The Trade refers to both Traders by UserId; `partnerName` is the other Trader's username, for display.
  */
 export function TradeCard({ me, partnerName, trade }: {
@@ -52,7 +52,7 @@ export function TradeCard({ me, partnerName, trade }: {
       <header className="flex flex-wrap items-center gap-2">
         <ArrowLeftRight className="size-4 text-primary" />
 
-        <h3 className="font-bold">Trade proposal</h3>
+        <h3 className="font-bold">Trade</h3>
 
         <TradeStatusPill status={trade.status} />
 
@@ -219,7 +219,7 @@ export function TradeCard({ me, partnerName, trade }: {
           <>
             <Button
               disabled={action.isPending}
-              onClick={() => run('cancel', 'Proposal withdrawn')}
+              onClick={() => run('cancel', 'Trade withdrawn')}
               size="sm"
               variant="ghost"
             >

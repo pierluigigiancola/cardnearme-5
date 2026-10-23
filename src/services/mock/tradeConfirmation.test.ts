@@ -83,7 +83,7 @@ async function acceptedTrade(give = 2) {
 }
 
 describe('reservation', () => {
-  it('reserves nothing for a pending proposal', async () => {
+  it('reserves nothing for a pending Trade', async () => {
     const { myEntry, propose, theirEntry } = await setUp()
     await propose(2)
     expect((await myEntry())?.reservedQuantity).toBe(0)

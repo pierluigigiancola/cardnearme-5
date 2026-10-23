@@ -46,7 +46,7 @@ describe('reservedQuantities', () => {
     expect(Object.fromEntries(reserved)).toEqual({ ring: 2 })
   })
 
-  it('reserves nothing for pending proposals, or for closed Trades', () => {
+  it('reserves nothing for pending or closed Trades', () => {
     const reserved = reservedQuantities([
       trade('pending', [line('bolt')]),
       trade('cancelled', [line('bolt')]),

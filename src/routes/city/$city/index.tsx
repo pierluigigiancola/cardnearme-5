@@ -38,7 +38,7 @@ const unlockFeatures = [
   {
     icon: Sparkles,
     text: 'Propose trades to the players you match with. Your matches already show.',
-    title: 'Trade proposals',
+    title: 'Propose trades',
   },
   {
     icon: Bell,

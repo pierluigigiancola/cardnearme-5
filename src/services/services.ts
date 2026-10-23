@@ -221,7 +221,7 @@ export interface TradesService {
    */
   getContext: (partner: UserId) => Promise<TradeContext>
   /**
-   * Posts a proposal into the chat with the partner; returns the new trade.
+   * Proposes a Trade in the chat with the partner; returns the new Trade.
    * Refused unless the Trade is eligible (`#/domain` `tradeEligibility`): the
    * both Traders must have picked a City, and neither Trader's City may still
    * be locked. Traders in different unlocked Cities may trade.
@@ -234,7 +234,7 @@ export interface TradesService {
    * proposing, and ADR 0003 adds only the reservation check.)
    */
   revise: (tradeId: string, draft: TradeDraft) => Promise<Trade>
-  /** Accepts the proposal awaiting the viewer and reserves both sides' cards; refused when either side lacks unreserved copies. */
+  /** Accepts the pending Trade awaiting the viewer and reserves both sides' cards; refused when either side lacks unreserved copies. */
   accept: (tradeId: string) => Promise<Trade>
   /**
    * Confirms the accepted Trade took place, for the viewer's side only (ADR 0003).
@@ -242,7 +242,7 @@ export interface TradesService {
    * completes the Trade and updates both Binders in that one step.
    */
   confirm: (tradeId: string) => Promise<Trade>
-  /** Withdraw (proposer) or decline (recipient) a proposal, or call off an accepted Trade until both have confirmed. */
+  /** Withdraw (proposer) or decline (recipient) a pending Trade, or call off an accepted Trade until both have confirmed. */
   cancel: (tradeId: string) => Promise<Trade>
 }
 

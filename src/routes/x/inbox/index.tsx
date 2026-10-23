@@ -12,7 +12,7 @@ function InboxIndex() {
 
       <p className="font-semibold">Pick a conversation</p>
 
-      <p className="text-sm text-muted-foreground">Trade proposals, meetups and messages with other traders show up here.</p>
+      <p className="text-sm text-muted-foreground">Proposed trades, meetups and messages with other traders show up here.</p>
 
       <Button
         asChild

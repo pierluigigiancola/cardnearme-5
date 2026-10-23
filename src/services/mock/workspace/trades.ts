@@ -234,7 +234,7 @@ export function tradesService(ctx: TraderContext): TradesService {
       chat.messages = chat.messages.filter(message => !(message.kind === 'trade' && message.tradeId === trade.id))
       post(ctx, chat, {
         author: me,
-        body: countering ? 'sent a counter-offer' : 'updated the proposal',
+        body: countering ? 'sent a counter-offer' : 'updated the trade',
         kind: 'event',
       })
       post(ctx, chat, {
