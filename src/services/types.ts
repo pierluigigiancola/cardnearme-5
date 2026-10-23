@@ -62,9 +62,25 @@ export interface Ruling {
   text: string
 }
 
-/** One printing of a card in a set. */
+/** Identifies a Card. Opaque: never parse it, and don't confuse it with a Printing id. */
+export type CardId = string
+
+/**
+ * A game piece, identified by its name within a Game regardless of where it
+ * was printed. It groups that name's Printings across Sets; Wants target it.
+ */
 export interface Card {
+  id: CardId
+  gameId: GameId
+  name: string
+  slug: string
+}
+
+/** One release of a Card in a Set, with its own collector number. Collection entries are always a Printing. */
+export interface Printing {
   id: string
+  /** The Card this is a release of. */
+  cardId: CardId
   gameId: GameId
   setCode: string
   setName: string
@@ -126,8 +142,16 @@ export interface Store {
   isHub: boolean
 }
 
+/**
+ * Identifies a Trader: the Supabase auth user id. Every reference from one
+ * record to a person uses it, so a Trader can change their username without
+ * breaking Trades or chats. Usernames are for display and URLs only.
+ */
+export type UserId = string
+
 export interface UserProfile {
-  id: string
+  id: UserId
+  /** Display name and URL segment (`/users/$username`); never a reference. */
   username: string
   avatarHue: number
   memberSince: string
@@ -141,11 +165,18 @@ export interface UserProfile {
 
 export type TradeListType = 'haves' | 'wants'
 
-/** A card that a user has put on a haves or wants list. */
+/**
+ * A Have or Want as other Traders see it. A read projection, never a record
+ * of its own: a Have is a Collection entry with copies for trade (`id` is the
+ * entry's id and `quantity` its for-trade quantity).
+ */
 export interface TradeItem {
   id: string
   listType: TradeListType
-  card: Card
+  card: Printing
+  /** The Trader who listed it. */
+  ownerId: UserId
+  /** Display only; refer to the owner by `ownerId`. */
   ownerUsername: string
   storeSlugs: string[]
   citySlug: string
@@ -154,11 +185,18 @@ export interface TradeItem {
   language: Language
   quantity: number
   price: number
+  /**
+   * Wants only (null for Haves): the Want's filters. A Want targets a Card;
+   * `card` is the Printing shown for it, and `condition`, `finish` and
+   * `language` echo the filters (an unset condition reads as the worst, an
+   * unset finish as the shown Printing's, an unset language as English).
+   */
+  wantFilters: WantFilters | null
   updatedAt: string
 }
 
 export interface DeckCard {
-  card: Card
+  card: Printing
   quantity: number
   section: 'commander' | 'mainboard' | 'sideboard' | 'considering'
 }
@@ -168,6 +206,8 @@ export interface Deck {
   gameId: GameId
   format: string
   name: string
+  ownerId: UserId
+  /** Display only; refer to the owner by `ownerId`. */
   ownerUsername: string
   description: string
   updatedAt: string
@@ -178,7 +218,9 @@ export interface Deck {
 
 export interface DeckComment {
   id: string
-  username: string
+  authorId: UserId
+  /** Display only; refer to the author by `authorId`. */
+  authorUsername: string
   body: string
   createdAt: string
 }
@@ -224,7 +266,7 @@ export type ViewMode = 'visual' | 'table'
 export interface Page<T> {
   items: T[]
   total: number
-  /** Set when the viewer is capped (e.g. anonymous); total is still the real count. */
+  /** The cap that held results back (e.g. the anonymous result cap), or null. `total` is still the real count. */
   cappedAt: number | null
 }
 
@@ -242,7 +284,7 @@ export interface Facet {
 
 export type FacetSelection = Partial<Record<string, string[]>>
 
-export interface CardQuery {
+export interface PrintingQuery {
   gameId: GameId
   setCode: string
   q?: string
@@ -254,17 +296,25 @@ export interface CardQuery {
 export interface TradeItemQuery {
   citySlug?: string
   storeSlug?: string
-  ownerUsername?: string
+  ownerId?: UserId
   listType: TradeListType
   q?: string
   sort?: 'name' | 'price' | 'updated' | 'quantity'
   order?: SortOrder
   facets?: FacetSelection
+  /**
+   * The requested page size: how many results (from the first) to return.
+   * There is no offset or cursor. It is clamped to the viewer's cap, so it
+   * never raises it. The server works the cap out from the session (anonymous
+   * visitors get `ANONYMOUS_RESULT_CAP`), clamps this limit to it and reports
+   * `cappedAt` when the cap held results back. Omit it to get every result the
+   * viewer may see.
+   */
   limit?: number
 }
 
 export interface SearchResult {
-  cards: Card[]
+  cards: Printing[]
   cities: City[]
 }
 
@@ -283,6 +333,11 @@ export interface CardAvailability {
 // service resolves who that is from the session, never from an argument.
 // ---------------------------------------------------------------------------
 
+/**
+ * A tab of the Binder: every Collection entry, the Collection entries marked
+ * for trade (Haves), or the Wants. It names a view, not a record type: a
+ * Binder holds only Collection entries and Wants (see `BinderItem['kind']`).
+ */
 export type BinderSection = TradeListType | 'collection'
 export type Visibility = 'public' | 'private'
 
@@ -290,9 +345,18 @@ export interface TradeList {
   id: string
   name: string
   type: TradeListType
-  /** Restricts the list to one game; null accepts cards from any game. */
+  /** Restricts the list to one game; null accepts cards from any game. A default List always accepts every game. */
   gameId: GameId | null
+  /**
+   * The only visibility switch (ADR 0002): a private List hides its contents
+   * from other Traders on every public page, never from its owner.
+   */
   visibility: Visibility
+  /**
+   * Every Trader has one default Haves List and one default Wants List. Entries
+   * go there when no List is chosen, and a default List cannot be deleted.
+   */
+  isDefault: boolean
   cardCount: number
   createdAt: string
   updatedAt: string
@@ -312,37 +376,110 @@ export interface ListsQuery {
   order?: SortOrder
 }
 
-/** A card in the viewer's binder: their collection or one of their trade lists. */
-export interface BinderItem {
+interface BinderEntryBase {
   id: string
-  section: BinderSection
-  /** Trade list the item belongs to (haves and wants only). */
-  listId: string | null
-  card: Card
-  /** For wants this is the minimum acceptable condition. */
-  condition: Condition
-  finish: Finish
-  language: Language
-  quantity: number
+  /** Collection entry: the Printing owned. Want: the Printing shown for it (in the filtered Set when one is set). */
+  card: Printing
+  /** Market unit price of `card`. */
   price: number
-  /** Offered in a pending or accepted trade. */
-  inTrade: boolean
-  /** Collection only: the same printing is also on a haves list. */
-  listed: boolean
   updatedAt: string
 }
 
-export interface BinderItemInput {
-  section: BinderSection
-  listId?: string | null
-  cardId: string
+/**
+ * A Printing the viewer owns, recorded once (ADR 0002). Marking copies for
+ * trade makes it a Have, which other Traders see as a `TradeItem`.
+ */
+export interface CollectionEntry extends BinderEntryBase {
+  kind: 'collection'
   condition: Condition
   finish: Finish
   language: Language
+  /** Copies owned. */
+  quantity: number
+  /** Copies marked for trade, from 0 to `quantity`. Above zero, the entry is a Have. */
+  forTradeQuantity: number
+  /**
+   * The Haves List the entry is on. Only its for-trade copies show there (and,
+   * while the List is public, to other Traders); with none for trade the entry
+   * stays on the List but is not a Have.
+   */
+  listId: string
+  /** Copies promised to other Traders in accepted Trades (ADR 0003), from 0 to `quantity`. They cannot go on another Trade. */
+  reservedQuantity: number
+}
+
+/**
+ * Optional narrowing of a Want (ADR 0002). `null` means "any": a Want with no
+ * filters accepts any Printing of its Card, and every filter that is set is
+ * binding (see `fulfilsWant` in `#/domain`).
+ */
+export interface WantFilters {
+  setCode: string | null
+  finish: Finish | null
+  language: Language | null
+  /** The worst acceptable condition. */
+  minCondition: Condition | null
+}
+
+/** A Card the viewer is looking for, on one of their Wants Lists. It targets the Card, not a Printing. */
+export interface WantEntry extends BinderEntryBase {
+  kind: 'want'
+  /** The Card wanted. `card` is only the Printing shown for it. */
+  cardId: CardId
+  filters: WantFilters
+  /** Copies wanted. */
+  quantity: number
+  /** The Wants List it is on. */
+  listId: string
+}
+
+/** A record in the viewer's Binder: a Collection entry or a Want. */
+export type BinderItem = CollectionEntry | WantEntry
+
+export type BinderItemKind = BinderItem['kind']
+
+/** Adds a Collection entry: a concrete Printing with its details. */
+export interface CollectionEntryInput {
+  kind: 'collection'
+  /** The Haves List for its for-trade copies. Omit for the default List. */
+  listId?: string | null
+  condition: Condition
+  finish: Finish
+  language: Language
+  printingId: string
+  quantity: number
+  /** Copies to mark for trade, from 0 (the default) to `quantity`. */
+  forTradeQuantity?: number
+}
+
+/** Adds a Want for a Card. Filters left out mean "any printing". */
+export interface WantInput {
+  kind: 'want'
+  /** Its Wants List. Omit for the default List. */
+  listId?: string | null
+  cardId: CardId
+  filters?: Partial<WantFilters>
   quantity: number
 }
 
-export type BinderItemPatch = Partial<Pick<BinderItem, 'condition' | 'finish' | 'language' | 'quantity' | 'listId'>>
+export type BinderItemInput = CollectionEntryInput | WantInput
+
+export interface BinderItemPatch {
+  /** Collection entries only. */
+  condition?: Condition
+  /** Collection entries only. */
+  finish?: Finish
+  /** Collection entries only. */
+  language?: Language
+  /** Copies owned or wanted. A Collection entry can't own fewer than its reserved copies. */
+  quantity?: number
+  /** Collection entries only: copies marked for trade, at most `quantity`. Zero keeps the entry on its Haves List but not as a Have. */
+  forTradeQuantity?: number
+  /** Wants only: replaces the filters given (`null` sets one back to "any"). */
+  filters?: Partial<WantFilters>
+  /** Moves the entry to another List of its kind. */
+  listId?: string
+}
 
 export interface BinderQuery {
   section: BinderSection
@@ -357,7 +494,7 @@ export interface BinderStats {
   marketValue: number
   /** Total copies, counting quantities. */
   cards: number
-  /** Distinct printings. */
+  /** Distinct Printings. */
   distinct: number
 }
 
@@ -370,10 +507,10 @@ export interface BinderPage {
 
 export type BinderCounts = Record<BinderSection, number>
 
-/** How many copies of a card (any printing) the viewer has in each section. */
+/** How many copies of a Card (any Printing) the viewer has in each Binder tab: owned, for trade, wanted. */
 export type Ownership = Record<BinderSection, number>
 
-/** One line of a CSV or pasted card list, before it is matched to a printing. */
+/** One line of a CSV or pasted card list, before it is matched to a Printing. */
 export interface ParsedImportRow {
   line: number
   raw: string
@@ -386,13 +523,21 @@ export interface ParsedImportRow {
   language: Language | null
 }
 
+/** What `catalogue.matchCards` needs from one line of an imported list. */
+export interface CardMatchRow {
+  name: string
+  setCode: string | null
+  number: string | null
+}
+
 export interface ImportRow extends ParsedImportRow {
-  card: Card | null
+  card: Printing | null
   include: boolean
 }
 
 export interface BinderImport {
   id: string
+  /** Every import creates Collection entries or Wants; `haves` marks each imported copy for trade. */
   section: BinderSection
   listId: string | null
   source: 'csv' | 'text'
@@ -421,13 +566,15 @@ export interface DeckInput {
   description: string
   visibility: Visibility
   cards: {
-    cardId: string
+    printingId: string
     quantity: number
     section: DeckSection
   }[]
 }
 
 export interface ChatParticipant {
+  id: UserId
+  /** Display only. */
   username: string
   avatarHue: number
   online: boolean
@@ -439,7 +586,7 @@ export interface ChatParticipant {
 interface ChatMessageBase {
   id: string
   chatId: string
-  author: string
+  author: UserId
   sentAt: string
 }
 
@@ -479,9 +626,9 @@ export type TradeStatus = 'pending' | 'accepted' | 'completed' | 'cancelled'
 
 export interface TradeLine {
   id: string
-  /** Binder item (viewer's side) or trade item (partner's side) this line came from. */
+  /** The Collection entry this line comes from, on either side (a partner's `TradeItem.id` is their Collection entry's id). */
   sourceId: string
-  card: Card
+  card: Printing
   condition: Condition
   finish: Finish
   language: Language
@@ -508,27 +655,32 @@ export type MeetupLocation =
 export interface Trade {
   id: string
   chatId: string
-  proposer: string
-  recipient: string
+  proposer: UserId
+  recipient: UserId
   proposerGives: TradeLine[]
   recipientGives: TradeLine[]
   /** Cash added to balance the values; `cashPayer` hands it over. */
   cashAmount: number
-  cashPayer: string | null
+  cashPayer: UserId | null
   meetup: MeetupLocation | null
   meetAt: string | null
   note: string
   status: TradeStatus
   /** Who has to act next: the side that did not make the latest offer. */
-  awaiting: string | null
-  cancelledBy: string | null
+  awaiting: UserId | null
+  cancelledBy: UserId | null
+  /**
+   * When each Trader confirmed the accepted Trade took place, keyed by UserId.
+   * The Trade becomes Completed when both have (ADR 0003).
+   */
+  confirmedAt: Partial<Record<UserId, string>>
   createdAt: string
   updatedAt: string
 }
 
-/** A trade proposal from the viewer's point of view. */
+/** A Trade from the viewer's point of view. */
 export interface TradeDraft {
-  partner: string
+  partner: UserId
   give: TradeDraftLine[]
   get: TradeDraftLine[]
   cash: {
@@ -549,8 +701,9 @@ export interface TradeDraftLine {
 /** Everything the trade builder needs to propose a trade to one partner. */
 export interface TradeContext {
   partner: ChatParticipant
-  /** Viewer's haves and collection, offerable on the "you give" side. */
-  myItems: BinderItem[]
+  /** The viewer's whole Collection: any entry can go on the "you give" side (see `#/domain` give rule). */
+  myItems: CollectionEntry[]
+  /** The partner's Haves, the only cards that can go on the "you get" side. */
   partnerHaves: TradeItem[]
   partnerWants: TradeItem[]
   /** Stores both traders have joined, suggested as meetup locations. */
@@ -567,14 +720,38 @@ export interface TradeMatch {
   sharedStoreSlugs: string[]
   /** Partner haves that are on the viewer's wants. */
   theyHave: TradeItem[]
-  /** Viewer's haves that are on the partner's wants. */
-  theyWant: BinderItem[]
+  /** Viewer's Haves that are on the partner's wants. */
+  theyWant: CollectionEntry[]
+  /** Whether the viewer may propose a Trade to this partner yet (a locked City still shows its Matches). */
+  eligibility: TradeEligibility
 }
 
+/**
+ * Where Matches are looked for (spec decision 4). Matching is scoped to the
+ * viewer's own City, read from the session; a Store only narrows that City to
+ * the Traders who joined it.
+ */
 export interface MatchScope {
-  storeSlug?: string
+  /**
+   * The City the page shows. Matches are found only when it is the viewer's
+   * own City (or it is left out); any other City gives no Matches.
+   */
   citySlug?: string
+  /** Optional filter: only Traders who joined this Store (in the City). */
+  storeSlug?: string
 }
+
+/**
+ * Whether the viewer may propose a Trade (spec decisions 5 and 6). Proposing
+ * waits until the City has unlocked; Traders in different Cities may trade.
+ */
+export type TradeEligibility
+  = | { canPropose: true }
+    | {
+      canPropose: false
+      /** Why proposing is refused, for the UI. */
+      reason: string
+    }
 
 export type NotificationKind = 'message' | 'trade' | 'item-available' | 'item-wanted'
 
@@ -585,7 +762,8 @@ export interface AppNotification {
   body: string
   /** In-app path the notification opens. */
   href: string
-  actor: string | null
+  /** The Trader the notification is about. */
+  actor: UserId | null
   createdAt: string
   readAt: string | null
 }
@@ -620,7 +798,7 @@ export interface WorkspaceProfile {
   bio: string
   avatarHue: number
   citySlug: string | null
-  /** Joined stores ("trading locations"); capped by `viewerLimits.tradingStores`. */
+  /** Joined stores ("trading locations"); capped by `STORE_JOIN_CAP` in `#/domain`. */
   storeSlugs: string[]
   showStoresOnProfile: boolean
   storeSettings: Record<string, StoreSettings>

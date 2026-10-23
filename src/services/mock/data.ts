@@ -15,6 +15,7 @@ import type {
   HelpArticle,
   Language,
   NewsItem,
+  Printing,
   Rarity,
   SealedProduct,
   SetType,
@@ -221,13 +222,33 @@ const priceCeiling: Record<Rarity, number> = {
 }
 
 export const sets: CardSet[] = []
+export const printings: Printing[] = []
+/** The Cards the Printings belong to: one per name within a Game. */
 export const cards: Card[] = []
+const cardsById = new Map<string, Card>()
+
+/** Mock Card id: the name within its Game. A real catalogue uses its own stable ids. */
+function cardFor(gameId: GameId, name: string): Card {
+  const slug = slugify(name)
+  const id = `${gameId}:${slug}`
+  const existing = cardsById.get(id)
+  if (existing) return existing
+  const card: Card = {
+    gameId,
+    id,
+    name,
+    slug, 
+  }
+  cardsById.set(id, card)
+  cards.push(card)
+  return card
+}
 
 for (const game of games) {
   setNames[game.id].forEach(([name, type], setIndex) => {
     const code = makeCode(game.id, name, setIndex + 1)
     const cardCount = type === 'promo' ? 12 : 36
-    const setCards: Card[] = []
+    const setCards: Printing[] = []
 
     for (let index = 1; index <= cardCount; index++) {
       const isLand = game.id === 'mtg' && index > cardCount - 6
@@ -238,7 +259,7 @@ for (const game of games) {
       const finishes: Finish[] = random.chance(0.15) ? ['nonfoil', 'foil', 'etched'] : ['nonfoil', 'foil']
       const nonfoil = random.price(priceCeiling[rarity])
       const colors = isLand ? (['C'] as CardColor[]) : random.sample(colorsPool, random.int(1, 2))
-      const legalities: Card['legalities'] = {}
+      const legalities: Printing['legalities'] = {}
       if (game.capabilities.legalities) {
         for (const format of mtgFormats) {
           legalities[format] = type === 'promo' && format === 'standard' ? 'not_legal' : random.chance(0.03) ? 'banned' : 'legal'
@@ -247,6 +268,7 @@ for (const game of games) {
 
       setCards.push({
         artist: random.pick(artists),
+        cardId: cardFor(game.id, cardName).id,
         colors,
         cost: isLand ? 0 : random.int(1, 7),
         finishes,
@@ -283,7 +305,7 @@ for (const game of games) {
       })
     }
 
-    cards.push(...setCards)
+    printings.push(...setCards)
     sets.push({
       cardCount,
       code,
@@ -437,6 +459,15 @@ const badgePool = ['Pioneer', 'Trailblazer', 'Collector', 'Deck Brewer', 'Truste
 const meetingPlaces = ['Store front counter', 'Café next door', 'Friday Night tables', 'Train station hall']
 const tradeCities = cities.filter(city => city.traderCount >= city.unlockThreshold)
 
+const takenUsernames = new Set<string>()
+
+/** Usernames are unique: a clash gets the trader's index appended. */
+function uniqueUsername(candidate: string, index: number) {
+  const username = takenUsernames.has(candidate) ? `${candidate}${index}` : candidate
+  takenUsernames.add(username)
+  return username
+}
+
 export const users: UserProfile[] = Array.from({ length: 48 }, (_, index) => {
   const city = index === 0 ? cities.find(c => c.slug === 'vigevano--italy') ?? random.pick(tradeCities) : random.pick(tradeCities)
   const cityStores = stores.filter(store => store.citySlug === city.slug)
@@ -450,7 +481,7 @@ export const users: UserProfile[] = Array.from({ length: 48 }, (_, index) => {
     meetingPlaces: random.sample(meetingPlaces, random.int(1, 2)),
     memberSince: daysAgo(random.int(20, 700)),
     storeSlugs: random.sample(cityStores, random.int(1, Math.min(3, cityStores.length))).map(store => store.slug),
-    username: `${random.pick(syllables)}${random.pick(syllables)}${random.chance(0.5) ? random.int(1, 99) : ''}`,
+    username: uniqueUsername(`${random.pick(syllables)}${random.pick(syllables)}${random.chance(0.5) ? random.int(1, 99) : ''}`, index),
   }
 })
 
@@ -458,9 +489,9 @@ const conditions: Condition[] = ['NM', 'NM', 'NM', 'NM', 'EX', 'GD', 'LP', 'M']
 const languages: Language[] = ['en', 'en', 'en', 'en', 'it', 'de', 'ja', 'fr']
 
 export const tradeItems: TradeItem[] = users.flatMap((user) => {
-  const pool = cards.filter(card => user.games.includes(card.gameId))
+  const pool = printings.filter(card => user.games.includes(card.gameId))
   const citySlug = user.citySlugs[0] ?? 'milan--italy'
-  const makeItem = (listType: TradeItem['listType']) => (card: Card, index: number): TradeItem => {
+  const makeItem = (listType: TradeItem['listType']) => (card: Printing, index: number): TradeItem => {
     const finish: Finish = random.chance(0.2) ? 'foil' : 'nonfoil'
     return {
       card,
@@ -470,11 +501,14 @@ export const tradeItems: TradeItem[] = users.flatMap((user) => {
       id: `${user.id}-${listType}-${index}`,
       language: random.pick(languages),
       listType,
+      ownerId: user.id,
       ownerUsername: user.username,
       price: card.prices[finish] ?? card.prices.nonfoil ?? 0,
       quantity: random.chance(0.8) ? 1 : random.int(2, 4),
       storeSlugs: user.storeSlugs,
       updatedAt: daysAgo(random.next() * 60),
+      // Seed rows only: store.ts turns wanted rows into Card-level Wants with filters.
+      wantFilters: null,
     }
   }
   return [
@@ -488,7 +522,7 @@ export const tradeItems: TradeItem[] = users.flatMap((user) => {
 // ---------------------------------------------------------------------------
 
 function buildDeck(gameId: GameId, format: string): DeckCard[] {
-  const pool = cards.filter(card => card.gameId === gameId)
+  const pool = printings.filter(card => card.gameId === gameId)
   const lands = pool.filter(card => card.typeLine === 'Land')
   const spells = pool.filter(card => card.typeLine !== 'Land')
 
@@ -548,16 +582,22 @@ export const decks: Deck[] = Array.from({ length: 30 }, (_, index) => {
   const gameId: GameId = index < 18 ? 'mtg' : index < 24 ? 'riftbound' : 'onepiece'
   const game = games.find(g => g.id === gameId)
   const format = gameId === 'mtg' ? random.pick(['Commander', 'Modern', 'Legacy', 'Standard', 'Commander']) : (game?.formats[0] ?? 'Standard')
+  // Draw in the original order so the seeded decks stay the same.
+  const deckCards = buildDeck(gameId, format)
+  const commentCount = random.int(0, 6)
+  const likes = random.int(0, 40)
+  const owner = random.pick(users)
   return {
-    cards: buildDeck(gameId, format),
-    commentCount: random.int(0, 6),
-    description: 'A community list shared for inspiration. Swap pieces to fit your meta.',
+    cards: deckCards,
+    commentCount,
+    description: 'A community list shared for inspiration. Change pieces to fit your meta.',
     format,
     gameId,
     id: `deck-${index + 1}`,
-    likes: random.int(0, 40),
+    likes,
     name: deckNames[index % deckNames.length] ?? 'Untitled deck',
-    ownerUsername: random.pick(users).username,
+    ownerId: owner.id,
+    ownerUsername: owner.username,
     updatedAt: daysAgo(random.int(1, 120)),
   }
 })
@@ -565,12 +605,19 @@ export const decks: Deck[] = Array.from({ length: 30 }, (_, index) => {
 export const deckComments: Record<string, DeckComment[]> = Object.fromEntries(
   decks.map(deck => [
     deck.id,
-    Array.from({ length: Math.min(deck.commentCount, 3) }, (_, index) => ({
-      body: random.pick(['Love the curve on this.', 'Have you tried a second copy of the finisher?', 'Took this to FNM, went 3-1!', 'The sideboard plan is great.']),
-      createdAt: daysAgo(random.int(1, 30)),
-      id: `${deck.id}-c${index}`,
-      username: random.pick(users).username,
-    })),
+    Array.from({ length: Math.min(deck.commentCount, 3) }, (_, index): DeckComment => {
+      // Drawn in the same order as before, so the seeded data stays the same.
+      const body = random.pick(['Love the curve on this.', 'Have you tried a second copy of the finisher?', 'Took this to FNM, went 3-1!', 'The sideboard plan is great.'])
+      const createdAt = daysAgo(random.int(1, 30))
+      const author = random.pick(users)
+      return {
+        authorId: author.id,
+        authorUsername: author.username,
+        body,
+        createdAt,
+        id: `${deck.id}-c${index}`,
+      }
+    }),
   ]),
 )
 
@@ -599,7 +646,7 @@ export const changelog: ChangelogEntry[] = [
     improved: ['Signing up from a Trade button returns you to the card you were looking at'],
   },
   {
-    added: ['Swap calculator for balancing in-person trades'],
+    added: ['Trade calculator for balancing in-person trades'],
     date: '2026-09-22',
     fixed: ['City pages show the right store count on mobile'],
     improved: ['Faster card search with keyboard navigation'],
@@ -614,24 +661,24 @@ export const changelog: ChangelogEntry[] = [
 
 export const faq: FaqEntry[] = [
   {
-    answer: 'Yes. Browsing, lists, decks and local matching are free. Optional extras may come later, but the core stays free.',
-    question: 'Is it free?',
+    answer: 'Yes. Your Binder, Lists, decks and Matches cost nothing. If paid extras arrive later, trading itself stays free.',
+    question: 'Does CardNearMe cost anything?',
   },
   {
-    answer: 'You list what you have and what you want, we match you with players at the stores you both visit, and you meet in person to swap.',
-    question: 'How does a local trade work?',
+    answer: 'Mark the cards you can part with as Haves and record your Wants. When another Trader in your City has a Have that fits one of your Wants, you get a Match. You agree the Trade in chat and hand the cards over face to face.',
+    question: 'What happens in a Trade?',
   },
   {
-    answer: 'No. Start with a few haves and wants; you can import the rest of your collection any time via CSV.',
-    question: 'Do I need to add my whole collection?',
+    answer: 'No. A handful of Haves and Wants is enough to get Matches. You can bring the rest of your Collection in from a CSV whenever you like.',
+    question: 'Must I enter every card I own?',
   },
   {
-    answer: 'At a local game store you both play at. Public, staffed places keep trades safe and easy.',
-    question: 'Where should we meet?',
+    answer: 'Pick a Store you both already go to. A shop with staff and other players around is the easiest place to check cards and hand them over.',
+    question: 'Where do Traders meet?',
   },
   {
-    answer: 'Prices come from a market source you choose (Cardmarket in EUR or TCGplayer in USD) and are shown next to every card.',
-    question: 'How are card prices handled?',
+    answer: 'You choose one price source for the whole app, Cardmarket (EUR) or TCGplayer (USD), and every Printing shows its price from it.',
+    question: 'Where do card prices come from?',
   },
 ]
 
@@ -648,16 +695,16 @@ function article(slug: string, title: string, summary: string, sections: [string
 }
 
 export const helpArticles: HelpArticle[] = [
-  article('getting-started', 'Getting started', 'New here? Set up your games, city and stores.', [['Create your account', 'Sign up with email or a social account, then pick the games you play.'], ['Pick your stores', 'Choose the local game stores where you trade so we can match you with nearby players.']]),
-  article('faq', 'FAQ', 'Answers to the most common questions.', [['Still stuck?', 'Use the contact form and we will get back to you.']]),
-  article('scanner', 'Card scanner', 'Scan cards with your phone.', [['How scanning works', 'Hold a card in view; the scanner identifies printing, language and finish so you can save it.']]),
-  article('collection', 'Collection management', 'Add, import, filter and sort your cards.', [['Add a card by hand', 'Search a card, pick printing, condition, finish and quantity.'], ['Import a CSV', 'Upload an export from another platform or paste a list.']]),
-  article('trading', 'Trading & lists', 'Haves, wants and nearby matches.', [['Create a have or want list', 'Lists tell nearby players what you can offer and what you are looking for.'], ['Getting matched', 'When someone at your stores has a card on your wants, you get an alert.']]),
-  article('decks', 'Deck building', 'Build a deck and check what you own.', [['Which games have a deck builder', 'Deck building is available for games that support it; others are coming.']]),
-  article('search', 'Search & filters', 'Find cards and content quickly.', [['Search, views and filters', 'Use the global search (press /) and the facet filters on any card list.']]),
-  article('stores', 'Local game stores', 'Pick shops and see nearby cards.', [['Finding a game store', 'Search your city on the stores page and join the stores where you play.']]),
-  article('account', 'Account settings', 'Profile, stores, games and pricing.', [['Pricing source', 'Choose Cardmarket (EUR) or TCGplayer (USD) for all prices.']]),
-  article('shortcuts', 'Keyboard shortcuts', 'Navigate faster with the keyboard.', [['Everywhere', 'Ctrl/Cmd+K opens the command palette, / focuses search, Esc closes dialogs.'], ['G then a key', 'G H home, G F card sets, G P public decks, G S stores, G W swap calculator, G E help.']]),
-  article('privacy', 'Privacy & security', 'How we protect your data.', [['What we store', 'Only what is needed to run your account and match trades.']]),
-  article('contact', 'Contact support', 'Get help from the team.', [['Reach us', 'Use the contact form; we usually reply within two working days.']]),
+  article('getting-started', 'Getting started', 'Your first few minutes: games, City and Stores.', [['Sign up', 'Register with email or a social login, then tell us which games you play.'], ['Join your Stores', 'Join the Stores you visit so we can find Matches among the Traders who go there too.']]),
+  article('faq', 'FAQ', 'Short answers to the questions we hear most.', [['Question not here?', 'Write to us through the contact form and we will reply.']]),
+  article('scanner', 'Card scanner', 'Turn a photo into a Collection entry.', [['What the scanner does', 'Your phone camera reads the card and suggests the Printing it belongs to. Confirm or correct it, then save.']]),
+  article('collection', 'Your Collection', 'Record, import and sort the cards you own.', [['Typing in a card', 'Look up the Card, choose its Printing, then set condition, finish and how many you own.'], ['Bringing cards in from a file', 'Upload a CSV exported elsewhere, or paste one card per line.']]),
+  article('trading', 'Haves, Wants and Lists', 'Tell other Traders what you offer and what you need.', [['Making a List', 'Group your Haves or your Wants into a List and choose who can see it.'], ['When you get a Match', 'If a Trader in your City has a Have that fits one of your Wants, we let you know.']]),
+  article('decks', 'Deck building', 'Put a deck together and see which cards you already own.', [['Supported games', 'Only some games have a deck builder today; more will follow.']]),
+  article('search', 'Searching', 'Narrow a long card list down fast.', [['Search box and facets', 'Press / to jump to search, then refine any card list with the filters beside it.']]),
+  article('stores', 'Stores', 'Find the shops in your City and join them.', [['Joining a Store', 'Open the stores page, look up your City and join the Stores where you play.']]),
+  article('account', 'Account settings', 'Profile, Stores, games and price source.', [['Price source', 'Switch every price in the app between Cardmarket (EUR) and TCGplayer (USD).']]),
+  article('shortcuts', 'Keyboard shortcuts', 'Move around without the mouse.', [['Anywhere', 'Ctrl/Cmd+K opens the command palette, / jumps to search, Esc closes a dialog.'], ['Press G, then a letter', 'G H home, G F sets, G P public decks, G S stores, G W trade calculator, G E help.']]),
+  article('privacy', 'Privacy & security', 'What we keep and why.', [['Data we keep', 'Just enough to run your account and find your Matches.']]),
+  article('contact', 'Contact support', 'Reach a person on the team.', [['Getting in touch', 'Send us a message from the contact form; expect an answer within two working days.']]),
 ]

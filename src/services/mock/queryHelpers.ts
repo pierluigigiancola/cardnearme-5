@@ -1,4 +1,4 @@
-import type { Card, Facet, FacetSelection, SortOrder, TradeItem } from '../types'
+import type { Printing, Facet, FacetSelection, SortOrder, TradeItem } from '../types'
 
 import { games, sets } from './data'
 
@@ -50,6 +50,28 @@ export function compare(a: string | number, b: string | number, order: SortOrder
   return order === 'asc' ? result : -result
 }
 
+/** How to read each sort key from an item, for `sortBy`. */
+export type SortKeys<T, TKey extends string> = Record<TKey, (item: T) => string | number>
+
+/** Sorts `items` in place by the value `keys[sort]` reads, in `order`. */
+export function sortBy<T, TKey extends string>(items: T[], keys: SortKeys<T, TKey>, sort: TKey, order: SortOrder) {
+  const read = keys[sort]
+  return items.sort((a, b) => compare(read(a), read(b), order))
+}
+
+/** The sort keys shared by Binder entries and listed trade items. */
+export const cardItemSortKeys: SortKeys<{
+  card: { name: string };
+  price: number;
+  quantity: number;
+  updatedAt: string
+}, 'name' | 'price' | 'quantity' | 'updated'> = {
+  name: item => item.card.name,
+  price: item => item.price,
+  quantity: item => item.quantity,
+  updated: item => item.updatedAt,
+}
+
 export function matchesText(value: string, q?: string) {
   return !q || value.toLowerCase().includes(q.trim().toLowerCase())
 }
@@ -60,7 +82,7 @@ export function labelFrom(labels: Partial<Record<string, string>>, value: string
 }
 
 export const capitalise = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
-export const baseType = (card: Card) => card.typeLine.split(' — ')[0] ?? card.typeLine
+export const baseType = (card: Printing) => card.typeLine.split(' — ')[0] ?? card.typeLine
 export const rarityOrder = ['common', 'uncommon', 'rare', 'mythic', 'special']
 export const colorLabels: Record<string, string> = {
   B: 'Black',
@@ -71,7 +93,7 @@ export const colorLabels: Record<string, string> = {
   W: 'White',
 }
 
-export const cardFacets: FacetDefinition<Card>[] = [
+export const cardFacets: FacetDefinition<Printing>[] = [
   {
     key: 'rarity',
     label: 'Rarity',

@@ -1,10 +1,11 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useRouter } from '@tanstack/react-router'
 import { LockKeyhole } from 'lucide-react'
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { gatedActions } from './limits'
-import type { GatedAction } from './limits'
+import { gatedActions } from './gatedActions'
+import type { GatedAction } from './gatedActions'
 import { useViewer } from './useViewer'
 
 
@@ -18,6 +19,7 @@ import {
   DialogTitle,
 } from '#/components/ui/dialog'
 import { cn } from '#/lib/utils'
+import { profileQuery } from '#/services/queries'
 
 export function SignedIn({ children }: { children: ReactNode }) {
   const viewer = useViewer()
@@ -113,23 +115,25 @@ export function AuthPromptProvider({ children }: { children: ReactNode }) {
   const viewer = useViewer()
   const router = useRouter()
   const [action, setAction] = useState<GatedAction | null>(null)
-  const onboarded = viewer.kind === 'user' && viewer.onboarded
+  const queryClient = useQueryClient()
 
   const requireAuth = useCallback<RequireAuth>((nextAction, run) => {
     if (viewer.kind === 'anonymous') {
       setAction(nextAction)
       return
     }
-    if (!onboarded) {
+    void queryClient.ensureQueryData(profileQuery(viewer.id)).then(async (profile) => {
+      if (profile.onboardedAt) {
+        run?.()
+        return
+      }
       // Trading actions need a city and stores; finish setup, then come back here.
-      void router.navigate({
+      await router.navigate({
         search: { redirect: router.state.location.href },
         to: '/x/onboarding',
       })
-      return
-    }
-    run?.()
-  }, [onboarded, router, viewer.kind])
+    })
+  }, [queryClient, router, viewer])
 
   const value = useMemo(() => requireAuth, [requireAuth])
 

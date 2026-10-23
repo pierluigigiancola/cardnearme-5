@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { linesMarketValue, linesValue, tradeFromPerspective } from './tradeMath'
+import { marketValue, tradeFromPerspective, tradeValue } from './tradeValue'
 
 import type { Trade, TradeLine } from '#/services/types'
-import { makeCard } from '#/test/fixtures'
+import { makePrinting } from '#/test/fixtures'
 
 function line(id: string, price: number, quantity = 1, marketPrice = price): TradeLine {
   return {
-    card: makeCard({ name: id }),
+    card: makePrinting({ name: id }),
     condition: 'NM',
     finish: 'nonfoil',
     id,
@@ -26,6 +26,7 @@ function makeTrade(overrides: Partial<Trade> = {}): Trade {
     cashAmount: 0,
     cashPayer: null,
     chatId: 'chat-1',
+    confirmedAt: {},
     createdAt: '2026-10-18T10:00:00.000Z',
     id: 'trade-1',
     meetAt: null,
@@ -43,13 +44,13 @@ function makeTrade(overrides: Partial<Trade> = {}): Trade {
   }
 }
 
-describe('linesValue / linesMarketValue', () => {
+describe('tradeValue / marketValue', () => {
   it('multiplies by quantity and rounds to cents', () => {
     // 0.1 × 3 + 0.2 and 0.2 × 3 + 1.25 both carry float residue before rounding.
     const lines = [line('a', 0.1, 3, 0.2), line('b', 0.2, 1, 1.25)]
-    expect(linesValue(lines)).toBe(0.5)
-    expect(linesMarketValue(lines)).toBe(1.85)
-    expect(linesValue([])).toBe(0)
+    expect(tradeValue(lines)).toBe(0.5)
+    expect(marketValue(lines)).toBe(1.85)
+    expect(tradeValue([])).toBe(0)
   })
 })
 

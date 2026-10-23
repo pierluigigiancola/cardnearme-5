@@ -49,7 +49,7 @@ const steps = [
   },
   {
     text: 'Meet at game night, check the cards, walk away with what you wanted.',
-    title: 'Swap in person',
+    title: 'Trade in person',
   },
 ]
 
@@ -253,7 +253,7 @@ function Home() {
             <h2 className="text-3xl font-extrabold">Scan the binder. Keep moving.</h2>
 
             <p className="max-w-2xl text-muted-foreground">
-              Identify the exact printing, language and finish with your phone, then add each card to your collection or a trade list with prices alongside.
+              Photograph a card, confirm the Printing we suggest and save it to your Collection or as a Have, priced as you go.
             </p>
           </div>
 

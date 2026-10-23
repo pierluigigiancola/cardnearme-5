@@ -10,14 +10,6 @@ import { PageHeader } from '#/components/layout/PageHeader'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '#/components/ui/dialog'
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -40,6 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
+import { ConfirmDialog } from '#/components/workspace/ConfirmDialog'
 import { formatRelative } from '#/lib/format'
 import { useWorkspaceMutation } from '#/services/mutations'
 import { gamesQuery, tradeListsQuery } from '#/services/queries'
@@ -201,6 +194,10 @@ function ListsPage() {
                     >
                       {list.name}
                     </Link>
+
+                    {list.isDefault && <Badge
+                      className="ml-2"
+                      variant="secondary">Default</Badge>}
                   </TableCell>
 
                   <TableCell>
@@ -250,15 +247,19 @@ function ListsPage() {
                           {list.visibility === 'public' ? 'Make private' : 'Make public'}
                         </DropdownMenuItem>
 
-                        <DropdownMenuSeparator />
+                        {!list.isDefault && (
+                          <>
+                            <DropdownMenuSeparator />
 
-                        <DropdownMenuItem
-                          onSelect={() => setDeleting(list)}
-                          variant="destructive"
-                        >
-                          <Trash2 />
-                          Delete
-                        </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => setDeleting(list)}
+                              variant="destructive"
+                            >
+                              <Trash2 />
+                              Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -291,40 +292,22 @@ function ListsPage() {
         open={editing !== null}
       />
 
-      <Dialog
+      <ConfirmDialog
+        confirmLabel="Delete list"
+        description={deleting?.type === 'haves'
+          ? `Its ${deleting.cardCount} Haves go with it: the cards come off trade and move to your default Haves list. You still own them, so they stay in your collection.`
+          : `Its ${deleting?.cardCount ?? 0} Wants go with it and are deleted from your binder. This cannot be undone.`}
+        onConfirm={() => deleting && remove.mutate(deleting, {
+          onSuccess: () => {
+            toast.success(`Deleted ${deleting.name}`)
+            setDeleting(null)
+          },
+        })}
         onOpenChange={open => !open && setDeleting(null)}
         open={deleting !== null}
-      >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{`Delete ${deleting?.name ?? 'list'}?`}</DialogTitle>
-
-            <DialogDescription>{`The list and its ${deleting?.cardCount ?? 0} cards are removed from your binder. This cannot be undone.`}</DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter>
-            <Button
-              onClick={() => setDeleting(null)}
-              variant="ghost"
-            >
-              Cancel
-            </Button>
-
-            <Button
-              disabled={remove.isPending}
-              onClick={() => deleting && remove.mutate(deleting, {
-                onSuccess: () => {
-                  toast.success(`Deleted ${deleting.name}`)
-                  setDeleting(null)
-                },
-              })}
-              variant="destructive"
-            >
-              Delete list
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        pending={remove.isPending}
+        title={`Delete ${deleting?.name ?? 'list'}?`}
+      />
     </div>
   )
 }

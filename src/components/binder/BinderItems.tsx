@@ -1,9 +1,11 @@
+import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { ArrowLeftRight, FolderInput, MoreHorizontal, Pencil, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { sectionLabels } from './AddCardDialog'
+import { WantFilterBadges, WantFilterFields } from './WantFilters'
 
 import { CardArt } from '#/components/cards/CardArt'
 import { ConditionBadge, FinishBadge, Price } from '#/components/cards/CardBits'
@@ -42,46 +44,81 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
+import { ConfirmDialog } from '#/components/workspace/ConfirmDialog'
 import { QuantityStepper } from '#/components/workspace/QuantityStepper'
+import { isHave } from '#/domain'
 import { conditionLabels, conditions, finishLabels, isCondition, isFinish, isLanguage, languageLabels, languages } from '#/lib/cardOptions'
 import { formatRelative } from '#/lib/format'
 import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
-import type { BinderItem, BinderItemPatch, BinderSection, TradeList, ViewMode } from '#/services/types'
+import { printingsQuery } from '#/services/queries'
+import type { BinderItem, BinderItemKind, BinderItemPatch, CollectionEntry, TradeList, ViewMode, WantEntry, WantFilters } from '#/services/types'
 
 export interface MoveTarget {
-  section: BinderSection
+  /** A Haves or Wants List, or null to take Collection entries off trade. */
   listId: string | null
   label: string
+  /** The entry kind the target accepts: Haves Lists and "Not for trade" take Collection entries, Wants Lists take Wants. */
+  accepts: BinderItemKind
 }
 
-/** Where items can be moved: the collection and every trade list. */
+/** Where entries can be moved: off trade, or onto any List. */
 export function moveTargets(lists: TradeList[]): MoveTarget[] {
   return [
     {
-      label: 'Collection',
+      accepts: 'collection',
+      label: 'Not for trade',
       listId: null,
-      section: 'collection',
     },
-    ...lists.map(list => ({
+    ...lists.map((list): MoveTarget => ({
+      accepts: list.type === 'haves' ? 'collection' : 'want',
       label: `${sectionLabels[list.type]} · ${list.name}`,
       listId: list.id,
-      section: list.type,
     })),
   ]
 }
 
 /**
- * Where these items can all go: lists for another game are left out, and so is the place every
- * item already is. Used by the single-item menu and the bulk bar, so neither offers a move that fails.
+ * Where these items can all go: Lists of the other kind or for another game are left out, and so is
+ * the place every item already is. Used by the single-item menu and the bulk bar, so neither offers
+ * a move that fails.
  */
 export function moveTargetsFor(items: BinderItem[], lists: TradeList[]): MoveTarget[] {
   const gameOf = new Map(lists.map(list => [list.id, list.gameId]))
   return moveTargets(lists).filter((target) => {
-    if (items.every(item => item.section === target.section && item.listId === target.listId)) return false
+    if (!items.every(item => item.kind === target.accepts)) return false
+    if (items.every(item => item.listId === target.listId)) return false
     const gameId = target.listId ? gameOf.get(target.listId) : null
     return !gameId || items.every(item => item.card.gameId === gameId)
   })
+}
+
+/** Owned and for-trade copies of a Collection entry, edited together on its row. */
+function CollectionQuantities({ entry }: { entry: CollectionEntry }) {
+  const update = useWorkspaceMutation((services, patch: BinderItemPatch) => services.binder.updateItem(entry.id, patch))
+
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <QuantityStepper
+        label={`Copies of ${entry.card.name} owned`}
+        min={Math.max(1, entry.reservedQuantity)}
+        onChange={quantity => update.mutate({ quantity })}
+        value={entry.quantity}
+      />
+
+      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+        For trade
+
+        <QuantityStepper
+          label={`Copies of ${entry.card.name} for trade`}
+          max={entry.quantity}
+          min={0}
+          onChange={forTradeQuantity => update.mutate({ forTradeQuantity }, { onSuccess: () => toast.success(isHave({ forTradeQuantity }) ? `${entry.card.name} is on your Haves` : `${entry.card.name} is no longer for trade`) })}
+          value={entry.forTradeQuantity}
+        />
+      </span>
+    </div>
+  )
 }
 
 export function BinderItems({ items, lists, onToggle, selected, view }: {
@@ -144,22 +181,31 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
 
                       {' '}
 
-                      <FinishBadge finish={item.finish} />
+                      {item.kind === 'collection' ? <FinishBadge finish={item.finish} /> : <WantFilterBadges filters={item.filters} />}
 
-                      {item.inTrade && <InTradeBadge className="ml-1" />}
+                      {item.kind === 'collection' && item.reservedQuantity > 0 && (
+                        <ReservedBadge
+                          className="ml-1"
+                          quantity={item.reservedQuantity}
+                        />
+                      )}
                     </TableCell>
 
-                    <TableCell className="text-muted-foreground">{item.card.setName}</TableCell>
+                    <TableCell className="text-muted-foreground">{item.kind === 'collection' || item.filters.setCode ? item.card.setName : 'Any set'}</TableCell>
 
-                    <TableCell className="text-muted-foreground">{item.listId ? listNames.get(item.listId) : (item.listed ? 'Listed' : '—')}</TableCell>
+                    <TableCell className="text-muted-foreground">{item.listId ? listNames.get(item.listId) : '—'}</TableCell>
 
                     <TableCell>
-                      <ConditionBadge condition={item.condition} />
+                      {item.kind === 'collection'
+                        ? <ConditionBadge condition={item.condition} />
+                        : item.filters.minCondition
+                          ? <ConditionBadge condition={item.filters.minCondition} />
+                          : <span className="text-muted-foreground">Any</span>}
                     </TableCell>
 
-                    <TableCell className="uppercase">{item.language}</TableCell>
+                    <TableCell className="uppercase">{item.kind === 'collection' ? item.language : item.filters.language ?? <span className="text-muted-foreground normal-case">Any</span>}</TableCell>
 
-                    <TableCell className="text-right tabular-nums">{item.quantity}</TableCell>
+                    <TableCell className="text-right tabular-nums">{item.kind === 'collection' ? <CollectionQuantities entry={item} /> : item.quantity}</TableCell>
 
                     <TableCell className="text-right">
                       <Price amount={item.price} />
@@ -192,7 +238,7 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
                   <CardLink item={item}>
                     <CardArt
                       card={item.card}
-                      finish={item.finish}
+                      finish={item.kind === 'collection' ? item.finish : item.filters.finish ?? undefined}
                     />
                   </CardLink>
 
@@ -208,18 +254,24 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
                   <div className="absolute bottom-2 left-2 flex flex-wrap gap-1">
                     {item.listId && <Badge className="bg-background/90 text-[10px] text-foreground shadow">{listNames.get(item.listId)}</Badge>}
 
-                    {item.listed && <Badge className="bg-have/90 text-[10px] text-background shadow">Listed</Badge>}
+                    {item.kind === 'collection' && isHave(item) && <Badge className="bg-have/90 text-[10px] text-background shadow">{`${item.forTradeQuantity} for trade`}</Badge>}
 
-                    {item.inTrade && <InTradeBadge />}
+                    {item.kind === 'collection' && item.reservedQuantity > 0 && <ReservedBadge quantity={item.reservedQuantity} />}
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <ConditionBadge condition={item.condition} />
+                  {item.kind === 'collection'
+                    ? (
+                      <>
+                        <ConditionBadge condition={item.condition} />
 
-                  <span className="text-xs text-muted-foreground uppercase">{item.language}</span>
+                        <span className="text-xs text-muted-foreground uppercase">{item.language}</span>
 
-                  <FinishBadge finish={item.finish} />
+                        <FinishBadge finish={item.finish} />
+                      </>
+                    )
+                    : <WantFilterBadges filters={item.filters} />}
 
                   <Price
                     amount={item.price}
@@ -237,6 +289,8 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
                     onRemove={() => setRemoving(item)}
                   />
                 </div>
+
+                {item.kind === 'collection' && <CollectionQuantities entry={item} />}
               </li>
             ))}
           </ul>
@@ -256,11 +310,19 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
   )
 }
 
-function InTradeBadge({ className }: { className?: string }) {
+/** Copies promised in accepted Trades (ADR 0003): they leave the Collection once both Traders confirm. */
+function ReservedBadge({ className, quantity }: {
+  className?: string;
+  quantity: number
+}) {
   return (
-    <Badge className={cn('bg-match text-[10px] text-background shadow', className)}>
+    <Badge
+      className={cn('bg-match text-[10px] text-background shadow', className)}
+      title="Promised in an accepted trade; these copies can't go on another trade"
+    >
       <ArrowLeftRight />
-      In trade
+
+      {`${quantity} reserved`}
     </Badge>
   )
 }
@@ -290,7 +352,7 @@ function ItemActions({ item, lists, onEdit, onRemove }: {
   onEdit: () => void;
   onRemove: () => void
 }) {
-  const move = useWorkspaceMutation((services, target: MoveTarget) => services.binder.moveItems([item.id], target))
+  const move = useWorkspaceMutation((services, target: MoveTarget) => services.binder.moveItems([item.id], { listId: target.listId }))
   const targets = moveTargetsFor([item], lists)
 
   return (
@@ -320,7 +382,7 @@ function ItemActions({ item, lists, onEdit, onRemove }: {
 
         {targets.map(target => (
           <DropdownMenuItem
-            key={`${target.section}-${target.listId ?? ''}`}
+            key={`${target.accepts}-${target.listId ?? ''}`}
             onSelect={() => move.mutate(target, { onSuccess: () => toast.success(`Moved ${item.card.name} to ${target.label}`) })}
           >
             <FolderInput />
@@ -353,40 +415,20 @@ function RemoveItemDialog({ item, onClose }: {
   if (item && item !== shown) setShown(item)
 
   return (
-    <Dialog
+    <ConfirmDialog
+      confirmLabel="Remove"
+      description={`${shown && shown.quantity > 1 ? `All ${shown.quantity} copies are` : 'It is'} removed from your binder. This cannot be undone.`}
+      onConfirm={() => item && remove.mutate(item.id, {
+        onSuccess: () => {
+          toast.success(`Removed ${item.card.name}`)
+          onClose()
+        },
+      })}
       onOpenChange={open => !open && onClose()}
       open={item !== null}
-    >
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>{`Remove ${shown?.card.name ?? 'card'}?`}</DialogTitle>
-
-          <DialogDescription>{`${shown && shown.quantity > 1 ? `All ${shown.quantity} copies are` : 'It is'} removed from your binder. This cannot be undone.`}</DialogDescription>
-        </DialogHeader>
-
-        <DialogFooter>
-          <Button
-            onClick={onClose}
-            variant="ghost"
-          >
-            Cancel
-          </Button>
-
-          <Button
-            disabled={remove.isPending}
-            onClick={() => item && remove.mutate(item.id, {
-              onSuccess: () => {
-                toast.success(`Removed ${item.card.name}`)
-                onClose()
-              },
-            })}
-            variant="destructive"
-          >
-            Remove
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      pending={remove.isPending}
+      title={`Remove ${shown?.card.name ?? 'card'}?`}
+    />
   )
 }
 
@@ -401,8 +443,17 @@ function EditItemDialog({ item, lists, onClose }: {
       open={item !== null}
     >
       <DialogContent className="sm:max-w-md">
-        {item && (
+        {item?.kind === 'collection' && (
           <EditItemForm
+            item={item}
+            key={item.id}
+            lists={lists}
+            onClose={onClose}
+          />
+        )}
+
+        {item?.kind === 'want' && (
+          <EditWantForm
             item={item}
             key={item.id}
             lists={lists}
@@ -414,32 +465,135 @@ function EditItemDialog({ item, lists, onClose }: {
   )
 }
 
-function EditItemForm({ item, lists, onClose }: {
-  item: BinderItem;
+/** Edits a Want: its filters, quantity and List. */
+function EditWantForm({ item, lists, onClose }: {
+  item: WantEntry;
   lists: TradeList[];
   onClose: () => void
 }) {
-  const [patch, setPatch] = useState<Required<Omit<BinderItemPatch, 'listId'>> & { listId: string | null }>({
-    condition: item.condition,
-    finish: item.finish,
-    language: item.language,
-    listId: item.listId,
-    quantity: item.quantity,
-  })
+  const [filters, setFilters] = useState<WantFilters>(item.filters)
+  const [quantity, setQuantity] = useState(item.quantity)
+  const [listId, setListId] = useState(item.listId)
+  const printingsResult = useQuery(printingsQuery(item.cardId))
   const update = useWorkspaceMutation((services, next: BinderItemPatch) => services.binder.updateItem(item.id, next))
-  const sameTypeLists = lists.filter(list => list.type === item.section && (!list.gameId || list.gameId === item.card.gameId))
+  const wantsLists = lists.filter(list => list.type === 'wants' && (!list.gameId || list.gameId === item.card.gameId))
 
   return (
     <>
       <DialogHeader>
         <DialogTitle>{item.card.name}</DialogTitle>
 
-        <DialogDescription>{`${item.card.setName} · #${item.card.number} · ${sectionLabels[item.section]}`}</DialogDescription>
+        <DialogDescription>Wants · any printing unless you narrow it</DialogDescription>
+      </DialogHeader>
+
+      <WantFilterFields
+        filters={filters}
+        onChange={setFilters}
+        printings={printingsResult.data ?? [item.card]}
+      />
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label>Quantity</Label>
+
+          <QuantityStepper
+            className="h-9"
+            onChange={setQuantity}
+            value={quantity}
+          />
+        </div>
+
+        {wantsLists.length > 0 && (
+          <div className="space-y-1.5">
+            <Label>List</Label>
+
+            <Select
+              onValueChange={setListId}
+              value={listId}
+            >
+              <SelectTrigger
+                aria-label="List"
+                className="w-full"
+              >
+                <SelectValue />
+              </SelectTrigger>
+
+              <SelectContent>
+                {wantsLists.map(list => (
+                  <SelectItem
+                    key={list.id}
+                    value={list.id}
+                  >
+                    {list.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+
+      <DialogFooter>
+        <Button
+          onClick={onClose}
+          variant="ghost"
+        >
+          Cancel
+        </Button>
+
+        <Button
+          disabled={update.isPending}
+          onClick={() => update.mutate({
+            filters,
+            listId,
+            quantity,
+          }, {
+            onSuccess: () => {
+              toast.success('Want updated')
+              onClose()
+            },
+          })}
+        >
+          Save
+        </Button>
+      </DialogFooter>
+    </>
+  )
+}
+
+function EditItemForm({ item, lists, onClose }: {
+  item: CollectionEntry;
+  lists: TradeList[];
+  onClose: () => void
+}) {
+  const [patch, setPatch] = useState({
+    condition: item.condition,
+    finish: item.finish,
+    forTradeQuantity: item.forTradeQuantity,
+    language: item.language,
+    listId: item.listId,
+    quantity: item.quantity,
+  })
+  const update = useWorkspaceMutation((services, next: BinderItemPatch) => services.binder.updateItem(item.id, next))
+  const sameTypeLists = lists.filter(list => list.type === 'haves' && (!list.gameId || list.gameId === item.card.gameId))
+  // A Collection entry is always on a Haves List, but the List only matters while copies are for trade.
+  const showList = sameTypeLists.length > 0 && isHave(patch)
+  const submitted: BinderItemPatch = {
+    ...patch,
+    forTradeQuantity: Math.min(patch.forTradeQuantity, patch.quantity),
+  }
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>{item.card.name}</DialogTitle>
+
+        <DialogDescription>{`${item.card.setName} · #${item.card.number} · Collection`}</DialogDescription>
       </DialogHeader>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label>{item.section === 'wants' ? 'Minimum condition' : 'Condition'}</Label>
+          <Label>Condition</Label>
 
           <Select
             onValueChange={value => isCondition(value) && setPatch({
@@ -529,10 +683,11 @@ function EditItemForm({ item, lists, onClose }: {
         </div>
 
         <div className="space-y-1.5">
-          <Label>Quantity</Label>
+          <Label>Copies owned</Label>
 
           <QuantityStepper
             className="h-9"
+            min={Math.max(1, item.reservedQuantity)}
             onChange={quantity => setPatch({
               ...patch,
               quantity,
@@ -541,16 +696,32 @@ function EditItemForm({ item, lists, onClose }: {
           />
         </div>
 
-        {item.section !== 'collection' && sameTypeLists.length > 0 && (
+        <div className="space-y-1.5">
+          <Label>For trade</Label>
+
+          <QuantityStepper
+            className="h-9"
+            label="For trade"
+            max={patch.quantity}
+            min={0}
+            onChange={next => setPatch({
+              ...patch,
+              forTradeQuantity: next,
+            })}
+            value={Math.min(patch.forTradeQuantity, patch.quantity)}
+          />
+        </div>
+
+        {showList && (
           <div className="col-span-2 space-y-1.5">
-            <Label>List</Label>
+            <Label>Haves list</Label>
 
             <Select
               onValueChange={listId => setPatch({
                 ...patch,
                 listId,
               })}
-              value={patch.listId ?? undefined}
+              value={patch.listId}
             >
               <SelectTrigger
                 aria-label="List"
@@ -584,7 +755,7 @@ function EditItemForm({ item, lists, onClose }: {
 
         <Button
           disabled={update.isPending}
-          onClick={() => update.mutate(patch, {
+          onClick={() => update.mutate(submitted, {
             onSuccess: () => {
               toast.success('Card updated')
               onClose()
@@ -605,7 +776,7 @@ export function BulkActions({ lists, onClear, selected }: {
   onClear: () => void
 }) {
   const [confirming, setConfirming] = useState(false)
-  const move = useWorkspaceMutation((services, target: MoveTarget) => services.binder.moveItems([...selected.keys()], target))
+  const move = useWorkspaceMutation((services, target: MoveTarget) => services.binder.moveItems([...selected.keys()], { listId: target.listId }))
   const remove = useWorkspaceMutation(services => services.binder.removeItems([...selected.keys()]))
   if (selected.size === 0) return null
   const targets = moveTargetsFor([...selected.values()], lists)
@@ -633,7 +804,7 @@ export function BulkActions({ lists, onClear, selected }: {
 
           {targets.map(target => (
             <DropdownMenuItem
-              key={`${target.section}-${target.listId ?? ''}`}
+              key={`${target.accepts}-${target.listId ?? ''}`}
               onSelect={() => move.mutate(target, {
                 onSuccess: () => {
                   toast.success(`Moved ${selected.size} cards to ${target.label}`)
@@ -665,41 +836,21 @@ export function BulkActions({ lists, onClear, selected }: {
         <X />
       </Button>
 
-      <Dialog
+      <ConfirmDialog
+        confirmLabel="Delete"
+        description="They are removed from your binder. This cannot be undone."
+        onConfirm={() => remove.mutate(undefined, {
+          onSuccess: () => {
+            toast.success('Cards deleted')
+            setConfirming(false)
+            onClear()
+          },
+        })}
         onOpenChange={setConfirming}
         open={confirming}
-      >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{`Delete ${selected.size} cards?`}</DialogTitle>
-
-            <DialogDescription>They are removed from your binder. This cannot be undone.</DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter>
-            <Button
-              onClick={() => setConfirming(false)}
-              variant="ghost"
-            >
-              Cancel
-            </Button>
-
-            <Button
-              disabled={remove.isPending}
-              onClick={() => remove.mutate(undefined, {
-                onSuccess: () => {
-                  toast.success('Cards deleted')
-                  setConfirming(false)
-                  onClear()
-                },
-              })}
-              variant="destructive"
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        pending={remove.isPending}
+        title={`Delete ${selected.size} cards?`}
+      />
     </div>
   )
 }

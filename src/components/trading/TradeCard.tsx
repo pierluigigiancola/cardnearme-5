@@ -8,12 +8,12 @@ import { TradeStatusPill } from './TradeStatusPill'
 import { CardArt } from '#/components/cards/CardArt'
 import { ConditionBadge, FinishBadge, Price } from '#/components/cards/CardBits'
 import { Button } from '#/components/ui/button'
+import { hasConfirmed, marketValue, tradeFromPerspective } from '#/domain'
 import { formatPrice, formatRelative } from '#/lib/format'
 import { usePricingSource } from '#/lib/pricing'
-import { linesMarketValue, tradeFromPerspective } from '#/lib/tradeMath'
 import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
-import type { Trade, TradeLine } from '#/services/types'
+import type { Trade, TradeLine, UserId } from '#/services/types'
 
 const meetFormatter = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
@@ -23,18 +23,24 @@ const meetFormatter = new Intl.DateTimeFormat('en-GB', {
   weekday: 'short',
 })
 
-/** A trade proposal as it appears in the conversation, with the actions open to the viewer. */
-export function TradeCard({ me, trade }: {
+/**
+ * A Trade as it appears in the conversation, with the actions open to the viewer.
+ * The Trade refers to both Traders by UserId; `partnerName` is the other Trader's username, for display.
+ */
+export function TradeCard({ me, partnerName, trade }: {
   trade: Trade;
-  me: string
+  me: UserId;
+  partnerName: string
 }) {
   const source = usePricingSource()
   const sides = tradeFromPerspective(trade, me)
   const openTradeBuilder = useTradeBuilder()
-  const action = useWorkspaceMutation((services, run: 'accept' | 'cancel' | 'complete') => services.trades[run](trade.id))
+  const action = useWorkspaceMutation((services, run: 'accept' | 'cancel' | 'confirm') => services.trades[run](trade.id))
   const awaitingMe = trade.status === 'pending' && trade.awaiting === me
+  const iConfirmed = hasConfirmed(trade, me)
+  const partnerConfirmed = hasConfirmed(trade, sides.partner)
 
-  const run = (kind: 'accept' | 'cancel' | 'complete', message: string) => {
+  const run = (kind: 'accept' | 'cancel' | 'confirm', message: string) => {
     action.mutate(kind, { onSuccess: () => toast.success(message) })
   }
 
@@ -46,12 +52,12 @@ export function TradeCard({ me, trade }: {
       <header className="flex flex-wrap items-center gap-2">
         <ArrowLeftRight className="size-4 text-primary" />
 
-        <h3 className="font-bold">Trade proposal</h3>
+        <h3 className="font-bold">Trade</h3>
 
         <TradeStatusPill status={trade.status} />
 
         <span className="ml-auto text-xs text-muted-foreground">
-          {trade.proposer === me ? 'You proposed' : `${trade.proposer} proposed`}
+          {trade.proposer === me ? 'You proposed' : `${partnerName} proposed`}
 
           {' · '}
 
@@ -110,7 +116,7 @@ export function TradeCard({ me, trade }: {
         <p className="mt-3 flex items-center gap-2 text-sm">
           <Coins className="size-4 text-price" />
 
-          {trade.cashPayer === me ? 'You add' : `${trade.cashPayer} adds`}
+          {trade.cashPayer === me ? 'You add' : `${partnerName} adds`}
 
           <Price amount={trade.cashAmount} />
           in cash
@@ -126,7 +132,7 @@ export function TradeCard({ me, trade }: {
 
         <div>
           <dt className="text-xs text-muted-foreground">
-            {sides.partner}
+            {partnerName}
             &apos;s total
           </dt>
 
@@ -146,15 +152,32 @@ export function TradeCard({ me, trade }: {
 
       {trade.note && <p className="mt-3 border-l-2 pl-3 text-sm text-muted-foreground italic">{trade.note}</p>}
 
+      {(trade.status === 'accepted' || trade.status === 'completed') && (
+        <ul
+          aria-label="Confirmations"
+          className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm"
+        >
+          <ConfirmationItem
+            at={trade.confirmedAt[me]}
+            who="You"
+          />
+
+          <ConfirmationItem
+            at={trade.confirmedAt[sides.partner]}
+            who={partnerName}
+          />
+        </ul>
+      )}
+
       <footer className="mt-4 flex flex-wrap items-center gap-2">
         <p className="mr-auto text-sm font-semibold text-muted-foreground">
-          {trade.status === 'pending' && (awaitingMe ? 'Waiting for your answer' : `Awaiting @${trade.awaiting ?? sides.partner}`)}
+          {trade.status === 'pending' && (awaitingMe ? 'Waiting for your answer' : `Awaiting @${partnerName}`)}
 
-          {trade.status === 'accepted' && 'Accepted — meet up, swap the cards, then mark it completed'}
+          {trade.status === 'accepted' && acceptedCopy(iConfirmed, partnerConfirmed, partnerName)}
 
-          {trade.status === 'completed' && 'Completed — the cards moved between your binders'}
+          {trade.status === 'completed' && 'Completed — both of you confirmed, and the cards moved between your binders'}
 
-          {trade.status === 'cancelled' && cancelledCopy(trade, me)}
+          {trade.status === 'cancelled' && cancelledCopy(trade, me, partnerName)}
         </p>
 
         {awaitingMe && (
@@ -196,7 +219,7 @@ export function TradeCard({ me, trade }: {
           <>
             <Button
               disabled={action.isPending}
-              onClick={() => run('cancel', 'Proposal withdrawn')}
+              onClick={() => run('cancel', 'Trade withdrawn')}
               size="sm"
               variant="ghost"
             >
@@ -230,18 +253,39 @@ export function TradeCard({ me, trade }: {
               Cancel trade
             </Button>
 
-            <Button
-              disabled={action.isPending}
-              onClick={() => run('complete', 'Trade completed — binder updated')}
-              size="sm"
-            >
-              <CheckCheck />
-              Mark completed
-            </Button>
+            {!iConfirmed && (
+              <Button
+                disabled={action.isPending}
+                onClick={() => run('confirm', partnerConfirmed ? 'Trade completed — binder updated' : 'Confirmed — waiting for the other Trader')}
+                size="sm"
+              >
+                <CheckCheck />
+                Confirm trade
+              </Button>
+            )}
           </>
         )}
       </footer>
     </article>
+  )
+}
+
+function acceptedCopy(iConfirmed: boolean, partnerConfirmed: boolean, partnerName: string) {
+  if (iConfirmed) return `You confirmed — waiting for @${partnerName} to confirm`
+  if (partnerConfirmed) return `@${partnerName} confirmed — confirm once you have exchanged the cards`
+  return 'Accepted — meet up, exchange the cards, then each of you confirms'
+}
+
+function ConfirmationItem({ at, who }: {
+  who: string;
+  at: string | undefined
+}) {
+  return (
+    <li className={cn('flex items-center gap-1', at ? 'text-want' : 'text-muted-foreground')}>
+      {at ? <Check className="size-4" /> : <CalendarClock className="size-4" />}
+
+      {at ? `${who} confirmed ${formatRelative(at)}` : `${who}: not confirmed yet`}
+    </li>
   )
 }
 
@@ -250,11 +294,11 @@ export function TradeCard({ me, trade }: {
  * proposer cancelling is a withdrawal. A trade does not record whether it had been accepted before
  * it was cancelled, so "withdrew from" is worded to also fit a proposer cancelling after acceptance.
  */
-function cancelledCopy(trade: Trade, me: string) {
+function cancelledCopy(trade: Trade, me: UserId, partnerName: string) {
   if (!trade.cancelledBy) return 'This trade was cancelled'
   const withdrew = trade.cancelledBy === trade.proposer
   if (trade.cancelledBy === me) return withdrew ? 'You withdrew from this trade' : 'You declined this trade'
-  return withdrew ? `${trade.cancelledBy} withdrew from this trade` : `${trade.cancelledBy} declined this trade`
+  return withdrew ? `${partnerName} withdrew from this trade` : `${partnerName} declined this trade`
 }
 
 function TradeColumn({ lines, title }: {
@@ -270,7 +314,7 @@ function TradeColumn({ lines, title }: {
           {'market '}
 
           <Price
-            amount={linesMarketValue(lines)}
+            amount={marketValue(lines)}
             className="text-xs"
           />
         </span>

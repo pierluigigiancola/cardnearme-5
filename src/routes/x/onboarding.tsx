@@ -4,20 +4,19 @@ import { ArrowLeft, ArrowRight, Check, Loader2, LockKeyhole, MapPin, Search, Use
 import { useState } from 'react'
 
 import { sanitizeRedirect } from '#/auth/AuthForm'
-import { viewerLimits } from '#/auth/limits'
 import { useRefreshViewer } from '#/auth/useViewer'
-import { demoCompleteOnboarding } from '#/auth/viewer'
 import { Logo } from '#/components/brand/Logo'
+import { ErrorState } from '#/components/layout/ErrorState'
 import { StoreMap } from '#/components/places/Places'
 import { Button } from '#/components/ui/button'
 import { Checkbox } from '#/components/ui/checkbox'
 import { Input } from '#/components/ui/input'
 import { Switch } from '#/components/ui/switch'
+import { STORE_JOIN_CAP } from '#/domain'
 import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
 import { citiesQuery, detectedCityQuery, profileQuery, storesQuery } from '#/services/queries'
 import type { OnboardingInput } from '#/services/types'
-import { getSupabaseBrowserClient } from '#/supabase/supabase.browser'
 
 export const Route = createFileRoute('/x/onboarding')({
   validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({ redirect: sanitizeRedirect(search.redirect) }),
@@ -45,15 +44,16 @@ function OnboardingPage() {
   const [showStores, setShowStores] = useState(profile.showStoresOnProfile)
   const [query, setQuery] = useState('')
   const city = cities.find(candidate => candidate.slug === citySlug)
-  const { data: stores = [], isPending: storesPending } = useQuery(storesQuery(citySlug))
-  const full = storeSlugs.length >= viewerLimits.tradingStores
+  const storesResult = useQuery(storesQuery(citySlug))
+  const { data: stores = [], isPending: storesPending } = storesResult
+  const full = storeSlugs.length >= STORE_JOIN_CAP
 
   const save = useWorkspaceMutation((services, input: OnboardingInput) => services.profile.completeOnboarding(input))
   const [finishing, setFinishing] = useState(false)
 
   const toggleStore = (slug: string) => setStoreSlugs((current) => {
     if (current.includes(slug)) return current.filter(other => other !== slug)
-    return current.length >= viewerLimits.tradingStores ? current : [...current, slug]
+    return current.length >= STORE_JOIN_CAP ? current : [...current, slug]
   })
 
   const finish = async () => {
@@ -64,9 +64,7 @@ function OnboardingPage() {
         showStoresOnProfile: showStores,
         storeSlugs,
       })
-      // The `/x` guard reads the flag from the session, so mark it there too.
-      if (user.demo) await demoCompleteOnboarding()
-      else await getSupabaseBrowserClient().auth.updateUser({ data: { onboarded: true } })
+      // The `/x` guard reads `profile.onboardedAt`, which the mutation just set and refetched.
       await refresh()
       await router.navigate({ href: redirect ?? '/x/binder' })
     }
@@ -176,10 +174,10 @@ function OnboardingPage() {
               <div>
                 <h2 className="text-xl font-bold">{`Pick your trading locations in ${city?.name ?? 'your city'}`}</h2>
 
-                <p className="text-sm text-muted-foreground">{`Choose up to ${viewerLimits.tradingStores} stores where you are happy to meet. Trade proposals suggest them as meetup spots.`}</p>
+                <p className="text-sm text-muted-foreground">{`Choose up to ${STORE_JOIN_CAP} stores where you are happy to meet. Proposed trades suggest them as meetup spots.`}</p>
               </div>
 
-              <span className={cn('rounded-full px-3 py-1 text-sm font-semibold tabular-nums', full ? 'bg-have/15 text-have' : 'bg-muted')}>{`${storeSlugs.length} / ${viewerLimits.tradingStores}`}</span>
+              <span className={cn('rounded-full px-3 py-1 text-sm font-semibold tabular-nums', full ? 'bg-have/15 text-have' : 'bg-muted')}>{`${storeSlugs.length} / ${STORE_JOIN_CAP}`}</span>
             </div>
 
             <div className="grid gap-4 md:grid-cols-[1fr_1fr]">
@@ -221,7 +219,18 @@ function OnboardingPage() {
                   )
                 })}
 
-                {!storesPending && stores.length === 0 && <li className="p-4 text-sm text-muted-foreground">No stores listed in this city yet — you can add them later.</li>}
+                {storesResult.isError && (
+                  <li>
+                    <ErrorState
+                      compact
+                      error={storesResult.error}
+                      onRetry={() => void storesResult.refetch()}
+                      title="Could not load stores"
+                    />
+                  </li>
+                )}
+
+                {storesResult.isSuccess && stores.length === 0 && <li className="p-4 text-sm text-muted-foreground">No stores listed in this city yet — you can add them later.</li>}
               </ul>
             </div>
 

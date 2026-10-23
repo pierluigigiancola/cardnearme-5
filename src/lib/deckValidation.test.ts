@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 
 import { deckCounts, validateDeck } from './deckValidation'
 
-import type { Card, DeckCard, DeckSection, GameId } from '#/services/types'
-import { makeCard } from '#/test/fixtures'
+import type { Printing, DeckCard, DeckSection, GameId } from '#/services/types'
+import { makePrinting } from '#/test/fixtures'
 
-function entry(card: Card, quantity = 1, section: DeckSection = 'mainboard'): DeckCard {
+function entry(card: Printing, quantity = 1, section: DeckSection = 'mainboard'): DeckCard {
   return {
     card,
     quantity,
@@ -13,7 +13,7 @@ function entry(card: Card, quantity = 1, section: DeckSection = 'mainboard'): De
   }
 }
 
-const basic = (name: string, legalities: Card['legalities'] = {}) => makeCard({
+const basic = (name: string, legalities: Printing['legalities'] = {}) => makePrinting({
   legalities,
   name,
   typeLine: 'Basic Land — Island',
@@ -24,11 +24,11 @@ const messages = (issues: { message: string }[]) => issues.map(issue => issue.me
 describe('deckCounts', () => {
   it('sums quantities per section', () => {
     expect(deckCounts([
-      entry(makeCard({ name: 'A' }), 2),
-      entry(makeCard({ name: 'B' }), 3),
-      entry(makeCard({ name: 'C' }), 1, 'sideboard'),
-      entry(makeCard({ name: 'D' }), 1, 'commander'),
-      entry(makeCard({ name: 'E' }), 4, 'considering'),
+      entry(makePrinting({ name: 'A' }), 2),
+      entry(makePrinting({ name: 'B' }), 3),
+      entry(makePrinting({ name: 'C' }), 1, 'sideboard'),
+      entry(makePrinting({ name: 'D' }), 1, 'commander'),
+      entry(makePrinting({ name: 'E' }), 4, 'considering'),
     ])).toEqual({
       commander: 1,
       considering: 4,
@@ -40,14 +40,14 @@ describe('deckCounts', () => {
 
 describe('validateDeck: commander', () => {
   const legal = { commander: 'legal' } as const
-  const commander = makeCard({
+  const commander = makePrinting({
     legalities: legal,
     name: 'Atraxa',
   })
   /** One commander plus `size - 1` cards: 30 distinct singletons and basics for the rest. */
   const commanderDeck = (size = 100): DeckCard[] => [
     entry(commander, 1, 'commander'),
-    ...Array.from({ length: 30 }, (_, index) => entry(makeCard({
+    ...Array.from({ length: 30 }, (_, index) => entry(makePrinting({
       legalities: legal,
       name: `Spell ${index}`,
     }))),
@@ -73,11 +73,11 @@ describe('validateDeck: commander', () => {
   it('counts commanders towards the 100 but not the sideboard or maybeboard', () => {
     const cards = [
       ...commanderDeck(),
-      entry(makeCard({
+      entry(makePrinting({
         legalities: legal,
         name: 'Side',
       }), 1, 'sideboard'),
-      entry(makeCard({
+      entry(makePrinting({
         legalities: legal,
         name: 'Maybe',
       }), 5, 'considering'),
@@ -91,7 +91,7 @@ describe('validateDeck: commander', () => {
 
   it('requires a commander', () => {
     const cards = commanderDeck().filter(card => card.section !== 'commander')
-    cards.push(entry(makeCard({
+    cards.push(entry(makePrinting({
       legalities: legal,
       name: 'Extra',
     })))
@@ -103,7 +103,7 @@ describe('validateDeck: commander', () => {
   })
 
   it('allows two commanders but not three', () => {
-    const partner = (name: string) => entry(makeCard({
+    const partner = (name: string) => entry(makePrinting({
       legalities: legal,
       name,
     }), 1, 'commander')
@@ -123,7 +123,7 @@ describe('validateDeck: commander', () => {
   })
 
   it('allows one copy of each non-basic card, across sections', () => {
-    const solRing = makeCard({
+    const solRing = makePrinting({
       legalities: legal,
       name: 'Sol Ring',
     })
@@ -146,7 +146,7 @@ describe('validateDeck: commander', () => {
 
   it('only applies singleton rules to Magic', () => {
     const issues = messages(validateDeck({
-      cards: [entry(basic('Filler'), 60), entry(makeCard({ name: 'Twice' }), 2)],
+      cards: [entry(basic('Filler'), 60), entry(makePrinting({ name: 'Twice' }), 2)],
       format: 'Commander',
       gameId: 'lorcana',
     }))
@@ -203,7 +203,7 @@ describe('validateDeck: constructed', () => {
     ['swu', 3],
   ] as [GameId, number][])('limits %s decks to %i copies, counting main deck and sideboard together', (gameId, limit) => {
     const legalities = { standard: 'legal' } as const
-    const card = makeCard({
+    const card = makePrinting({
       legalities,
       name: 'Staple',
     })
@@ -232,11 +232,11 @@ describe('validateDeck: legality', () => {
     const issues = validateDeck({
       cards: [
         filler('modern'),
-        entry(makeCard({
+        entry(makePrinting({
           legalities: { modern: 'banned' },
           name: 'Splinter Twin',
         })),
-        entry(makeCard({
+        entry(makePrinting({
           legalities: { modern: 'not_legal' },
           name: 'Black Lotus',
         }), 1, 'sideboard'),
@@ -257,7 +257,7 @@ describe('validateDeck: legality', () => {
   })
 
   it('allows one copy of a restricted card but not two', () => {
-    const lotus = makeCard({
+    const lotus = makePrinting({
       legalities: { vintage: 'restricted' },
       name: 'Black Lotus',
     })
@@ -275,18 +275,18 @@ describe('validateDeck: legality', () => {
 
   // $deckId.tsx keys issues by message, so a repeated message is a duplicate key.
   it('reports a card once when it appears in several sections', () => {
-    const twin = makeCard({
+    const twin = makePrinting({
       legalities: { modern: 'banned' },
       name: 'Splinter Twin',
     })
-    const mystery = makeCard({ name: 'Mystery' })
+    const mystery = makePrinting({ name: 'Mystery' })
     expect(messages(validateDeck({
       cards: [filler('modern'), entry(twin, 2), entry(mystery), entry(twin, 2, 'sideboard'), entry(mystery, 1, 'sideboard')],
       format: 'modern',
       gameId: 'mtg',
     }))).toEqual(['Splinter Twin is banned in modern', 'No legality data for Mystery in modern'])
 
-    const lotus = makeCard({
+    const lotus = makePrinting({
       legalities: { vintage: 'restricted' },
       name: 'Black Lotus',
     })
@@ -301,7 +301,7 @@ describe('validateDeck: legality', () => {
     expect(validateDeck({
       cards: [
         filler('modern'),
-        entry(makeCard({
+        entry(makePrinting({
           legalities: { modern: 'banned' },
           name: 'Splinter Twin',
         }), 1, 'considering'),
@@ -312,7 +312,7 @@ describe('validateDeck: legality', () => {
   })
 
   it('warns about missing legality data for Magic only', () => {
-    const unknown = entry(makeCard({ name: 'Mystery' }))
+    const unknown = entry(makePrinting({ name: 'Mystery' }))
     expect(validateDeck({
       cards: [filler('pioneer'), unknown],
       format: 'Pioneer',
@@ -330,7 +330,7 @@ describe('validateDeck: legality', () => {
 
   it('does not read legality from inherited object keys', () => {
     expect(messages(validateDeck({
-      cards: [filler('constructor'), entry(makeCard({ name: 'Proto' }))],
+      cards: [filler('constructor'), entry(makePrinting({ name: 'Proto' }))],
       format: 'constructor',
       gameId: 'mtg',
     }))).toEqual(['No legality data for Proto in constructor'])

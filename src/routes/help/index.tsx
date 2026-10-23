@@ -15,9 +15,9 @@ function HelpIndex() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold">Start here</h2>
+        <h2 className="text-xl font-bold">Popular guides</h2>
 
-        <p className="text-muted-foreground">Scan cards, keep a collection, build a deck and trade at the stores you already visit.</p>
+        <p className="text-muted-foreground">Fill your Collection, mark Haves and Wants, and meet other Traders at the Stores you already play at.</p>
       </div>
 
       <ul className="grid gap-3 sm:grid-cols-2">
@@ -32,7 +32,7 @@ function HelpIndex() {
 
               <p className="text-sm text-muted-foreground">{article.summary}</p>
 
-              <p className="mt-2 text-sm font-semibold text-primary">Open guide →</p>
+              <p className="mt-2 text-sm font-semibold text-primary">Read the guide →</p>
             </Link>
           </li>
         ))}

@@ -1,4 +1,4 @@
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, notFound, useBlocker, useRouter } from '@tanstack/react-router'
 import { AlertTriangle, CheckCircle2, Copy, FileText, FolderInput, Loader2, Save, Trash2, X } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
@@ -8,13 +8,13 @@ import { CardSearchBox } from '#/components/binder/CardSearchBox'
 import { CardArt } from '#/components/cards/CardArt'
 import { GameBadge, Price } from '#/components/cards/CardBits'
 import { ManaCurve, TypeBreakdown, deckValue } from '#/components/decks/DeckTools'
+import { ErrorState } from '#/components/layout/ErrorState'
 import { PageHeader } from '#/components/layout/PageHeader'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '#/components/ui/dialog'
@@ -35,14 +35,15 @@ import {
 } from '#/components/ui/select'
 import { Textarea } from '#/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
+import { ConfirmDialog } from '#/components/workspace/ConfirmDialog'
 import { QuantityStepper } from '#/components/workspace/QuantityStepper'
 import { formatTextList, parseTextList } from '#/lib/cardListText'
+import type { TextListRow } from '#/lib/cardListText'
 import { deckCounts, validateDeck } from '#/lib/deckValidation'
 import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
-import { gamesQuery, myDeckQuery, ownershipQuery } from '#/services/queries'
-import { getServices } from '#/services/services'
-import type { Card, DeckCard, DeckInput, DeckSection, OwnedDeck } from '#/services/types'
+import { cardMatchesQuery, gamesQuery, myDeckQuery, ownershipQuery } from '#/services/queries'
+import type { Printing, DeckCard, DeckInput, DeckSection, OwnedDeck } from '#/services/types'
 
 export const Route = createFileRoute('/x/decks/$deckId')({
   loader: async ({ context: { queryClient, user }, params }) => {
@@ -72,7 +73,7 @@ interface Draft {
 function toInput(deck: OwnedDeck, draft: Draft): DeckInput {
   return {
     cards: draft.cards.map(entry => ({
-      cardId: entry.card.id,
+      printingId: entry.card.id,
       quantity: entry.quantity,
       section: entry.section,
     })),
@@ -137,10 +138,11 @@ function DeckEditor({ deck }: { deck: OwnedDeck }) {
   })
 
   const cardIds = useMemo(() => [...new Set(draft.cards.map(entry => entry.card.id))].sort(), [draft.cards])
-  const { data: ownership = {} } = useQuery({
+  const ownershipResult = useQuery({
     ...ownershipQuery(user.id, cardIds),
     enabled: cardIds.length > 0,
   })
+  const ownership = ownershipResult.data ?? {}
   const issues = validateDeck({
     cards: draft.cards,
     format: draft.format,
@@ -152,7 +154,7 @@ function DeckEditor({ deck }: { deck: OwnedDeck }) {
   const save = useWorkspaceMutation((services, input: DeckInput) => services.deckBuilder.update(deck.id, input))
   const remove = useWorkspaceMutation(services => services.deckBuilder.remove(deck.id))
 
-  const addCard = (card: Card, section = addTo) => setCards((cards) => {
+  const addCard = (card: Printing, section = addTo) => setCards((cards) => {
     const existing = cards.find(entry => entry.card.id === card.id && entry.section === section)
     if (existing) return cards.map(entry => (entry === existing ? {
       ...entry,
@@ -299,6 +301,16 @@ function DeckEditor({ deck }: { deck: OwnedDeck }) {
               ))}
             </ToggleGroup>
           </div>
+
+          {ownershipResult.isError && (
+            <ErrorState
+              className="rounded-xl border border-destructive/40"
+              compact
+              error={ownershipResult.error}
+              onRetry={() => void ownershipResult.refetch()}
+              title="Could not check which cards you own"
+            />
+          )}
 
           {sections.map((section) => {
             const entries = draft.cards.filter(entry => entry.section === section)
@@ -466,46 +478,26 @@ function DeckEditor({ deck }: { deck: OwnedDeck }) {
         open={textOpen}
       />
 
-      <Dialog
+      <ConfirmDialog
+        confirmLabel="Delete deck"
+        description="This deck list is removed for good. Your cards stay in your binder."
+        onConfirm={() => {
+          leaving.current = true
+          // mutateAsync: the editor unmounts once the deck query refetches as empty.
+          remove.mutateAsync(undefined)
+            .then(() => {
+              toast.success('Deck deleted')
+              return router.navigate({ to: '/x/decks' })
+            })
+            .catch(() => {
+              leaving.current = false
+            })
+        }}
         onOpenChange={setConfirmDelete}
         open={confirmDelete}
-      >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{`Delete ${deck.name}?`}</DialogTitle>
-
-            <DialogDescription>This deck list is removed for good. Your cards stay in your binder.</DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter>
-            <Button
-              onClick={() => setConfirmDelete(false)}
-              variant="ghost"
-            >
-              Cancel
-            </Button>
-
-            <Button
-              disabled={remove.isPending}
-              onClick={() => {
-                leaving.current = true
-                // mutateAsync: the editor unmounts once the deck query refetches as empty.
-                remove.mutateAsync(undefined)
-                  .then(() => {
-                    toast.success('Deck deleted')
-                    return router.navigate({ to: '/x/decks' })
-                  })
-                  .catch(() => {
-                    leaving.current = false
-                  })
-              }}
-              variant="destructive"
-            >
-              Delete deck
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        pending={remove.isPending}
+        title={`Delete ${deck.name}?`}
+      />
     </div>
   )
 }
@@ -521,7 +513,8 @@ function DeckTextDialog({ cards, deckName, gameId, onImport, onOpenChange, open 
   const exported = formatTextList(cards)
   const [text, setText] = useState('')
   const [pending, setPending] = useState(false)
-  const [missing, setMissing] = useState<string[]>([])
+  const [missing, setMissing] = useState<TextListRow[]>([])
+  const queryClient = useQueryClient()
 
   const importText = async () => {
     const parsed = parseTextList(text)
@@ -531,29 +524,34 @@ function DeckTextDialog({ cards, deckName, gameId, onImport, onOpenChange, open 
     }
     setPending(true)
     try {
-      const services = await getServices()
+      const matches = await queryClient.fetchQuery(cardMatchesQuery(
+        parsed.rows.map(row => ({
+          name: row.name,
+          number: row.number,
+          setCode: row.setCode,
+        })),
+        { gameId },
+      ))
       const resolved: DeckCard[] = []
-      const unmatched: string[] = []
-      for (const row of parsed.rows) {
-        const results = await services.catalogue.searchCards(row.name, {
-          gameId,
-          limit: 20,
-        })
-        const named = results.filter(card => card.name.toLowerCase() === row.name.toLowerCase())
-        const card = named.find(candidate => candidate.setCode === row.setCode && (!row.number || candidate.number === row.number))
-          ?? named.at(0)
+      const unmatched: TextListRow[] = []
+      parsed.rows.forEach((row, index) => {
+        const card = matches[index]
         if (card) resolved.push({
           card,
           quantity: row.quantity,
           section: row.section,
         })
-        else unmatched.push(row.name)
-      }
+        else unmatched.push(row)
+      })
       setMissing(unmatched)
       if (resolved.length > 0) {
         onImport(resolved)
         toast.success(`Imported ${resolved.length} cards${unmatched.length > 0 ? ` (${unmatched.length} not found)` : ''}`)
       }
+      else toast.error('None of these cards were found')
+    }
+    catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not match this list')
     }
     finally {
       setPending(false)
@@ -608,7 +606,18 @@ function DeckTextDialog({ cards, deckName, gameId, onImport, onOpenChange, open 
               value={text}
             />
 
-            {missing.length > 0 && <p className="text-xs text-have">{`Not found: ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '…' : ''}`}</p>}
+            {missing.length > 0 && (
+              <div
+                className="space-y-1 text-xs text-have"
+                role="status"
+              >
+                <p>{`${missing.length} ${missing.length === 1 ? 'line needs' : 'lines need'} a match and ${missing.length === 1 ? 'was' : 'were'} left out:`}</p>
+
+                <ul className="max-h-24 overflow-y-auto font-mono">
+                  {missing.map(row => <li key={row.line}>{`Line ${row.line}: ${row.raw.trim()}`}</li>)}
+                </ul>
+              </div>
+            )}
 
             <Button
               disabled={!text.trim() || pending}

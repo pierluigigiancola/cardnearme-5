@@ -4,11 +4,11 @@ import { Copy, ExternalLink, LogOut, Plus, Settings, UserPlus, Users } from 'luc
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { viewerLimits } from '#/auth/limits'
 import { PageHeader, Section } from '#/components/layout/PageHeader'
-import { MatchList } from '#/components/trading/MatchList'
+import { MatchCityNotice, MatchList } from '#/components/trading/MatchList'
 import { HeadStartSteps, UnlockProgress } from '#/components/trading/Promos'
 import { TradeItems } from '#/components/trading/TradeItems'
+import { matchCityNotice } from '#/components/trading/matchCityNotice'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
@@ -21,6 +21,7 @@ import {
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { Switch } from '#/components/ui/switch'
+import { STORE_JOIN_CAP } from '#/domain'
 import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
 import { cityQuery, matchesQuery, profileQuery, storeQuery, storesQuery, tradeItemsQuery } from '#/services/queries'
@@ -36,7 +37,10 @@ export const Route = createFileRoute('/x/stores/$store')({
     if (!city) throw notFound()
     await Promise.all([
       queryClient.ensureQueryData(storesQuery()),
-      queryClient.ensureQueryData(matchesQuery(user.id, { storeSlug: store.slug })),
+      queryClient.ensureQueryData(matchesQuery(user.id, {
+        citySlug: store.citySlug,
+        storeSlug: store.slug,
+      })),
       queryClient.ensureQueryData(tradeItemsQuery({
         limit: PREVIEW,
         listType: 'haves',
@@ -62,7 +66,10 @@ function MyStorePage() {
   const { user } = Route.useRouteContext()
   const { data: profile } = useSuspenseQuery(profileQuery(user.id))
   const { data: allStores } = useSuspenseQuery(storesQuery())
-  const { data: matches } = useSuspenseQuery(matchesQuery(user.id, { storeSlug: store.slug }))
+  const { data: matches } = useSuspenseQuery(matchesQuery(user.id, {
+    citySlug: store.citySlug,
+    storeSlug: store.slug,
+  }))
   const { data: haves } = useSuspenseQuery(tradeItemsQuery({
     limit: PREVIEW,
     listType: 'haves',
@@ -79,6 +86,7 @@ function MyStorePage() {
   const joinedStores = profile.storeSlugs.flatMap(slug => allStores.find(candidate => candidate.slug === slug) ?? [])
   const storeNames = Object.fromEntries(allStores.map(candidate => [candidate.slug, candidate.name]))
   const unlocked = city.traderCount >= city.unlockThreshold
+  const cityNotice = matchCityNotice(profile.citySlug, city)
   const join = useWorkspaceMutation((services, slug: string) => services.profile.joinStore(slug))
 
   return (
@@ -99,7 +107,7 @@ function MyStorePage() {
             </Link>
           ))}
 
-          {joinedStores.length < viewerLimits.tradingStores && (
+          {joinedStores.length < STORE_JOIN_CAP && (
             <Link
               className="flex shrink-0 items-center gap-1 rounded-full border border-dashed px-3 py-1 text-sm text-muted-foreground hover:text-foreground"
               search={{ city: city.slug }}
@@ -166,6 +174,7 @@ function MyStorePage() {
               title={`Matches (${matches.length})`}
             >
               <MatchList
+                empty={cityNotice ? <MatchCityNotice notice={cityNotice} /> : undefined}
                 matches={matches}
                 storeNames={storeNames}
               />
@@ -243,7 +252,7 @@ function InviteDialog({ onOpenChange, open, store, username }: {
   username: string
 }) {
   const link = typeof window === 'undefined' ? `/stores/${store.slug}` : `${window.location.origin}/stores/${store.slug}?ref=${encodeURIComponent(username)}`
-  const message = `I trade cards at ${store.name} on CardNearMe — join so we can swap: ${link}`
+  const message = `I trade cards at ${store.name} on CardNearMe — join so we can trade: ${link}`
   const copy = (value: string, label: string) => {
     void navigator.clipboard.writeText(value)
     toast.success(`${label} copied`)

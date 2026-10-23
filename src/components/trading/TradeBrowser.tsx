@@ -4,7 +4,6 @@ import { Lock } from 'lucide-react'
 import { TradeItems } from './TradeItems'
 
 import { AuthLinks } from '#/auth/AuthGate'
-import { viewerLimits } from '#/auth/limits'
 import { BrowseToolbar, FacetSidebar } from '#/components/browse/BrowseControls'
 import { pickSort } from '#/lib/browseSearch'
 import type { BrowseSearch } from '#/lib/browseSearch'
@@ -34,15 +33,13 @@ const sortValues = tradeSortOptions.map(option => option.value)
 
 /** Builds the trade-items query from URL state; shared by loaders and components. */
 export function buildTradeQuery(
-  scope: Pick<TradeItemQuery, 'citySlug' | 'storeSlug' | 'ownerUsername'>,
+  scope: Pick<TradeItemQuery, 'citySlug' | 'storeSlug' | 'ownerId'>,
   listType: TradeListType,
   search: BrowseSearch,
-  limit: number | undefined,
 ): TradeItemQuery {
   return {
     ...scope,
     facets: search.f,
-    limit,
     listType,
     order: search.order ?? 'desc',
     q: search.q,
@@ -95,7 +92,7 @@ export function TradeBrowser({ aside, onChange, query, search }: {
               You are seeing
               {' '}
 
-              {viewerLimits.anonymousTradeResults}
+              {data.cappedAt}
 
               {' of '}
 

@@ -243,7 +243,7 @@ function DeckPage() {
             className="space-y-2"
             onSubmit={(event) => {
               event.preventDefault()
-              // Follow-up (ticket 02 comments): persist through a deck comments service; posting only shows a toast today.
+              // Follow-up (ticket 18-deck-comments): persist through a deck comments service; posting only shows a toast today.
               toast.success('Comment posted')
               setDraft('')
             }}
@@ -275,7 +275,7 @@ function DeckPage() {
                   key={comment.id}
                 >
                   <p className="text-xs text-muted-foreground">
-                    <span className="font-semibold text-foreground">{comment.username}</span>
+                    <span className="font-semibold text-foreground">{comment.authorUsername}</span>
 
                     {' · '}
 

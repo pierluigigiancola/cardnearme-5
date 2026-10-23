@@ -327,11 +327,11 @@ function ImportReview({ done, importId }: {
   const { data: lists } = useSuspenseQuery(tradeListsQuery(user.id))
   const updateRow = useWorkspaceMutation((services, input: {
     line: number;
-    cardId?: string;
     include?: boolean
+    printingId?: string;
   }) => services.binder.updateImportRow(importId, input.line, {
-    cardId: input.cardId,
     include: input.include,
+    printingId: input.printingId,
   }))
   const commit = useWorkspaceMutation(services => services.binder.commitImport(importId))
 
@@ -469,9 +469,9 @@ function ImportReview({ done, importId }: {
                   include,
                   line: row.line,
                 })}
-                onPick={cardId => updateRow.mutate({
-                  cardId,
+                onPick={printingId => updateRow.mutate({
                   line: row.line,
+                  printingId,
                 })}
                 row={row}
               />
@@ -486,7 +486,7 @@ function ImportReview({ done, importId }: {
 function ImportRowView({ onInclude, onPick, row }: {
   row: BinderImport['rows'][number];
   onInclude: (include: boolean) => void;
-  onPick: (cardId: string) => void
+  onPick: (printingId: string) => void
 }) {
   return (
     <TableRow className={cn(!row.include && 'opacity-60')}>

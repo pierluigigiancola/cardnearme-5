@@ -1,6 +1,6 @@
 # 01 — App shell and public pages
 
-Status: ready-for-agent
+Status: done
 Spec: [../spec.md](../spec.md)
 
 ## What
@@ -11,27 +11,27 @@ email+password) are part of this ticket.
 
 ## Acceptance criteria
 
-- [ ] Root layout: header (nav, global search, theme toggle, auth buttons / avatar menu),
+- [x] Root layout: header (nav, global search, theme toggle, auth buttons / avatar menu),
       mobile drawer, footer, toaster. Dark theme by default, light theme supported.
-- [ ] Service layer in `src/services/` with typed interfaces (`catalogue`, `trading`,
-      `stores`, `decks`, `users`, `content`) and a mock implementation (faker, deterministic
+- [x] Service layer in `src/services/` with typed interfaces (`catalogue`, `places`,
+      `trading`, `community`, `content`, plus `search`) and a mock implementation (faker, deterministic
       seed). Pages only talk to services through React Query query options.
-- [ ] Viewer model: `useViewer()` returns anonymous or signed-in (Supabase session);
+- [x] Viewer model: `useViewer()` returns anonymous or signed-in (Supabase session);
       `AuthGate` renders a sign-up prompt for anonymous users; `viewerLimits` holds the
       anonymous cap (30 results on city haves/wants).
-- [ ] Routes render with mock data: `/`, `/find-cards` (redirect), `/city`, `/city/$city`,
+- [x] Routes render with mock data: `/`, `/find-cards` (redirect), `/city`, `/city/$city`,
       `/city/$city/haves|wants|matched`, `/stores`, `/stores/$store`, `/sets`, `/sets/$game`,
       `/sets/$game/$set`, `/sets/$game/$set/sealed`, `/sets/$game/$set/$card/$number`,
       `/decks`, `/decks/$game`, `/decks/$game/$format`, `/decks/$game/$format/$deckId`,
       `/users/$username`, `/swap-calculator`, `/scanner`, `/help`, `/help/$topic`,
       `/changelog`, `/about`, `/contact`, `/privacy`, `/sign-in`, `/sign-up`.
-- [ ] Gated actions on public pages (Add to…, Trade, Message, comments, matches, price
+- [x] Gated actions on public pages (Add to…, Trade, Message, comments, matches, price
       chart, ownership) show the sign-up prompt when anonymous and keep a `redirect` back.
-- [ ] Deck detail includes working opening-hand simulator and hypergeometric draw odds
+- [x] Deck detail includes working opening-hand simulator and hypergeometric draw odds
       (pure functions, unit-testable).
-- [ ] Swap calculator works client-side against the mock catalogue.
-- [ ] Global search (`/` shortcut) over cards and cities; Cmd/Ctrl+K command palette.
-- [ ] `pnpm build` passes and `tsc --noEmit` is clean.
+- [x] Swap calculator works client-side against the mock catalogue.
+- [x] Global search (`/` shortcut) over cards and cities; Cmd/Ctrl+K command palette.
+- [x] `pnpm build` passes and `tsc --noEmit` is clean.
 
 ## Not in this ticket
 
@@ -56,7 +56,6 @@ passes, SSR crawl of every route type returns 200/307/404 as expected, manual
 check of facets, table view, gated Trade dialog, demo sign in/out.
 
 Not done / follow-ups:
-- Unit tests for `src/lib/deckMath.ts` and the facet helpers (no test runner configured yet).
 - Copy is English-only; not yet moved into Paraglide messages.
 - Store map is a lightweight placeholder (no Leaflet / tiles).
 - `.env.local` has a placeholder PostHog key (`phc_xxx`) → PostHog requests 401.

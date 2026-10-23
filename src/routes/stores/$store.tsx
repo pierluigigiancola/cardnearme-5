@@ -4,17 +4,18 @@ import { Check, ExternalLink, MapPin, Users } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { useRequireAuth } from '#/auth/AuthGate'
-import { tradeResultLimit } from '#/auth/limits'
 import { useViewer } from '#/auth/useViewer'
+import { ErrorState } from '#/components/layout/ErrorState'
 import { PageHeader, Section } from '#/components/layout/PageHeader'
 import { StoreMap } from '#/components/places/Places'
-import { MatchList } from '#/components/trading/MatchList'
+import { MatchCityNotice, MatchList } from '#/components/trading/MatchList'
 import { HeadStartSteps, ShareButton, UnlockProgress } from '#/components/trading/Promos'
 import { TradeItems } from '#/components/trading/TradeItems'
+import { matchCityNotice } from '#/components/trading/matchCityNotice'
 import { Button } from '#/components/ui/button'
 import { useWorkspaceMutation } from '#/services/mutations'
 import { cityQuery, matchesQuery, profileQuery, storeQuery, storesQuery, tradeItemsQuery } from '#/services/queries'
-import type { Store } from '#/services/types'
+import type { City, Store } from '#/services/types'
 
 const PREVIEW = 8
 
@@ -24,22 +25,24 @@ export const Route = createFileRoute('/stores/$store')({
     if (!store) throw notFound()
     const city = await queryClient.ensureQueryData(cityQuery(store.citySlug))
     if (!city) throw notFound()
-    const limit = Math.min(PREVIEW, tradeResultLimit(viewer) ?? PREVIEW)
     await Promise.all([
       queryClient.ensureQueryData(tradeItemsQuery({
-        limit,
+        limit: PREVIEW,
         listType: 'haves',
         storeSlug: store.slug,
       })),
       queryClient.ensureQueryData(tradeItemsQuery({
-        limit,
+        limit: PREVIEW,
         listType: 'wants',
         storeSlug: store.slug,
       })),
       // Signed-in traders see their matches at this store first.
-      viewer.kind === 'user' && viewer.onboarded
+      viewer.kind === 'user'
         ? Promise.all([
-          queryClient.ensureQueryData(matchesQuery(viewer.id, { storeSlug: store.slug })),
+          queryClient.ensureQueryData(matchesQuery(viewer.id, {
+            citySlug: store.citySlug,
+            storeSlug: store.slug,
+          })),
           queryClient.ensureQueryData(storesQuery()),
         ])
         : null,
@@ -57,23 +60,24 @@ function StorePage() {
   const { city, store } = Route.useLoaderData()
   const viewer = useViewer()
   const requireAuth = useRequireAuth()
-  const limit = Math.min(PREVIEW, tradeResultLimit(viewer) ?? PREVIEW)
   const { data: haves } = useSuspenseQuery(tradeItemsQuery({
-    limit,
+    limit: PREVIEW,
     listType: 'haves',
     storeSlug: store.slug,
   }))
   const { data: wants } = useSuspenseQuery(tradeItemsQuery({
-    limit,
+    limit: PREVIEW,
     listType: 'wants',
     storeSlug: store.slug,
   }))
   const unlocked = city.traderCount >= city.unlockThreshold
-  const { data: profile } = useQuery({
+  const profileResult = useQuery({
     ...profileQuery(viewer.kind === 'user' ? viewer.id : 'anonymous'),
     enabled: viewer.kind === 'user',
   })
-  const joined = profile?.storeSlugs.includes(store.slug) ?? false
+  const joined = profileResult.data?.storeSlugs.includes(store.slug) ?? false
+  // Unknown when the profile failed: don't offer "Join store" to someone who may have joined.
+  const membership = profileResult.isError ? 'unknown' : joined ? 'joined' : 'not-joined'
   const join = useWorkspaceMutation((services, slug: string) => services.profile.joinStore(slug))
 
   return (
@@ -83,30 +87,39 @@ function StorePage() {
           <>
             <ShareButton label="Copy link" />
 
-            {joined
-              ? (
-                <Button
-                  asChild
-                  variant="outline"
+            {membership === 'unknown' && (
+              <ErrorState
+                compact
+                error={profileResult.error}
+                onRetry={() => void profileResult.refetch()}
+                title="Could not load your stores"
+              />
+            )}
+
+            {membership === 'joined' && (
+              <Button
+                asChild
+                variant="outline"
+              >
+                <Link
+                  params={{ store: store.slug }}
+                  to="/x/stores/$store"
                 >
-                  <Link
-                    params={{ store: store.slug }}
-                    to="/x/stores/$store"
-                  >
-                    <Check />
-                    Joined · open
-                  </Link>
-                </Button>
-              )
-              : (
-                <Button
-                  disabled={join.isPending}
-                  onClick={() => requireAuth('joinStore', () => join.mutate(store.slug, { onSuccess: () => toast.success(`Joined ${store.name}`) }))}
-                >
-                  <Users />
-                  Join store
-                </Button>
-              )}
+                  <Check />
+                  Joined · open
+                </Link>
+              </Button>
+            )}
+
+            {membership === 'not-joined' && (
+              <Button
+                disabled={join.isPending}
+                onClick={() => requireAuth('joinStore', () => join.mutate(store.slug, { onSuccess: () => toast.success(`Joined ${store.name}`) }))}
+              >
+                <Users />
+                Join store
+              </Button>
+            )}
           </>
         )}
         crumbs={[{
@@ -122,8 +135,9 @@ function StorePage() {
           {unlocked
             ? (
               <>
-                {viewer.kind === 'user' && viewer.onboarded && (
+                {viewer.kind === 'user' && (
                   <StoreMatches
+                    city={city}
                     joined={joined}
                     store={store}
                     viewerId={viewer.id}
@@ -245,19 +259,26 @@ function StorePage() {
   )
 }
 
-function StoreMatches({ joined, store, viewerId }: {
+function StoreMatches({ city, joined, store, viewerId }: {
+  city: City;
   store: Store;
   viewerId: string;
   joined: boolean
 }) {
-  const { data: matches } = useSuspenseQuery(matchesQuery(viewerId, { storeSlug: store.slug }))
+  const { data: matches } = useSuspenseQuery(matchesQuery(viewerId, {
+    citySlug: store.citySlug,
+    storeSlug: store.slug,
+  }))
   const { data: stores } = useSuspenseQuery(storesQuery())
+  const { data: profile } = useQuery(profileQuery(viewerId))
+  const notice = profile ? matchCityNotice(profile.citySlug, city) : null
   return (
     <Section
       description={joined ? 'Traders at this store whose lists match yours' : 'Traders here whose lists match yours — join the store to meet them here'}
       title={`Your matches (${matches.length})`}
     >
       <MatchList
+        empty={notice ? <MatchCityNotice notice={notice} /> : undefined}
         matches={matches}
         storeNames={Object.fromEntries(stores.map(candidate => [candidate.slug, candidate.name]))}
       />

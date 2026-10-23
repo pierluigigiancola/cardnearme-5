@@ -24,16 +24,16 @@ import { Label } from '#/components/ui/label'
 import { Textarea } from '#/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { QuantityStepper } from '#/components/workspace/QuantityStepper'
+import { freeQuantity, isHave, tradeFromPerspective, tradeValue } from '#/domain'
 import { formatPrice } from '#/lib/format'
 import { usePricingSource } from '#/lib/pricing'
-import { tradeFromPerspective } from '#/lib/tradeMath'
 import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
 import { tradeContextQuery } from '#/services/queries'
-import type { Card, Condition, Finish, Language, Trade, TradeContext, TradeDraft, TradeItem } from '#/services/types'
+import type { Printing, Condition, Finish, Language, Trade, TradeContext, TradeDraft, TradeItem, UserId } from '#/services/types'
 
 export interface TradeBuilderRequest {
-  partner: string
+  partner: UserId
   /** A card of the partner's (haves or wants) the trade starts from. */
   item?: TradeItem
   /** Pre-select every match between both traders' lists. */
@@ -130,7 +130,7 @@ type MeetupChoice =
 
 interface PickableItem {
   id: string
-  card: Card
+  card: Printing
   condition: Condition
   finish: Finish
   language: Language
@@ -149,7 +149,7 @@ function toLocalInput(iso: string | null) {
     .slice(0, 16)
 }
 
-function initialState(context: TradeContext, request: TradeBuilderRequest, me: string) {
+function initialState(context: TradeContext, request: TradeBuilderRequest, me: UserId) {
   const give = new Map<string, Selection>()
   const get = new Map<string, Selection>()
   let cash = {
@@ -219,7 +219,7 @@ function initialState(context: TradeContext, request: TradeBuilderRequest, me: s
     })
   }
   if (item?.listType === 'wants') {
-    const mine = context.myItems.find(candidate => candidate.card.name === item.card.name)
+    const mine = context.myItems.find(candidate => candidate.card.cardId === item.card.cardId)
     if (mine) give.set(mine.id, {
       price: mine.price,
       quantity: 1,
@@ -260,13 +260,14 @@ function TradeBuilderForm({ context, onClose, request }: {
   const viewer = useSignedInViewer()
   const router = useRouter()
   const source = usePricingSource()
-  const [initial] = useState(() => initialState(context, request, viewer.username))
+  const [initial] = useState(() => initialState(context, request, viewer.id))
   const [give, setGive] = useState(initial.give)
   const [get, setGet] = useState(initial.get)
   const [cash, setCash] = useState(initial.cash)
   const [meetup, setMeetup] = useState<MeetupChoice>(initial.meetup)
   const [meetAt, setMeetAt] = useState(initial.meetAt)
   const [note, setNote] = useState(initial.note)
+  /** The partner's username, for display; the draft refers to them by `context.partner.id`. */
   const partner = context.partner.username
   // Shared stores, plus the store of the trade being edited if it is not shared.
   const storeOptions = useMemo(() => {
@@ -288,11 +289,18 @@ function TradeBuilderForm({ context, onClose, request }: {
 
   const myItems = useMemo(() => {
     const wanted = new Set(context.suggestedGive)
-    return context.myItems.map((item): PickableItem => ({
-      ...item,
-      matched: wanted.has(item.id),
-      note: item.section === 'haves' ? 'Haves' : 'Collection',
-    }))
+    // Copies reserved by accepted Trades can't go on another one (ADR 0003).
+    return context.myItems
+      .filter(item => freeQuantity(item) > 0)
+      .map((item): PickableItem => ({
+        ...item,
+        matched: wanted.has(item.id),
+        note: [
+          isHave(item) ? `${item.forTradeQuantity} for trade` : 'Collection',
+          item.reservedQuantity > 0 ? `${item.reservedQuantity} reserved` : null,
+        ].filter(Boolean).join(' · '),
+        quantity: freeQuantity(item),
+      }))
   }, [context])
   const theirItems = useMemo(() => {
     const wanted = new Set(context.suggestedGet)
@@ -302,10 +310,8 @@ function TradeBuilderForm({ context, onClose, request }: {
     }))
   }, [context])
 
-  const total = (selection: Map<string, Selection>) =>
-    [...selection.values()].reduce((sum, line) => sum + line.price * line.quantity, 0)
-  const myCards = total(give)
-  const theirCards = total(get)
+  const myCards = tradeValue([...give.values()])
+  const theirCards = tradeValue([...get.values()])
   const myTotal = myCards + (cash.payer === 'me' ? cash.amount : 0)
   const theirTotal = theirCards + (cash.payer === 'partner' ? cash.amount : 0)
   // `|| 0` drops -0, which would format as "-€0.00".
@@ -348,11 +354,11 @@ function TradeBuilderForm({ context, onClose, request }: {
           ? meetup
           : null,
       note,
-      partner,
+      partner: context.partner.id,
     }
     propose.mutate(draft, {
       onSuccess: (trade) => {
-        toast.success(request.trade ? 'Proposal updated' : `Proposal sent to ${partner}`)
+        toast.success(request.trade ? 'Trade updated' : `Trade sent to ${partner}`)
         onClose()
         void router.navigate({
           params: { chatId: trade.chatId },
@@ -375,7 +381,7 @@ function TradeBuilderForm({ context, onClose, request }: {
             username={partner}
           />
 
-          {request.trade ? (request.trade.awaiting === viewer.username ? 'Counter-offer to ' : 'Edit proposal to ') : 'Trade with '}
+          {request.trade ? (request.trade.awaiting === viewer.id ? 'Counter-offer to ' : 'Edit trade with ') : 'Trade with '}
 
           {partner}
         </DialogTitle>
@@ -619,7 +625,7 @@ function TradeBuilderForm({ context, onClose, request }: {
         >
           {propose.isPending ? <Loader2 className="animate-spin" /> : <ArrowLeftRight />}
 
-          {request.trade ? 'Send updated proposal' : 'Send proposal'}
+          {request.trade ? 'Send updated trade' : 'Propose trade'}
         </Button>
       </DialogFooter>
     </>

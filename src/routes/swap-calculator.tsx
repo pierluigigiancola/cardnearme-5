@@ -4,6 +4,7 @@ import { ChevronsLeft, ChevronsRight, Minus, Plus, Search, Trash2 } from 'lucide
 import { useEffect, useRef, useState } from 'react'
 
 import { Price } from '#/components/cards/CardBits'
+import { ErrorState } from '#/components/layout/ErrorState'
 import { PageHeader } from '#/components/layout/PageHeader'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
@@ -16,23 +17,23 @@ import {
 } from '#/components/ui/select'
 import { cn } from '#/lib/utils'
 import { cardSearchQuery } from '#/services/queries'
-import type { Card, Finish } from '#/services/types'
+import type { Printing, Finish } from '#/services/types'
 
 export const Route = createFileRoute('/swap-calculator')({
   head: () => ({ meta: [{ title: 'Trade value calculator | CardNearMe' }] }),
-  component: SwapCalculator,
+  component: TradeCalculator,
 })
 
 interface Line {
   id: string
-  card: Card
+  card: Printing
   finish: Finish
   quantity: number
 }
 
 const lineValue = (line: Line) => (line.card.prices[line.finish] ?? line.card.prices.nonfoil ?? 0) * line.quantity
 
-function SwapCalculator() {
+function TradeCalculator() {
   const [left, setLeft] = useState<Line[]>([])
   const [right, setRight] = useState<Line[]>([])
   const leftTotal = left.reduce((sum, line) => sum + lineValue(line), 0)
@@ -42,9 +43,9 @@ function SwapCalculator() {
   return (
     <div className="page-wrap">
       <PageHeader
-        crumbs={[{ label: 'Swap calculator' }]}
-        description="Calculate fair trade values and compare card prices before you swap."
-        title="Swap calculator"
+        crumbs={[{ label: 'Trade calculator' }]}
+        description="Calculate fair trade values and compare card prices before you trade."
+        title="Trade calculator"
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -104,10 +105,11 @@ function TradeSide({ lines, onChange, title }: {
   const [debounced, setDebounced] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [finish, setFinish] = useState<Finish>('nonfoil')
-  const { data: results = [] } = useQuery({
+  const search = useQuery({
     ...cardSearchQuery(debounced),
     enabled: debounced.trim().length > 1,
   })
+  const results = search.data ?? []
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebounced(q), 200)
@@ -116,7 +118,7 @@ function TradeSide({ lines, onChange, title }: {
 
   const nextId = useRef(0)
 
-  const add = (card: Card) => {
+  const add = (card: Printing) => {
     onChange([...lines, {
       card,
       finish: card.finishes.includes(finish) ? finish : 'nonfoil',
@@ -164,6 +166,17 @@ function TradeSide({ lines, onChange, title }: {
             placeholder="Search for a card"
             value={q}
           />
+
+          {search.isError && q.trim().length > 1 && (
+            <div className="absolute top-full right-0 left-0 z-20 mt-1 rounded-xl border bg-popover p-1 shadow-xl">
+              <ErrorState
+                compact
+                error={search.error}
+                onRetry={() => void search.refetch()}
+                title="Search failed"
+              />
+            </div>
+          )}
 
           {results.length > 0 && q.trim().length > 1 && (
             <ul className="absolute top-full right-0 left-0 z-20 mt-1 max-h-72 overflow-auto rounded-xl border bg-popover p-1 shadow-xl">

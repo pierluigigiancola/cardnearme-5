@@ -1,6 +1,6 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
-import { ExternalLink, MapPin, Plus } from 'lucide-react'
+import { MapPin, Plus } from 'lucide-react'
 import { useState } from 'react'
 
 import { GatedPanel, SignedIn, SignedOut, useRequireAuth } from '#/auth/AuthGate'
@@ -9,24 +9,25 @@ import { AddCardDialog, sectionLabels } from '#/components/binder/AddCardDialog'
 import { CardArt } from '#/components/cards/CardArt'
 import { Price, PriceChange, RarityLabel } from '#/components/cards/CardBits'
 import { CardList } from '#/components/cards/CardList'
+import { ErrorState } from '#/components/layout/ErrorState'
 import { PageHeader, Section } from '#/components/layout/PageHeader'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { formatDate } from '#/lib/format'
 import { cn } from '#/lib/utils'
-import { cardAvailabilityQuery, cardQuery, gameQuery, ownershipQuery, printingsQuery } from '#/services/queries'
-import type { Card, Finish } from '#/services/types'
+import { cardAvailabilityQuery, printingQuery, gameQuery, ownershipQuery, printingsQuery } from '#/services/queries'
+import type { Printing, Finish } from '#/services/types'
 
 export const Route = createFileRoute('/sets/$game/$set/$card/$number')({
   loader: async ({ context: { queryClient }, params }) => {
     const game = await queryClient.ensureQueryData(gameQuery(params.game))
     if (!game) throw notFound()
-    const card = await queryClient.ensureQueryData(cardQuery(game.id, params.set, params.number))
+    const card = await queryClient.ensureQueryData(printingQuery(game.id, params.set, params.number))
     if (!card) throw notFound()
     await Promise.all([
-      queryClient.ensureQueryData(printingsQuery(card)),
-      queryClient.ensureQueryData(cardAvailabilityQuery(card)),
+      queryClient.ensureQueryData(printingsQuery(card.cardId)),
+      queryClient.ensureQueryData(cardAvailabilityQuery(card.cardId)),
     ])
     return {
       card,
@@ -46,8 +47,9 @@ const legalityStyle = {
 
 function CardPage() {
   const { card, game } = Route.useLoaderData()
-  const { data: printings } = useSuspenseQuery(printingsQuery(card))
-  const { data: availability } = useSuspenseQuery(cardAvailabilityQuery(card))
+  const { data: printings } = useSuspenseQuery(printingsQuery(card.cardId))
+  const otherPrintings = printings.filter(printing => printing.id !== card.id)
+  const { data: availability } = useSuspenseQuery(cardAvailabilityQuery(card.cardId))
   const requireAuth = useRequireAuth()
   const [finish, setFinish] = useState<Finish>('nonfoil')
   const [adding, setAdding] = useState(false)
@@ -102,24 +104,7 @@ function CardPage() {
           )}
 
           <div className="flex gap-2">
-            <Button
-              asChild
-              className="flex-1"
-              variant="outline"
-            >
-              <a
-                href="#"
-                rel="noreferrer"
-              >
-                <ExternalLink />
-                Buy
-
-                {' '}
-
-                <Price amount={price} />
-              </a>
-            </Button>
-
+            {/* The Buy link returns once a pricing or affiliate source is chosen (ticket 17-buy-link). */}
             <Button
               className="flex-1"
               onClick={() => requireAuth('addToCollection', () => setAdding(true))}
@@ -277,10 +262,10 @@ function CardPage() {
           )}
       </Section>
 
-      {printings.length > 0 && (
-        <Section title={`Other printings (${printings.length})`}>
+      {otherPrintings.length > 0 && (
+        <Section title={`Other Printings (${otherPrintings.length})`}>
           <CardList
-            cards={printings}
+            cards={otherPrintings}
             view="visual"
           />
         </Section>
@@ -323,11 +308,22 @@ function CardPage() {
   )
 }
 
-/** Copies of this card (any printing) in the viewer's binder. */
-function OwnershipCounts({ card }: { card: Card }) {
+/** Copies of this Card (any Printing) in the viewer's Binder. */
+function OwnershipCounts({ card }: { card: Printing }) {
   const viewer = useSignedInViewer()
-  const { data } = useQuery(ownershipQuery(viewer.id, [card.id]))
-  const ownership = data?.[card.id]
+  const result = useQuery(ownershipQuery(viewer.id, [card.id]))
+  if (result.isError) {
+    return (
+      <ErrorState
+        className="rounded-xl border bg-card"
+        compact
+        error={result.error}
+        onRetry={() => void result.refetch()}
+        title="Could not load your copies"
+      />
+    )
+  }
+  const ownership = result.data?.[card.id]
   return (
     <div className="grid grid-cols-3 gap-2 rounded-xl border bg-card p-4 text-center text-sm">
       {(['collection', 'haves', 'wants'] as const).map(section => (

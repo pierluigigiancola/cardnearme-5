@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { useSignedInViewer } from '#/auth/useViewer'
+import { WantFilterFields } from '#/components/binder/WantFilters'
 import { CardArt } from '#/components/cards/CardArt'
 import { Price } from '#/components/cards/CardBits'
+import { ErrorState } from '#/components/layout/ErrorState'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
@@ -26,10 +28,11 @@ import {
 } from '#/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { QuantityStepper } from '#/components/workspace/QuantityStepper'
+import { ANY_PRINTING } from '#/domain'
 import { conditionLabels, conditions, finishLabels, isCondition, isFinish, isLanguage, languageLabels, languages } from '#/lib/cardOptions'
 import { useWorkspaceMutation } from '#/services/mutations'
 import { cardSearchQuery, printingsQuery, tradeListsQuery } from '#/services/queries'
-import type { BinderItemInput, BinderSection, Card, Condition, Finish, Language } from '#/services/types'
+import type { BinderItemInput, BinderSection, Printing, Condition, Finish, Language, WantFilters } from '#/services/types'
 
 export const sectionLabels: Record<BinderSection, string> = {
   collection: 'Collection',
@@ -43,7 +46,9 @@ export function isBinderSection(value: unknown): value is BinderSection {
 
 /**
  * Adds a card to the viewer's collection or a trade list: pick the card and
- * printing, then condition, finish, language and quantity.
+ * printing, then condition, finish, language and quantity. A Want is for the
+ * Card: it defaults to "any printing", with optional Set, finish, language
+ * and minimum-condition filters.
  */
 export function AddCardDialog({ card: presetCard, defaultListId, defaultSection, onOpenChange, open }: {
   open: boolean;
@@ -51,7 +56,7 @@ export function AddCardDialog({ card: presetCard, defaultListId, defaultSection,
   defaultSection: BinderSection;
   defaultListId?: string;
   /** Skip the search step (e.g. from a card page). */
-  card?: Card
+  card?: Printing
 }) {
   return (
     <Dialog
@@ -75,17 +80,17 @@ export function AddCardDialog({ card: presetCard, defaultListId, defaultSection,
 function AddCardForm({ defaultListId, defaultSection, onDone, presetCard }: {
   defaultSection: BinderSection;
   defaultListId?: string;
-  presetCard?: Card;
+  presetCard?: Printing;
   onDone: () => void
 }) {
-  const [picked, setPicked] = useState<Card | null>(presetCard ?? null)
+  const [picked, setPicked] = useState<Printing | null>(presetCard ?? null)
 
   return (
     <>
       <DialogHeader>
         <DialogTitle>{presetCard ? `Add ${presetCard.name}` : 'Add a card'}</DialogTitle>
 
-        <DialogDescription>Track it in your collection or put it on a haves or wants list.</DialogDescription>
+        <DialogDescription>Track it in your collection, mark it for trade as a Have, or add it to your wants.</DialogDescription>
       </DialogHeader>
 
       {picked
@@ -104,7 +109,7 @@ function AddCardForm({ defaultListId, defaultSection, onDone, presetCard }: {
   )
 }
 
-function CardSearchStep({ onPick }: { onPick: (card: Card) => void }) {
+function CardSearchStep({ onPick }: { onPick: (card: Printing) => void }) {
   const [query, setQuery] = useState('')
   const [debounced, setDebounced] = useState('')
 
@@ -113,10 +118,11 @@ function CardSearchStep({ onPick }: { onPick: (card: Card) => void }) {
     return () => clearTimeout(timeout)
   }, [query])
 
-  const { data: results = [], isFetching } = useQuery({
+  const search = useQuery({
     ...cardSearchQuery(debounced),
     enabled: debounced.trim().length > 1,
   })
+  const { data: results = [], isFetching } = search
 
   return (
     <div className="space-y-3">
@@ -159,14 +165,25 @@ function CardSearchStep({ onPick }: { onPick: (card: Card) => void }) {
           </li>
         ))}
 
-        {debounced.trim().length > 1 && query === debounced && !isFetching && results.length === 0 && <li className="px-2 py-4 text-center text-sm text-muted-foreground">No cards found.</li>}
+        {search.isError && (
+          <li>
+            <ErrorState
+              compact
+              error={search.error}
+              onRetry={() => void search.refetch()}
+              title="Search failed"
+            />
+          </li>
+        )}
+
+        {debounced.trim().length > 1 && query === debounced && !isFetching && !search.isError && results.length === 0 && <li className="px-2 py-4 text-center text-sm text-muted-foreground">No cards found.</li>}
       </ul>
     </div>
   )
 }
 
 function CardDetailsStep({ card, defaultListId, defaultSection, onBack, onDone }: {
-  card: Card;
+  card: Printing;
   defaultSection: BinderSection;
   defaultListId?: string;
   /** Back to the search step; omitted when the card was given. */
@@ -181,12 +198,18 @@ function CardDetailsStep({ card, defaultListId, defaultSection, onBack, onDone }
   const [finish, setFinish] = useState<Finish>(card.finishes.at(0) ?? 'nonfoil')
   const [language, setLanguage] = useState<Language>('en')
   const [quantity, setQuantity] = useState(1)
+  // A Want starts as "any printing"; the Trader may narrow it.
+  const [filters, setFilters] = useState<WantFilters>(ANY_PRINTING)
 
-  const { data: otherPrintings = [] } = useQuery(printingsQuery(card))
-  const { data: lists = [] } = useQuery({
+  const printingsResult = useQuery(printingsQuery(card.cardId))
+  const listsResult = useQuery({
     ...tradeListsQuery(viewer.id, { type: section === 'wants' ? 'wants' : 'haves' }),
     enabled: section !== 'collection',
   })
+  const otherPrintings = (printingsResult.data ?? []).filter(candidate => candidate.id !== card.id)
+  const lists = listsResult.data ?? []
+  // Without the lists we can't tell which one to add to, so don't guess.
+  const listsUnavailable = section !== 'collection' && listsResult.isError
 
   const printings = [card, ...otherPrintings]
   const printing = printings.find(candidate => candidate.id === printingId) ?? card
@@ -195,16 +218,31 @@ function CardDetailsStep({ card, defaultListId, defaultSection, onBack, onDone }
 
   const add = useWorkspaceMutation((services, items: BinderItemInput[]) => services.binder.addItems(items))
 
+  const wanted = section === 'wants'
+  const shown = wanted ? printings.find(candidate => candidate.setCode === filters.setCode) ?? card : printing
+  const shownFinish = wanted ? filters.finish ?? shown.finishes.at(0) ?? 'nonfoil' : finish
+
   const submit = (another: boolean) => {
-    add.mutate([{
-      cardId: printing.id,
-      condition,
-      finish: printing.finishes.includes(finish) ? finish : 'nonfoil',
-      language,
-      listId: section === 'collection' ? null : selectedList?.id ?? null,
-      quantity,
-      section,
-    }], {
+    const input: BinderItemInput = wanted
+      ? {
+        cardId: card.cardId,
+        filters,
+        kind: 'want',
+        listId: selectedList?.id ?? null,
+        quantity,
+      }
+      : {
+        condition,
+        finish: printing.finishes.includes(finish) ? finish : 'nonfoil',
+        // Haves are Collection entries with every added copy for trade.
+        forTradeQuantity: section === 'haves' ? quantity : 0,
+        kind: 'collection',
+        language,
+        listId: section === 'collection' ? null : selectedList?.id ?? null,
+        printingId: printing.id,
+        quantity,
+      }
+    add.mutate([input], {
       onSuccess: () => {
         toast.success(`Added ${quantity}× ${printing.name} to ${section === 'collection' ? 'your collection' : selectedList?.name ?? sectionLabels[section]}`)
         if (another && onBack) onBack()
@@ -218,8 +256,8 @@ function CardDetailsStep({ card, defaultListId, defaultSection, onBack, onDone }
       <div className="grid gap-5 sm:grid-cols-[160px_1fr]">
         <div className="space-y-2">
           <CardArt
-            card={printing}
-            finish={finish}
+            card={shown}
+            finish={shownFinish}
           />
 
           {onBack && (
@@ -261,151 +299,193 @@ function CardDetailsStep({ card, defaultListId, defaultSection, onBack, onDone }
 
           {section !== 'collection' && (
             <Field label="List">
-              <Select
-                onValueChange={setListId}
-                value={selectedList?.id ?? 'default'}
-              >
-                <SelectTrigger
-                  aria-label="List"
-                  className="w-full"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-
-                <SelectContent>
-                  {compatibleLists.length === 0 && <SelectItem value="default">{`New “My ${section}” list`}</SelectItem>}
-
-                  {compatibleLists.map(list => (
-                    <SelectItem
-                      key={list.id}
-                      value={list.id}
+              {listsResult.isError
+                ? (
+                  <ErrorState
+                    compact
+                    error={listsResult.error}
+                    onRetry={() => void listsResult.refetch()}
+                    title="Could not load your lists"
+                  />
+                )
+                : (
+                  <Select
+                    onValueChange={setListId}
+                    value={selectedList?.id ?? 'default'}
+                  >
+                    <SelectTrigger
+                      aria-label="List"
+                      className="w-full"
                     >
-                      {list.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                      <SelectValue />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {compatibleLists.length === 0 && <SelectItem value="default">{`New “My ${section}” list`}</SelectItem>}
+
+                      {compatibleLists.map(list => (
+                        <SelectItem
+                          key={list.id}
+                          value={list.id}
+                        >
+                          {list.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
             </Field>
           )}
 
-          <Field label="Printing">
-            <Select
-              onValueChange={(value) => {
-                setPrintingId(value)
-                const next = printings.find(candidate => candidate.id === value)
-                if (next && !next.finishes.includes(finish)) setFinish(next.finishes.at(0) ?? 'nonfoil')
-              }}
-              value={printing.id}
-            >
-              <SelectTrigger
-                aria-label="Printing"
-                className="w-full"
-              >
-                <SelectValue />
-              </SelectTrigger>
+          {wanted
+            ? (
+              <>
+                <WantFilterFields
+                  filters={filters}
+                  onChange={setFilters}
+                  printings={printings}
+                />
 
-              <SelectContent>
-                {printings.map(candidate => (
-                  <SelectItem
-                    key={candidate.id}
-                    value={candidate.id}
+                <Field label="Quantity">
+                  <QuantityStepper
+                    className="h-9"
+                    onChange={setQuantity}
+                    value={quantity}
+                  />
+                </Field>
+              </>
+            )
+            : (
+              <>
+                <Field label="Printing">
+                  <Select
+                    onValueChange={(value) => {
+                      setPrintingId(value)
+                      const next = printings.find(candidate => candidate.id === value)
+                      if (next && !next.finishes.includes(finish)) setFinish(next.finishes.at(0) ?? 'nonfoil')
+                    }}
+                    value={printing.id}
                   >
-                    {`${candidate.setName} · #${candidate.number}`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={section === 'wants' ? 'Minimum condition' : 'Condition'}>
-              <Select
-                onValueChange={value => isCondition(value) && setCondition(value)}
-                value={condition}
-              >
-                <SelectTrigger
-                  aria-label="Condition"
-                  className="w-full"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-
-                <SelectContent>
-                  {conditions.map(option => (
-                    <SelectItem
-                      key={option}
-                      value={option}
+                    <SelectTrigger
+                      aria-label="Printing"
+                      className="w-full"
                     >
-                      {`${option} · ${conditionLabels[option]}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+                      <SelectValue />
+                    </SelectTrigger>
 
-            <Field label="Language">
-              <Select
-                onValueChange={value => isLanguage(value) && setLanguage(value)}
-                value={language}
-              >
-                <SelectTrigger
-                  aria-label="Language"
-                  className="w-full"
-                >
-                  <SelectValue />
-                </SelectTrigger>
+                    <SelectContent>
+                      {printings.map(candidate => (
+                        <SelectItem
+                          key={candidate.id}
+                          value={candidate.id}
+                        >
+                          {`${candidate.setName} · #${candidate.number}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                <SelectContent>
-                  {languages.map(option => (
-                    <SelectItem
-                      key={option}
-                      value={option}
+                  {printingsResult.isError && (
+                    <ErrorState
+                      compact
+                      error={printingsResult.error}
+                      onRetry={() => void printingsResult.refetch()}
+                      title="Could not load other Printings"
+                    />
+                  )}
+                </Field>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Condition">
+                    <Select
+                      onValueChange={value => isCondition(value) && setCondition(value)}
+                      value={condition}
                     >
-                      {languageLabels[option]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+                      <SelectTrigger
+                        aria-label="Condition"
+                        className="w-full"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
 
-            <Field label="Finish">
-              <Select
-                onValueChange={value => isFinish(value) && setFinish(value)}
-                value={finish}
-              >
-                <SelectTrigger
-                  aria-label="Finish"
-                  className="w-full"
-                >
-                  <SelectValue />
-                </SelectTrigger>
+                      <SelectContent>
+                        {conditions.map(option => (
+                          <SelectItem
+                            key={option}
+                            value={option}
+                          >
+                            {`${option} · ${conditionLabels[option]}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
 
-                <SelectContent>
-                  {printing.finishes.map(option => (
-                    <SelectItem
-                      key={option}
-                      value={option}
+                  <Field label="Language">
+                    <Select
+                      onValueChange={value => isLanguage(value) && setLanguage(value)}
+                      value={language}
                     >
-                      {finishLabels[option]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+                      <SelectTrigger
+                        aria-label="Language"
+                        className="w-full"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
 
-            <Field label="Quantity">
-              <QuantityStepper
-                className="h-9"
-                onChange={setQuantity}
-                value={quantity}
-              />
-            </Field>
-          </div>
+                      <SelectContent>
+                        {languages.map(option => (
+                          <SelectItem
+                            key={option}
+                            value={option}
+                          >
+                            {languageLabels[option]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field label="Finish">
+                    <Select
+                      onValueChange={value => isFinish(value) && setFinish(value)}
+                      value={finish}
+                    >
+                      <SelectTrigger
+                        aria-label="Finish"
+                        className="w-full"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        {printing.finishes.map(option => (
+                          <SelectItem
+                            key={option}
+                            value={option}
+                          >
+                            {finishLabels[option]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field label="Quantity">
+                    <QuantityStepper
+                      className="h-9"
+                      onChange={setQuantity}
+                      value={quantity}
+                    />
+                  </Field>
+                </div>
+              </>
+            )}
 
           <p className="text-sm text-muted-foreground">
             {'Market price '}
 
-            <Price amount={printing.prices[finish] ?? printing.prices.nonfoil} />
+            <Price amount={shown.prices[shownFinish] ?? shown.prices.nonfoil} />
           </p>
         </div>
       </div>
@@ -413,7 +493,7 @@ function CardDetailsStep({ card, defaultListId, defaultSection, onBack, onDone }
       <DialogFooter>
         {onBack && (
           <Button
-            disabled={add.isPending}
+            disabled={add.isPending || listsUnavailable}
             onClick={() => submit(true)}
             type="button"
             variant="outline"
@@ -423,7 +503,7 @@ function CardDetailsStep({ card, defaultListId, defaultSection, onBack, onDone }
         )}
 
         <Button
-          disabled={add.isPending}
+          disabled={add.isPending || listsUnavailable}
           onClick={() => submit(false)}
           type="button"
         >

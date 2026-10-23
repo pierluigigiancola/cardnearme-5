@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowLeftRight, MessageSquare, Sparkles } from 'lucide-react'
+import { ArrowLeftRight, Lock, MessageSquare, Sparkles } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { useTradeBuilder } from './TradeBuilder'
@@ -10,6 +10,27 @@ import { useRequireAuth } from '#/auth/AuthGate'
 import { CardArt } from '#/components/cards/CardArt'
 import { Button } from '#/components/ui/button'
 import type { TradeMatch } from '#/services/types'
+
+/** Shown in place of Matches when the page's City is not the viewer's own. */
+export function MatchCityNotice({ notice }: { notice: string }) {
+  return (
+    <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed p-8 text-center">
+      <Sparkles className="size-6 text-match" />
+
+      <p className="font-semibold">No matches here</p>
+
+      <p className="max-w-sm text-sm text-muted-foreground">{notice}</p>
+
+      <Button
+        asChild
+        size="sm"
+        variant="outline"
+      >
+        <Link to="/x/settings">Change your city</Link>
+      </Button>
+    </div>
+  )
+}
 
 /** Traders whose lists match the viewer's, with shortcuts to trade or chat. */
 export function MatchList({ empty, matches, storeNames }: {
@@ -39,7 +60,7 @@ export function MatchList({ empty, matches, storeNames }: {
       {matches.map(match => (
         <li
           className="flex flex-col gap-3 rounded-xl border bg-card p-4"
-          key={match.partner.username}
+          key={match.partner.id}
         >
           <div className="flex items-center gap-3">
             <TraderAvatar
@@ -87,22 +108,35 @@ export function MatchList({ empty, matches, storeNames }: {
             />
           </div>
 
+          {!match.eligibility.canPropose && (
+            <p
+              className="mt-auto flex items-start gap-2 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground"
+              id={`propose-locked-${match.partner.id}`}
+            >
+              <Lock className="mt-0.5 size-3.5 shrink-0" />
+
+              {match.eligibility.reason}
+            </p>
+          )}
+
           <div className="mt-auto flex gap-2">
             <Button
+              aria-describedby={match.eligibility.canPropose ? undefined : `propose-locked-${match.partner.id}`}
               className="flex-1"
+              disabled={!match.eligibility.canPropose}
               onClick={() => requireAuth('trade', () => openTradeBuilder({
-                partner: match.partner.username,
+                partner: match.partner.id,
                 useMatches: true,
               }))}
               size="sm"
             >
               <ArrowLeftRight />
-              Trade
+              Propose trade
             </Button>
 
             <Button
               disabled={isPending}
-              onClick={() => requireAuth('message', () => startChat(match.partner.username))}
+              onClick={() => requireAuth('message', () => startChat(match.partner.id))}
               size="sm"
               variant="outline"
             >
