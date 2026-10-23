@@ -54,7 +54,6 @@ function applyBinderChange(store: MockStore, { gives, receives, trader: id }: Bi
     const source = collectionRecords(ctx).find(record => record.id === line.sourceId)
     if (!source) continue
     Object.assign(source, afterGiving(source, line.quantity))
-    if (source.forTradeQuantity === 0) source.listId = null
     dropEmpty(source)
   }
   for (const line of receives) {

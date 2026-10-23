@@ -172,7 +172,11 @@ export interface ListsService {
   list: (query?: ListsQuery) => Promise<TradeList[]>
   create: (input: TradeListInput) => Promise<TradeList>
   update: (listId: string, patch: Partial<TradeListInput>) => Promise<TradeList>
-  /** Deletes the List. Wants on it go with it; Collection entries on a Haves List stay owned but are no longer for trade. */
+  /**
+   * Deletes a List that is not a default List. Wants on it go with it. Haves
+   * on a Haves List go too, but the cards stay owned: their Collection entries
+   * come off trade and move to the default Haves List (ADR 0002).
+   */
   remove: (listId: string) => Promise<void>
 }
 

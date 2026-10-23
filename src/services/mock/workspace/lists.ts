@@ -7,7 +7,7 @@ import type { ListRecord } from '../store'
 
 import { now } from './context'
 import type { TraderContext } from './context'
-import { requireList } from './records'
+import { defaultList, requireList } from './records'
 
 export function listsService(ctx: TraderContext): ListsService {
   const { trader } = ctx
@@ -31,6 +31,7 @@ export function listsService(ctx: TraderContext): ListsService {
         createdAt: now(),
         gameId: input.gameId,
         id: ctx.id('list'),
+        isDefault: false,
         name: input.name.trim().slice(0, 60),
         type: input.type === 'wants' ? 'wants' : 'haves',
         updatedAt: now(),
@@ -50,21 +51,25 @@ export function listsService(ctx: TraderContext): ListsService {
         }
       }),
     remove: async (listId) => {
-      requireList(ctx, listId)
-      trader.lists = trader.lists.filter(list => list.id !== listId)
-      // Owned cards stay in the Collection, no longer for trade; Wants go with the List.
+      const list = requireList(ctx, listId)
+      if (list.isDefault) throw new Error(`${list.name} is your default ${list.type} list and cannot be deleted`)
+      // Its Haves go with it, but the cards stay owned: off trade, on the default Haves List. Its Wants are deleted.
+      const fallback = list.type === 'haves' ? defaultList(ctx, 'haves') : null
       for (const record of trader.items) {
-        if (record.kind === 'collection' && record.listId === listId) {
+        if (record.kind === 'collection' && record.listId === listId && fallback) {
           record.forTradeQuantity = 0
-          record.listId = null
+          record.listId = fallback.id
+          record.updatedAt = now()
         }
       }
-      trader.items = trader.items.filter(record => record.kind === 'collection' || record.listId !== listId)
+      trader.items = trader.items.filter(record => record.listId !== listId)
+      trader.lists = trader.lists.filter(candidate => candidate.id !== listId)
     },
     update: async (listId, patch) => {
       validate(patch)
       const list = requireList(ctx, listId)
       if (patch.type && patch.type !== list.type) throw new Error('A list cannot change between haves and wants')
+      if (patch.gameId && list.isDefault) throw new Error('Your default list accepts cards from every game')
       if (patch.gameId) {
         const otherGame = trader.items.some(record => record.listId === listId && printingsById.get(record.cardId)?.gameId !== patch.gameId)
         if (otherGame) throw new Error('The list has cards from other games')

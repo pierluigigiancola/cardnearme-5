@@ -335,9 +335,18 @@ export interface TradeList {
   id: string
   name: string
   type: TradeListType
-  /** Restricts the list to one game; null accepts cards from any game. */
+  /** Restricts the list to one game; null accepts cards from any game. A default List always accepts every game. */
   gameId: GameId | null
+  /**
+   * The only visibility switch (ADR 0002): a private List hides its contents
+   * from other Traders on every public page, never from its owner.
+   */
   visibility: Visibility
+  /**
+   * Every Trader has one default Haves List and one default Wants List. Entries
+   * go there when no List is chosen, and a default List cannot be deleted.
+   */
+  isDefault: boolean
   cardCount: number
   createdAt: string
   updatedAt: string
@@ -378,8 +387,12 @@ export interface CollectionEntry extends BinderEntryBase {
   quantity: number
   /** Copies marked for trade, from 0 to `quantity`. Above zero, the entry is a Have. */
   forTradeQuantity: number
-  /** The Haves List the for-trade copies are on; null while no copy is for trade. */
-  listId: string | null
+  /**
+   * The Haves List the entry is on. Only its for-trade copies show there (and,
+   * while the List is public, to other Traders); with none for trade the entry
+   * stays on the List but is not a Have.
+   */
+  listId: string
   /** Copies promised to other Traders in accepted Trades (ADR 0003), from 0 to `quantity`. They cannot go on another Trade. */
   reservedQuantity: number
 }
@@ -389,7 +402,8 @@ export interface WantEntry extends BinderEntryBase {
   kind: 'want'
   /** Copies wanted. */
   quantity: number
-  listId: string | null
+  /** The Wants List it is on. */
+  listId: string
 }
 
 /** A record in the viewer's Binder: a Collection entry or a Want. */
@@ -415,9 +429,10 @@ export interface BinderItemPatch {
   finish?: Finish
   language?: Language
   quantity?: number
-  /** Collection entries only: copies marked for trade, at most `quantity`. Zero takes the entry off its Haves List. */
+  /** Collection entries only: copies marked for trade, at most `quantity`. Zero keeps the entry on its Haves List but not as a Have. */
   forTradeQuantity?: number
-  listId?: string | null
+  /** Moves the entry to another List of its kind. */
+  listId?: string
 }
 
 export interface BinderQuery {
