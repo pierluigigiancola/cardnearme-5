@@ -163,16 +163,12 @@ export function tradesService(ctx: TraderContext): TradesService {
         suggestedGive: myItems.filter(item => suggestedGive.has(item.id)).map(item => item.id),
       }
     },
-    listMatches: async (scope) => {
-      const citySlug = scope?.citySlug ?? trader.profile.citySlug
-      if (!citySlug) return []
+    listMatches: async (scope = {}) => {
+      // The City is the viewer's own, from the session; a scope naming another City gives no Matches.
       const myHaveEntries = new Map(myHaves(ctx).map(entry => [entry.id, entry]))
       const myCity = cityOf(trader)
       const traders = [...store.traders.values()]
-      return findMatches(matchTraderOf(trader), traders.map(matchTraderOf), {
-        citySlug,
-        storeSlug: scope?.storeSlug,
-      }).map((match): TradeMatch => {
+      return findMatches(matchTraderOf(trader), traders.map(matchTraderOf), scope).map((match): TradeMatch => {
         const partner = requireTrader(store, match.partnerId)
         const listed = new Map(listedItems(store, 'haves', partner).map(item => [item.id, item]))
         return {

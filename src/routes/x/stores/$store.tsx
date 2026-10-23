@@ -5,9 +5,10 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { PageHeader, Section } from '#/components/layout/PageHeader'
-import { MatchList } from '#/components/trading/MatchList'
+import { MatchCityNotice, MatchList } from '#/components/trading/MatchList'
 import { HeadStartSteps, UnlockProgress } from '#/components/trading/Promos'
 import { TradeItems } from '#/components/trading/TradeItems'
+import { matchCityNotice } from '#/components/trading/matchCityNotice'
 import { Button } from '#/components/ui/button'
 import {
   Dialog,
@@ -85,6 +86,7 @@ function MyStorePage() {
   const joinedStores = profile.storeSlugs.flatMap(slug => allStores.find(candidate => candidate.slug === slug) ?? [])
   const storeNames = Object.fromEntries(allStores.map(candidate => [candidate.slug, candidate.name]))
   const unlocked = city.traderCount >= city.unlockThreshold
+  const cityNotice = matchCityNotice(profile.citySlug, city)
   const join = useWorkspaceMutation((services, slug: string) => services.profile.joinStore(slug))
 
   return (
@@ -172,6 +174,7 @@ function MyStorePage() {
               title={`Matches (${matches.length})`}
             >
               <MatchList
+                empty={cityNotice ? <MatchCityNotice notice={cityNotice} /> : undefined}
                 matches={matches}
                 storeNames={storeNames}
               />

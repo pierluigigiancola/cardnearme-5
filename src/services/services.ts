@@ -203,8 +203,9 @@ export interface ChatService {
 
 export interface TradesService {
   /**
-   * The viewer's Matches with other Traders in a City (the viewer's own when no
-   * scope is given; none if they have no City). A Match is another Trader's Have
+   * The viewer's Matches with other Traders in the viewer's own City, read from
+   * the session (spec decisions 4 and 6). None if the viewer has no City, or if
+   * the scope names a City other than theirs. A Match is another Trader's Have
    * on a public List that fulfils one of the viewer's Wants (filters included,
    * private Lists too), or a Have of the viewer's that fulfils one of the other
    * Trader's public Wants. A Store in the scope only narrows the City to its

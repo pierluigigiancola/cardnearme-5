@@ -118,6 +118,30 @@ describe('City-scoped Matching across Traders', () => {
     }
   })
 
+  it('finds no Matches when asked for a City that is not mine', async () => {
+    const store = createStore()
+    const workspace = workspaceFor(me, store)
+    const printing = unusedPrinting(store)
+    const roman = seededTraderIn(store, 'rome--italy')
+    await workspace.binder.addItems([{
+      cardId: printing.cardId,
+      kind: 'want',
+      quantity: 1,
+    }])
+    await roman.workspace.binder.addItems([haveInput(printing.id)])
+
+    expect(await workspace.trades.listMatches({ citySlug: 'rome--italy' })).toEqual([])
+  })
+
+  it('finds no Matches for a Trader who has not picked a City', async () => {
+    const store = createStore()
+    const workspace = workspaceFor(me, store)
+    await workspace.profile.update({ citySlug: null })
+
+    expect(await workspace.trades.listMatches()).toEqual([])
+    expect(await workspace.trades.listMatches({ citySlug: MILAN })).toEqual([])
+  })
+
   it('narrows the City to a Store\'s Traders when given one', async () => {
     const store = createStore()
     const workspace = workspaceFor(me, store)

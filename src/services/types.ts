@@ -724,11 +724,16 @@ export interface TradeMatch {
 }
 
 /**
- * Where Matches are looked for (spec decision 4). Matching is scoped to a City;
- * a Store only narrows that City to the Traders who joined it.
+ * Where Matches are looked for (spec decision 4). Matching is scoped to the
+ * viewer's own City, read from the session; a Store only narrows that City to
+ * the Traders who joined it.
  */
 export interface MatchScope {
-  citySlug: string
+  /**
+   * The City the page shows. Matches are found only when it is the viewer's
+   * own City (or it is left out); any other City gives no Matches.
+   */
+  citySlug?: string
   /** Optional filter: only Traders who joined this Store (in the City). */
   storeSlug?: string
 }

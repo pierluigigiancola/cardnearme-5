@@ -6,9 +6,10 @@ import { GatedPanel, SignedIn, SignedOut } from '#/auth/AuthGate'
 import { useSignedInViewer } from '#/auth/useViewer'
 import { ErrorState } from '#/components/layout/ErrorState'
 import { PageHeader } from '#/components/layout/PageHeader'
-import { MatchList } from '#/components/trading/MatchList'
+import { MatchCityNotice, MatchList } from '#/components/trading/MatchList'
+import { matchCityNotice } from '#/components/trading/matchCityNotice'
 import { Button } from '#/components/ui/button'
-import { cityQuery, matchesQuery, storesQuery } from '#/services/queries'
+import { cityQuery, matchesQuery, profileQuery, storesQuery } from '#/services/queries'
 import type { City } from '#/services/types'
 
 export const Route = createFileRoute('/city/$city/matched')({
@@ -58,7 +59,9 @@ function CityMatches({ city }: { city: City }) {
   const viewer = useSignedInViewer()
   const matchesResult = useQuery(matchesQuery(viewer.id, { citySlug: city.slug }))
   const storesResult = useQuery(storesQuery(city.slug))
+  const profileResult = useQuery(profileQuery(viewer.id))
   const stores = storesResult.data ?? []
+  const notice = profileResult.data ? matchCityNotice(profileResult.data.citySlug, city) : null
 
   if (matchesResult.isPending) {
     return (
@@ -82,7 +85,7 @@ function CityMatches({ city }: { city: City }) {
   }
   return (
     <MatchList
-      empty={(
+      empty={notice ? <MatchCityNotice notice={notice} /> : (
         <div className="mx-auto flex max-w-lg flex-col items-center gap-3 rounded-xl border border-dashed p-10 text-center">
           <Sparkles className="size-6 text-match" />
 
