@@ -145,7 +145,7 @@ const workspaceMethods: { [TName in keyof WorkspaceServices]: MethodTable<Worksp
       finish: optional(finish),
       forTradeQuantity: optional(num),
       language: optional(language),
-      listId: optional(nullable(str)),
+      listId: optional(str),
       quantity: optional(num),
     })),
   },

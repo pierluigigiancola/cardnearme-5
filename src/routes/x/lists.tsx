@@ -194,6 +194,10 @@ function ListsPage() {
                     >
                       {list.name}
                     </Link>
+
+                    {list.isDefault && <Badge
+                      className="ml-2"
+                      variant="secondary">Default</Badge>}
                   </TableCell>
 
                   <TableCell>
@@ -243,15 +247,19 @@ function ListsPage() {
                           {list.visibility === 'public' ? 'Make private' : 'Make public'}
                         </DropdownMenuItem>
 
-                        <DropdownMenuSeparator />
+                        {!list.isDefault && (
+                          <>
+                            <DropdownMenuSeparator />
 
-                        <DropdownMenuItem
-                          onSelect={() => setDeleting(list)}
-                          variant="destructive"
-                        >
-                          <Trash2 />
-                          Delete
-                        </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => setDeleting(list)}
+                              variant="destructive"
+                            >
+                              <Trash2 />
+                              Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -287,8 +295,8 @@ function ListsPage() {
       <ConfirmDialog
         confirmLabel="Delete list"
         description={deleting?.type === 'haves'
-          ? `The list is deleted and its ${deleting.cardCount} cards are no longer for trade. They stay in your collection.`
-          : `The list and its ${deleting?.cardCount ?? 0} cards are removed from your binder. This cannot be undone.`}
+          ? `Its ${deleting.cardCount} Haves go with it: the cards come off trade and move to your default Haves list. You still own them, so they stay in your collection.`
+          : `Its ${deleting?.cardCount ?? 0} Wants go with it and are deleted from your binder. This cannot be undone.`}
         onConfirm={() => deleting && remove.mutate(deleting, {
           onSuccess: () => {
             toast.success(`Deleted ${deleting.name}`)

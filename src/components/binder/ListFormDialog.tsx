@@ -141,6 +141,7 @@ function ListForm({ defaultType, list, onCreated, onDone }: {
           <Label>Game</Label>
 
           <Select
+            disabled={list?.isDefault}
             onValueChange={value => setInput({
               ...input,
               gameId: games.find(game => game.id === value)?.id ?? null,

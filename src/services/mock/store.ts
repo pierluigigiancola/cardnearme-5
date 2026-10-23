@@ -20,7 +20,7 @@ import type {
 import { printings, decks, stores, tradeItems, users } from './data'
 import { MOCK_NOW } from './random'
 
-import { isHave } from '#/domain'
+import { isHave, publicOnly } from '#/domain'
 
 /**
  * The one in-memory store behind every mock service. It holds every Trader's
@@ -47,13 +47,13 @@ export interface CollectionRecord extends EntryRecordBase {
   kind: 'collection'
   /** Copies marked for trade, 0 to `quantity`. */
   forTradeQuantity: number
-  /** Haves List of the for-trade copies; null while none are for trade. */
-  listId: string | null
+  /** The Haves List the entry is on; it is a Have there only while copies are for trade. */
+  listId: string
 }
 
 export interface WantRecord extends EntryRecordBase {
   kind: 'want'
-  listId: string | null
+  listId: string
 }
 
 /** A Binder record: a Collection entry or a Want. There are no separate Have records. */
@@ -65,6 +65,8 @@ export interface ListRecord {
   type: TradeListType
   gameId: GameId | null
   visibility: Visibility
+  /** One default Haves List and one default Wants List per Trader. */
+  isDefault: boolean
   createdAt: string
   updatedAt: string
 }
@@ -121,6 +123,7 @@ export function createStore(): MockStore {
       createdAt: user.memberSince,
       gameId: null,
       id: `${user.id}-${type}`,
+      isDefault: true,
       name: type === 'haves' ? 'Trade binder' : 'Wishlist',
       type,
       updatedAt: user.memberSince,
@@ -252,11 +255,10 @@ export function listedItems(store: MockStore, listType: TradeListType, trader?: 
   return owners.flatMap((owner) => {
     const citySlug = owner.profile.citySlug
     if (!citySlug) return []
-    const publicLists = new Set(owner.lists.filter(list => list.visibility === 'public').map(list => list.id))
-    return owner.items.flatMap((record) => {
+    return publicOnly(owner.items, owner.lists).flatMap((record) => {
       const card = printingsById.get(record.cardId)
       const quantity = listedQuantity(record, listType)
-      if (quantity === 0 || !record.listId || !publicLists.has(record.listId) || !card) return []
+      if (quantity === 0 || !card) return []
       return [{
         card,
         citySlug,
