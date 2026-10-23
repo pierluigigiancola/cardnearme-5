@@ -4,15 +4,15 @@
 
 **Blocked by:** 02, 03
 
-**Status:** ready-for-agent
+**Status:** done
 
 Spec: [../spec.md](../spec.md) · ADR: [0002](../../../docs/adr/0002-one-record-per-owned-card.md)
 
-- [ ] A Collection entry has a quantity and a for-trade quantity (≤ quantity). A Have is a Collection entry with a for-trade quantity above zero.
-- [ ] The `listed` flag is gone. `BinderSection`, the TradeItem list type and the Binder item section no longer describe the same concept twice.
-- [ ] Public listing types are read projections of Collection entries. No separate Have records are stored.
-- [ ] `TradeLine.sourceId` always refers to a Collection entry, on either side.
-- [ ] The domain module holds the rule for what you may give: any of your own Collection entries, but only the partner's Haves. It has unit tests.
-- [ ] The Binder UI edits quantity and for-trade quantity on one row. Binder import and onboarding create Collection entries.
-- [ ] Marking a card for trade in the Binder shows it on your public profile and City pages, and unmarking it removes it.
-- [ ] `pnpm lint`, `pnpm exec tsc --noEmit` and `pnpm test` pass.
+- [x] A Collection entry has a quantity and a for-trade quantity (≤ quantity). A Have is a Collection entry with a for-trade quantity above zero.
+- [x] The `listed` flag is gone. `BinderSection`, the TradeItem list type and the Binder item section no longer describe the same concept twice.
+- [x] Public listing types are read projections of Collection entries. No separate Have records are stored.
+- [x] `TradeLine.sourceId` always refers to a Collection entry, on either side.
+- [x] The domain module holds the rule for what you may give: any of your own Collection entries, but only the partner's Haves. It has unit tests.
+- [x] The Binder UI edits quantity and for-trade quantity on one row. Binder import and onboarding create Collection entries.
+- [x] Marking a card for trade in the Binder shows it on your public profile and City pages, and unmarking it removes it.
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit` and `pnpm test` pass.

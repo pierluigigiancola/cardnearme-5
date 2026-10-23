@@ -291,7 +291,7 @@ function TradeBuilderForm({ context, onClose, request }: {
     return context.myItems.map((item): PickableItem => ({
       ...item,
       matched: wanted.has(item.id),
-      note: item.section === 'haves' ? 'Haves' : 'Collection',
+      note: item.forTradeQuantity > 0 ? `${item.forTradeQuantity} for trade` : 'Collection',
     }))
   }, [context])
   const theirItems = useMemo(() => {

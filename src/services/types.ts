@@ -141,7 +141,11 @@ export interface UserProfile {
 
 export type TradeListType = 'haves' | 'wants'
 
-/** A card that a user has put on a haves or wants list. */
+/**
+ * A Have or Want as other Traders see it. A read projection, never a record
+ * of its own: a Have is a Collection entry with copies for trade (`id` is the
+ * entry's id and `quantity` its for-trade quantity).
+ */
 export interface TradeItem {
   id: string
   listType: TradeListType
@@ -290,6 +294,11 @@ export interface CardAvailability {
 // service resolves who that is from the session, never from an argument.
 // ---------------------------------------------------------------------------
 
+/**
+ * A tab of the Binder: every Collection entry, the Collection entries marked
+ * for trade (Haves), or the Wants. It names a view, not a record type: a
+ * Binder holds only Collection entries and Wants (see `BinderItem['kind']`).
+ */
 export type BinderSection = TradeListType | 'collection'
 export type Visibility = 'public' | 'private'
 
@@ -319,37 +328,68 @@ export interface ListsQuery {
   order?: SortOrder
 }
 
-/** A card in the viewer's binder: their collection or one of their trade lists. */
-export interface BinderItem {
+interface BinderEntryBase {
   id: string
-  section: BinderSection
-  /** Trade list the item belongs to (haves and wants only). */
-  listId: string | null
   card: Card
-  /** For wants this is the minimum acceptable condition. */
+  /** For Wants this is the minimum acceptable condition. */
   condition: Condition
   finish: Finish
   language: Language
-  quantity: number
   price: number
   /** Offered in a pending or accepted trade. */
   inTrade: boolean
-  /** Collection only: the same printing is also on a haves list. */
-  listed: boolean
   updatedAt: string
 }
 
+/**
+ * A Printing the viewer owns, recorded once (ADR 0002). Marking copies for
+ * trade makes it a Have, which other Traders see as a `TradeItem`.
+ */
+export interface CollectionEntry extends BinderEntryBase {
+  kind: 'collection'
+  /** Copies owned. */
+  quantity: number
+  /** Copies marked for trade, from 0 to `quantity`. Above zero, the entry is a Have. */
+  forTradeQuantity: number
+  /** The Haves List the for-trade copies are on; null while no copy is for trade. */
+  listId: string | null
+}
+
+/** A card the viewer is looking for, on one of their Wants Lists. */
+export interface WantEntry extends BinderEntryBase {
+  kind: 'want'
+  /** Copies wanted. */
+  quantity: number
+  listId: string | null
+}
+
+/** A record in the viewer's Binder: a Collection entry or a Want. */
+export type BinderItem = CollectionEntry | WantEntry
+
+export type BinderItemKind = BinderItem['kind']
+
 export interface BinderItemInput {
-  section: BinderSection
+  kind: BinderItemKind
+  /** Collection entry: the Haves List for its for-trade copies. Want: its Wants List. Omit for the default List. */
   listId?: string | null
   cardId: string
   condition: Condition
   finish: Finish
   language: Language
   quantity: number
+  /** Collection entries only: copies to mark for trade, from 0 (the default) to `quantity`. */
+  forTradeQuantity?: number
 }
 
-export type BinderItemPatch = Partial<Pick<BinderItem, 'condition' | 'finish' | 'language' | 'quantity' | 'listId'>>
+export interface BinderItemPatch {
+  condition?: Condition
+  finish?: Finish
+  language?: Language
+  quantity?: number
+  /** Collection entries only: copies marked for trade, at most `quantity`. Zero takes the entry off its Haves List. */
+  forTradeQuantity?: number
+  listId?: string | null
+}
 
 export interface BinderQuery {
   section: BinderSection
@@ -400,6 +440,7 @@ export interface ImportRow extends ParsedImportRow {
 
 export interface BinderImport {
   id: string
+  /** Every import creates Collection entries or Wants; `haves` marks each imported copy for trade. */
   section: BinderSection
   listId: string | null
   source: 'csv' | 'text'
@@ -486,7 +527,7 @@ export type TradeStatus = 'pending' | 'accepted' | 'completed' | 'cancelled'
 
 export interface TradeLine {
   id: string
-  /** Binder item (viewer's side) or trade item (partner's side) this line came from. */
+  /** The Collection entry this line comes from, on either side (a partner's `TradeItem.id` is their Collection entry's id). */
   sourceId: string
   card: Card
   condition: Condition
@@ -556,8 +597,9 @@ export interface TradeDraftLine {
 /** Everything the trade builder needs to propose a trade to one partner. */
 export interface TradeContext {
   partner: ChatParticipant
-  /** Viewer's haves and collection, offerable on the "you give" side. */
-  myItems: BinderItem[]
+  /** The viewer's whole Collection: any entry can go on the "you give" side (see `#/domain` give rule). */
+  myItems: CollectionEntry[]
+  /** The partner's Haves, the only cards that can go on the "you get" side. */
   partnerHaves: TradeItem[]
   partnerWants: TradeItem[]
   /** Stores both traders have joined, suggested as meetup locations. */
@@ -574,8 +616,8 @@ export interface TradeMatch {
   sharedStoreSlugs: string[]
   /** Partner haves that are on the viewer's wants. */
   theyHave: TradeItem[]
-  /** Viewer's haves that are on the partner's wants. */
-  theyWant: BinderItem[]
+  /** Viewer's Haves that are on the partner's wants. */
+  theyWant: CollectionEntry[]
 }
 
 export interface MatchScope {

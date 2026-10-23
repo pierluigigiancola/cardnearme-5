@@ -1,7 +1,6 @@
 import type {
   AppNotification,
   BinderImport,
-  BinderSection,
   Card,
   ChatMessage,
   ChatParticipant,
@@ -20,6 +19,8 @@ import type {
 import { cards, decks, stores, tradeItems, users } from './data'
 import { MOCK_NOW } from './random'
 
+import { isHave } from '#/domain'
+
 /**
  * The one in-memory store behind every mock service. It holds every Trader's
  * data (Binder, Lists, decks, notifications) plus the chats and Trades
@@ -30,10 +31,8 @@ import { MOCK_NOW } from './random'
  * `workspace/seed.ts`).
  */
 
-export interface ItemRecord {
+interface EntryRecordBase {
   id: string
-  section: BinderSection
-  listId: string | null
   cardId: string
   condition: Condition
   finish: Finish
@@ -41,6 +40,23 @@ export interface ItemRecord {
   quantity: number
   updatedAt: string
 }
+
+/** An owned card, recorded once. Copies for trade make it a Have (ADR 0002). */
+export interface CollectionRecord extends EntryRecordBase {
+  kind: 'collection'
+  /** Copies marked for trade, 0 to `quantity`. */
+  forTradeQuantity: number
+  /** Haves List of the for-trade copies; null while none are for trade. */
+  listId: string | null
+}
+
+export interface WantRecord extends EntryRecordBase {
+  kind: 'want'
+  listId: string | null
+}
+
+/** A Binder record: a Collection entry or a Want. There are no separate Have records. */
+export type ItemRecord = CollectionRecord | WantRecord
 
 export interface ListRecord {
   id: string
@@ -122,17 +138,29 @@ export function createStore(): MockStore {
       imports: [],
       items: tradeItems
         .filter(item => item.ownerUsername === user.username)
-        .map(item => ({
-          cardId: item.card.id,
-          condition: item.condition,
-          finish: item.finish,
-          id: item.id,
-          language: item.language,
-          listId: `${user.id}-${item.listType}`,
-          quantity: item.quantity,
-          section: item.listType,
-          updatedAt: item.updatedAt,
-        })),
+        .map((item): ItemRecord => {
+          const base = {
+            cardId: item.card.id,
+            condition: item.condition,
+            finish: item.finish,
+            id: item.id,
+            language: item.language,
+            listId: `${user.id}-${item.listType}`,
+            quantity: item.quantity,
+            updatedAt: item.updatedAt,
+          }
+          // A seeded Have is a Collection entry with every copy for trade.
+          return item.listType === 'haves'
+            ? {
+              ...base,
+              forTradeQuantity: item.quantity,
+              kind: 'collection',
+            }
+            : {
+              ...base,
+              kind: 'want',
+            }
+        }),
       lists,
       memberSince: user.memberSince,
       notifications: [],
@@ -198,9 +226,16 @@ export function participant(store: MockStore, username: string): ChatParticipant
   }
 }
 
+/** The copies of a record shown as a Have or Want: for-trade copies of a Collection entry, wanted copies of a Want. */
+function listedQuantity(record: ItemRecord, listType: TradeListType) {
+  if (listType === 'haves') return record.kind === 'collection' && isHave(record) ? record.forTradeQuantity : 0
+  return record.kind === 'want' ? record.quantity : 0
+}
+
 /**
- * The Haves or Wants other Traders can see: entries on a public List of a
- * Trader who has picked a City.
+ * The Haves or Wants other Traders can see, projected from Binder records: a
+ * Have is a Collection entry with copies for trade, on a public List of a
+ * Trader who has picked a City. Nothing else in the Collection is shown.
  */
 export function listedItems(store: MockStore, listType: TradeListType, trader?: TraderRecord): TradeItem[] {
   const owners = trader ? [trader] : [...store.traders.values()]
@@ -210,7 +245,8 @@ export function listedItems(store: MockStore, listType: TradeListType, trader?: 
     const publicLists = new Set(owner.lists.filter(list => list.visibility === 'public').map(list => list.id))
     return owner.items.flatMap((record) => {
       const card = cardsById.get(record.cardId)
-      if (record.section !== listType || !record.listId || !publicLists.has(record.listId) || !card) return []
+      const quantity = listedQuantity(record, listType)
+      if (quantity === 0 || !record.listId || !publicLists.has(record.listId) || !card) return []
       return [{
         card,
         citySlug,
@@ -221,7 +257,7 @@ export function listedItems(store: MockStore, listType: TradeListType, trader?: 
         listType,
         ownerUsername: owner.profile.username,
         price: priceOf(card, record.finish),
-        quantity: record.quantity,
+        quantity,
         storeSlugs: owner.profile.storeSlugs,
         updatedAt: record.updatedAt,
       }]

@@ -124,17 +124,23 @@ export interface ContentService {
 // ---------------------------------------------------------------------------
 
 export interface BinderService {
+  /** Copies per Binder tab: owned, marked for trade, wanted. */
   getCounts: () => Promise<BinderCounts>
+  /** One tab of the Binder. `haves` lists the Collection entries with copies for trade; each owned card appears once. */
   listItems: (query: BinderQuery) => Promise<BinderPage>
-  /** Copies owned per section, matched by card name across printings. */
+  /** Copies owned, for trade and wanted, matched by card name across printings. */
   getOwnership: (cardIds: string[]) => Promise<Partial<Record<string, Ownership>>>
+  /** Adds Collection entries or Wants, merging into an identical entry of the same kind. */
   addItems: (items: BinderItemInput[]) => Promise<BinderItem[]>
+  /** Edits an entry; for a Collection entry this includes its quantity and for-trade quantity (≤ quantity). */
   updateItem: (itemId: string, patch: BinderItemPatch) => Promise<BinderItem>
-  /** Moves items to another section and/or list (multi-select "Move to…"). */
-  moveItems: (itemIds: string[], target: {
-    section: BinderItem['section'];
-    listId: string | null
-  }) => Promise<void>
+  /**
+   * Multi-select "Move to…": puts entries on another List of their kind. A
+   * Collection entry moved to a Haves List becomes a Have (all copies for
+   * trade, unless some already are); `listId: null` takes Collection entries
+   * off trade. Wants move between Wants Lists only.
+   */
+  moveItems: (itemIds: string[], target: { listId: string | null }) => Promise<void>
   removeItems: (itemIds: string[]) => Promise<void>
   createImport: (input: BinderImportInput) => Promise<BinderImport>
   getImport: (importId: string) => Promise<BinderImport | null>
@@ -149,7 +155,7 @@ export interface ListsService {
   list: (query?: ListsQuery) => Promise<TradeList[]>
   create: (input: TradeListInput) => Promise<TradeList>
   update: (listId: string, patch: Partial<TradeListInput>) => Promise<TradeList>
-  /** Deletes the list and the cards on it. */
+  /** Deletes the List. Wants on it go with it; Collection entries on a Haves List stay owned but are no longer for trade. */
   remove: (listId: string) => Promise<void>
 }
 

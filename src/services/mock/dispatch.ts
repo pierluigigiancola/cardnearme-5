@@ -41,10 +41,11 @@ const binderItemInput = shape({
   cardId: str,
   condition,
   finish,
+  forTradeQuantity: optional(num),
+  kind: oneOf('collection', 'want'),
   language,
   listId: optional(nullable(str)),
   quantity: num,
-  section,
 })
 
 const parsedImportRow = shape({
@@ -140,10 +141,7 @@ const workspaceMethods: { [TName in keyof WorkspaceServices]: MethodTable<Worksp
       section,
       sort: optional(oneOf('name', 'updated', 'price', 'quantity')),
     })),
-    moveItems: args(ids, shape({
-      listId: nullable(str),
-      section,
-    })),
+    moveItems: args(ids, shape({ listId: nullable(str) })),
     removeItems: args(ids),
     updateImportRow: args(str, num, shape({
       cardId: optional(str),
@@ -152,6 +150,7 @@ const workspaceMethods: { [TName in keyof WorkspaceServices]: MethodTable<Worksp
     updateItem: args(str, shape({
       condition: optional(condition),
       finish: optional(finish),
+      forTradeQuantity: optional(num),
       language: optional(language),
       listId: optional(nullable(str)),
       quantity: optional(num),

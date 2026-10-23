@@ -21,9 +21,10 @@ async function addHave() {
     cardId,
     condition: 'NM',
     finish: 'nonfoil',
+    forTradeQuantity: 1,
+    kind: 'collection',
     language: 'en',
     quantity: 1,
-    section: 'haves',
   }])
   const have = added.at(0)
   if (!have) throw new Error('No Have was added')
@@ -71,10 +72,7 @@ describe('one mock store', () => {
       type: 'haves',
       visibility: 'private',
     })
-    await workspace.binder.moveItems([have.id], {
-      listId: hidden.id,
-      section: 'haves',
-    })
+    await workspace.binder.moveItems([have.id], { listId: hidden.id })
     const page = await publicView.trading.listTradeItems({
       listType: 'haves',
       ownerUsername: trader.username,

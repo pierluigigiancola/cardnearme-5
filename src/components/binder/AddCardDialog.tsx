@@ -86,7 +86,7 @@ function AddCardForm({ defaultListId, defaultSection, onDone, presetCard }: {
       <DialogHeader>
         <DialogTitle>{presetCard ? `Add ${presetCard.name}` : 'Add a card'}</DialogTitle>
 
-        <DialogDescription>Track it in your collection or put it on a haves or wants list.</DialogDescription>
+        <DialogDescription>Track it in your collection, mark it for trade as a Have, or add it to your wants.</DialogDescription>
       </DialogHeader>
 
       {picked
@@ -217,10 +217,12 @@ function CardDetailsStep({ card, defaultListId, defaultSection, onBack, onDone }
       cardId: printing.id,
       condition,
       finish: printing.finishes.includes(finish) ? finish : 'nonfoil',
+      // Haves are Collection entries with every added copy for trade.
+      forTradeQuantity: section === 'haves' ? quantity : 0,
+      kind: section === 'wants' ? 'want' : 'collection',
       language,
       listId: section === 'collection' ? null : selectedList?.id ?? null,
       quantity,
-      section,
     }], {
       onSuccess: () => {
         toast.success(`Added ${quantity}× ${printing.name} to ${section === 'collection' ? 'your collection' : selectedList?.name ?? sectionLabels[section]}`)

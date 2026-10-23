@@ -1,6 +1,5 @@
 import type {
   AppNotification,
-  BinderSection,
   Card,
   GameId,
   MeetupLocation,
@@ -13,12 +12,12 @@ import { cards, cities, stores } from '../data'
 import { createRandom, daysAgo, MOCK_NOW } from '../random'
 import type { Random } from '../random'
 import { hashString, listedItems, priceOf, storesBySlug, traderByUsername } from '../store'
-import type { ItemRecord, ListRecord, MockStore, TraderRecord } from '../store'
+import type { CollectionRecord, ItemRecord, ListRecord, MockStore, TraderRecord, WantRecord } from '../store'
 
 import { requireCard, traderContext } from './context'
 import type { NewMessage, TraderContext } from './context'
 
-import { tradeValue } from '#/domain'
+import { isHave, tradeValue } from '#/domain'
 import { conditionLabels } from '#/lib/cardOptions'
 
 /**
@@ -110,44 +109,54 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
   const [tradeBinder, bulkRares, wishlist, commanderUpgrades] = lists as [ListRecord, ListRecord, ListRecord, ListRecord]
 
   const items: ItemRecord[] = []
-  const addItem = (section: BinderSection, listId: string | null, card: Card, options: Partial<ItemRecord> = {}) => {
-    const record: ItemRecord = {
-      cardId: card.id,
-      condition: random.pick(['NM', 'NM', 'NM', 'EX', 'M', 'GD'] as const),
-      finish: card.finishes.includes('foil') && random.chance(0.15) ? 'foil' : 'nonfoil',
-      id: id('item'),
-      language: random.chance(0.8) ? 'en' : random.pick(['it', 'de', 'ja', 'fr'] as const),
-      listId,
-      quantity: random.chance(0.75) ? 1 : random.int(2, 4),
-      section,
-      updatedAt: daysAgo(random.next() * 45),
+  const randomDetails = (card: Card) => ({
+    cardId: card.id,
+    condition: random.pick(['NM', 'NM', 'NM', 'EX', 'M', 'GD'] as const),
+    finish: card.finishes.includes('foil') && random.chance(0.15) ? 'foil' as const : 'nonfoil' as const,
+    id: id('item'),
+    language: random.chance(0.8) ? 'en' as const : random.pick(['it', 'de', 'ja', 'fr'] as const),
+    quantity: random.chance(0.75) ? 1 : random.int(2, 4),
+    updatedAt: daysAgo(random.next() * 45),
+  })
+  const addEntry = (card: Card, options: Partial<CollectionRecord> = {}) => {
+    const record: CollectionRecord = {
+      ...randomDetails(card),
+      forTradeQuantity: 0,
+      kind: 'collection',
+      listId: null,
       ...options,
     }
     items.push(record)
     return record
   }
+  const addWant = (card: Card, listId: string, options: Partial<WantRecord> = {}) => {
+    items.push({
+      ...randomDetails(card),
+      kind: 'want',
+      listId,
+      ...options,
+    })
+  }
 
   // Collection: cards from the Trader's games.
   const pool = cards.filter(card => profileGames.includes(card.gameId))
-  const collection = random.sample(pool, 36).map(card => addItem('collection', null, card))
+  const collection = random.sample(pool, 36).map(card => addEntry(card))
 
-  // Haves: part of the collection, plus cards other Traders are looking for (so matches exist).
+  // Haves: one copy of part of the Collection marked for trade, plus cards other Traders are looking for (so matches exist).
   for (const record of random.sample(collection, 10)) {
     const card = requireCard(record.cardId)
     const list = card.gameId === 'mtg' && (card.rarity === 'rare' || card.rarity === 'mythic') ? bulkRares : tradeBinder
-    addItem('haves', list.id, card, {
-      condition: record.condition,
-      finish: record.finish,
-      language: record.language,
-      quantity: 1,
-    })
+    record.forTradeQuantity = 1
+    record.listId = list.id
   }
   const others = [...store.traders.values()]
   const tradeCityTraders = others.filter(trader => trader.profile.citySlug && trader.profile.citySlug !== 'vigevano--italy')
   const othersWant = random.sample(listedItems(store, 'wants'), 10)
   for (const wanted of othersWant) {
-    addItem('haves', tradeBinder.id, wanted.card, {
+    addEntry(wanted.card, {
       finish: wanted.finish,
+      forTradeQuantity: 1,
+      listId: tradeBinder.id,
       quantity: 1,
     })
   }
@@ -163,7 +172,7 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
   }
   for (const source of wantSources) {
     const list = source.card.gameId === 'mtg' && random.chance(0.4) ? commanderUpgrades : wishlist
-    addItem('wants', list.id, source.card, {
+    addWant(source.card, list.id, {
       condition: random.pick(['NM', 'EX', 'GD'] as const),
       finish: source.finish,
       language: 'en',
@@ -193,7 +202,7 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
   const partners = [...new Set(wantSources.map(source => source.ownerUsername))]
     .filter(username => username !== me && traderByUsername(store, username))
   const [alice, bob, carol, dave] = partners
-  const myHaves = trader.items.filter(item => item.section === 'haves')
+  const myHaves = trader.items.filter(item => item.kind === 'collection' && isHave(item))
 
   const lineFromItem = (record: ItemRecord): TradeLine => {
     const card = requireCard(record.cardId)
