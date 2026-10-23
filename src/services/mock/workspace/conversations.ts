@@ -7,7 +7,7 @@ import { now } from './context'
 import type { NewMessage, TraderContext } from './context'
 import { acceptAs, confirmAs } from './lifecycle'
 
-import { hasConfirmed } from '#/domain'
+import { checkTradePartner, hasConfirmed } from '#/domain'
 
 /** Chats, Trades and notifications of the signed-in Trader, shared by several services. */
 
@@ -34,7 +34,7 @@ export function requireChat(ctx: TraderContext, chatId: string) {
 
 /** The conversation with a Trader, started if needed. */
 export function chatWith(ctx: TraderContext, partner: UserId) {
-  if (partner === ctx.me) throw new Error('You cannot trade with yourself')
+  checkTradePartner(ctx.me, partner)
   participant(ctx.store, partner)
   let chat = myChats(ctx).find(candidate => candidate.traders.includes(partner))
   if (!chat) {

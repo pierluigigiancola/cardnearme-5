@@ -100,6 +100,7 @@ function CollectionQuantities({ entry }: { entry: CollectionEntry }) {
     <div className="flex flex-wrap items-center justify-end gap-2">
       <QuantityStepper
         label={`Copies of ${entry.card.name} owned`}
+        min={Math.max(1, entry.reservedQuantity)}
         onChange={quantity => update.mutate({ quantity })}
         value={entry.quantity}
       />
@@ -685,6 +686,7 @@ function EditItemForm({ item, lists, onClose }: {
 
           <QuantityStepper
             className="h-9"
+            min={Math.max(1, item.reservedQuantity)}
             onChange={quantity => setPatch({
               ...patch,
               quantity,

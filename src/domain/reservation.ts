@@ -35,6 +35,22 @@ export function freeQuantity(entry: CollectionQuantities) {
 }
 
 /**
+ * Checks a new number of copies owned for a Collection entry with `reserved`
+ * copies promised in accepted Trades, and returns it. Reserved copies can't
+ * leave the Collection outside their Trade: a Trader can't own fewer than are
+ * reserved, nor remove the entry (0 copies), until those Trades are cancelled
+ * or completed.
+ */
+export function checkOwnedQuantity(quantity: number, reserved: number) {
+  if (quantity < reserved) {
+    throw new Error(reserved === 1
+      ? '1 copy is reserved by an accepted trade; cancel it first'
+      : `${reserved} copies are reserved by accepted trades; cancel them first`)
+  }
+  return quantity
+}
+
+/**
  * Checks that one side of a Trade can be reserved: per Collection entry, its
  * lines need no more than the free copies (`freeOf(sourceId)`, 0 when the
  * entry is gone). Throws, naming the card, when they do.

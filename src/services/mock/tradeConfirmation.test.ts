@@ -106,6 +106,24 @@ describe('reservation', () => {
     await expect(partnerWorkspace.trades.accept(second.id)).rejects.toThrow(`Only 1 copy of ${mine.card.name} is owned and not reserved by other trades`)
   })
 
+  it('refuses to lower the copies owned below the reserved ones', async () => {
+    const { mine, myEntry, workspace } = await acceptedTrade(2)
+    await expect(workspace.binder.updateItem(mine.id, { quantity: 1 })).rejects.toThrow('2 copies are reserved by accepted trades')
+    expect((await myEntry())?.quantity).toBe(3)
+    await workspace.binder.updateItem(mine.id, { quantity: 2 })
+    expect((await myEntry())?.quantity).toBe(2)
+  })
+
+  it('refuses to remove an entry with reserved copies, leaving the whole selection', async () => {
+    const { mine, myEntry, workspace } = await acceptedTrade(2)
+    const other = (await workspace.binder.listItems({ section: 'collection' })).items.find(item => item.id !== mine.id)
+    if (!other) throw new Error('Seeded Binder has one entry')
+    await expect(workspace.binder.removeItems([other.id, mine.id])).rejects.toThrow('2 copies are reserved by accepted trades')
+    expect(await myEntry()).toBeDefined()
+    const ids = (await workspace.binder.listItems({ section: 'collection' })).items.map(item => item.id)
+    expect(ids).toContain(other.id)
+  })
+
   it('releases the reservation when the Trade is cancelled', async () => {
     const { myEntry, trade, workspace } = await acceptedTrade(2)
     await workspace.trades.confirm(trade.id)

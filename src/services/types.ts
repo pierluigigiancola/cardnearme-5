@@ -468,6 +468,7 @@ export interface BinderItemPatch {
   finish?: Finish
   /** Collection entries only. */
   language?: Language
+  /** Copies owned or wanted. A Collection entry can't own fewer than its reserved copies. */
   quantity?: number
   /** Collection entries only: copies marked for trade, at most `quantity`. Zero keeps the entry on its Haves List but not as a Have. */
   forTradeQuantity?: number
@@ -503,7 +504,7 @@ export interface BinderPage {
 
 export type BinderCounts = Record<BinderSection, number>
 
-/** How many copies of a Card (any Printing) the viewer has in each section. */
+/** How many copies of a Card (any Printing) the viewer has in each Binder tab: owned, for trade, wanted. */
 export type Ownership = Record<BinderSection, number>
 
 /** One line of a CSV or pasted card list, before it is matched to a Printing. */

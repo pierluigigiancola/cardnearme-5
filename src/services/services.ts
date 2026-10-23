@@ -149,7 +149,10 @@ export interface BinderService {
   getOwnership: (printingIds: string[]) => Promise<Partial<Record<string, Ownership>>>
   /** Adds Collection entries or Wants, merging into an identical entry of the same kind. */
   addItems: (items: BinderItemInput[]) => Promise<BinderItem[]>
-  /** Edits an entry; for a Collection entry this includes its quantity and for-trade quantity (≤ quantity). */
+  /**
+   * Edits an entry; for a Collection entry this includes its quantity and for-trade quantity (≤ quantity).
+   * Copies owned can't go below the copies reserved by accepted Trades (ADR 0003).
+   */
   updateItem: (itemId: string, patch: BinderItemPatch) => Promise<BinderItem>
   /**
    * Multi-select "Move to…": puts entries on another List of their kind. A
@@ -158,6 +161,7 @@ export interface BinderService {
    * off trade. Wants move between Wants Lists only.
    */
   moveItems: (itemIds: string[], target: { listId: string | null }) => Promise<void>
+  /** Deletes entries. Refused, for the whole selection, if any Collection entry has copies reserved by an accepted Trade. */
   removeItems: (itemIds: string[]) => Promise<void>
   createImport: (input: BinderImportInput) => Promise<BinderImport>
   getImport: (importId: string) => Promise<BinderImport | null>
@@ -208,6 +212,11 @@ export interface TradesService {
    * not the City has unlocked; each one says whether a Trade may be proposed.
    */
   listMatches: (scope?: MatchScope) => Promise<TradeMatch[]>
+  /**
+   * What the trade builder needs for one partner: the viewer's whole Collection
+   * (any card may be given) and only the partner's Haves on public Lists (ADR 0002),
+   * each with its reserved copies, plus suggestions from Matching.
+   */
   getContext: (partner: UserId) => Promise<TradeContext>
   /**
    * Posts a proposal into the chat with the partner; returns the new trade.
@@ -246,6 +255,7 @@ export interface ProfileService {
    * recorded: the `/x` guard reads `onboardedAt`, nothing else.
    */
   completeOnboarding: (input: OnboardingInput) => Promise<WorkspaceProfile>
+  /** Joins a Store (its City becomes the Trader's if they have none); refused beyond `#/domain` `STORE_JOIN_CAP` joined Stores. */
   joinStore: (storeSlug: string) => Promise<WorkspaceProfile>
   leaveStore: (storeSlug: string) => Promise<WorkspaceProfile>
   updateStoreSettings: (storeSlug: string, settings: StoreSettings) => Promise<WorkspaceProfile>

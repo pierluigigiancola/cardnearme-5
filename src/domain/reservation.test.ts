@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { checkReservable, completionChanges, freeQuantity, reservedQuantities } from './reservation'
+import { checkOwnedQuantity, checkReservable, completionChanges, freeQuantity, reservedQuantities } from './reservation'
 
 import type { Trade, TradeLine, TradeStatus } from '#/services/types'
 import { makePrinting } from '#/test/fixtures'
@@ -67,6 +67,19 @@ describe('freeQuantity', () => {
       forTradeQuantity: 0,
       quantity: 3,
     })).toBe(3)
+  })
+})
+
+describe('checkOwnedQuantity', () => {
+  it('accepts any number of copies down to the reserved ones', () => {
+    expect(checkOwnedQuantity(2, 2)).toBe(2)
+    expect(checkOwnedQuantity(5, 0)).toBe(5)
+    expect(checkOwnedQuantity(0, 0)).toBe(0)
+  })
+
+  it('refuses fewer copies than are reserved, removal included', () => {
+    expect(() => checkOwnedQuantity(1, 2)).toThrow('2 copies are reserved by accepted trades; cancel them first')
+    expect(() => checkOwnedQuantity(0, 1)).toThrow('1 copy is reserved by an accepted trade; cancel it first')
   })
 })
 
