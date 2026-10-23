@@ -11,12 +11,15 @@ import { cityOf, collectionRecords, matchTraderOf, myHaves, myReserved, partnerI
 import {
   cancelTrade,
   checkCanPropose,
+  checkTradeParties,
+  checkTradePartner,
   counterOffer,
   findMatches,
   giveLineQuantity,
   matchBetween,
   proposeTrade,
   reservedQuantities,
+  tradeCash,
   tradeEligibility,
 } from '#/domain'
 
@@ -25,7 +28,10 @@ export function tradesService(ctx: TraderContext): TradesService {
 
   const resolveDraft = (draft: TradeDraft) => {
     const partner = participant(store, draft.partner).id
-    if (partner === me) throw new Error('You cannot trade with yourself')
+    checkTradeParties(me, partner, {
+      get: draft.get.length,
+      give: draft.give.length,
+    })
     const reserved = myReserved(ctx)
     const partnerReserved = reservedQuantities(store.trades, partner)
     const give = draft.give.map((line): TradeLine => {
@@ -70,9 +76,6 @@ export function tradesService(ctx: TraderContext): TradesService {
         sourceId: item.id,
       }
     })
-    if (give.length + get.length === 0) throw new Error('Add at least one card to the trade')
-    const cashAmount = draft.cash ? Math.round(draft.cash.amount * 100) / 100 : 0
-    if (!Number.isFinite(cashAmount) || cashAmount < 0) throw new Error('Cash must be a positive amount')
     let meetup: MeetupLocation | null = null
     if (draft.meetup?.kind === 'store') {
       const meetupStore = storesBySlug.get(draft.meetup.storeSlug)
@@ -95,8 +98,7 @@ export function tradesService(ctx: TraderContext): TradesService {
     }
     if (draft.meetAt !== null && Number.isNaN(Date.parse(draft.meetAt))) throw new Error('Invalid meeting time')
     return {
-      cashAmount,
-      cashPayer: cashAmount > 0 && draft.cash ? (draft.cash.payer === 'me' ? me : partner) : null,
+      ...tradeCash(draft.cash, me, partner),
       get,
       give,
       meetAt: draft.meetAt,
@@ -138,7 +140,7 @@ export function tradesService(ctx: TraderContext): TradesService {
     },
     getContext: async (partnerId) => {
       const partner = participant(store, partnerId)
-      if (partner.id === me) throw new Error('You cannot trade with yourself')
+      checkTradePartner(me, partner.id)
       const myItems = toBinderItems(ctx, collectionRecords(ctx))
       const partnerHaves = partnerItems(ctx, partner.id, 'haves')
       const partnerWants = partnerItems(ctx, partner.id, 'wants')

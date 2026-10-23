@@ -9,8 +9,9 @@ import type { ItemRecord } from '../store'
 
 import { cardKey, clampQuantity, now, requirePrinting } from './context'
 import type { TraderContext } from './context'
-import { addRecords, checkWantFilters, inSection, listTypeOf, markForTrade, printingOf, requireItem, requireList, resolveList, toBinderItems, touchList } from './records'
+import { addRecords, checkWantFilters, inSection, listTypeOf, markForTrade, myReserved, printingOf, requireItem, requireList, resolveList, toBinderItems, touchList } from './records'
 
+import { checkOwnedQuantity } from '#/domain'
 import { conditionLabels, isCondition, isLanguage, languageLabels } from '#/lib/cardOptions'
 
 /** Copies a record counts for in a Binder tab: owned, for trade, or wanted. */
@@ -244,6 +245,11 @@ export function binderService(ctx: TraderContext): BinderService {
     },
     removeItems: async (itemIds) => {
       const ids = new Set(itemIds)
+      // Check every entry first so a reserved card leaves the whole selection in place.
+      const reserved = myReserved(ctx)
+      for (const record of trader.items) {
+        if (ids.has(record.id)) checkOwnedQuantity(0, reserved.get(record.id) ?? 0)
+      }
       for (const record of trader.items) {
         if (ids.has(record.id)) touchList(ctx, record.listId)
       }
@@ -263,7 +269,7 @@ export function binderService(ctx: TraderContext): BinderService {
     },
     updateItem: async (itemId, patch) => {
       const record = requireItem(ctx, itemId)
-      if (patch.quantity !== undefined) record.quantity = clampQuantity(patch.quantity)
+      if (patch.quantity !== undefined) record.quantity = checkOwnedQuantity(clampQuantity(patch.quantity), myReserved(ctx).get(record.id) ?? 0)
       if (record.kind === 'collection') {
         if (patch.filters !== undefined) throw new Error('Only Wants have filters')
         const card = requirePrinting(record.printingId)
