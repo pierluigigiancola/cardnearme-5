@@ -9,6 +9,7 @@ import type {
   BinderQuery,
   Printing,
   CardAvailability,
+  CardId,
   PrintingQuery,
   CardSet,
   ChangelogEntry,
@@ -65,19 +66,24 @@ export interface CatalogueService {
     order?: SortOrder
   }) => Promise<CardSet[]>
   getSet: (gameId: GameId, setCode: string) => Promise<CardSet | null>
+  /** The Printings in one Set. */
   listSetPrintings: (query: PrintingQuery) => Promise<{
     items: Printing[];
     total: number;
     facets: Facet[]
   }>
+  /** One Printing, by Set code and collector number. */
   getPrinting: (gameId: GameId, setCode: string, number: string) => Promise<Printing | null>
-  listPrintings: (card: Printing) => Promise<Printing[]>
+  /** Every Printing of a Card, across Sets. */
+  listPrintings: (cardId: CardId) => Promise<Printing[]>
   listSealed: (gameId: GameId, setCode: string) => Promise<SealedProduct[]>
+  /** Cards whose name matches, one representative Printing each. */
   searchCards: (q: string, options?: {
     gameId?: GameId;
     limit?: number
   }) => Promise<Printing[]>
-  getCardAvailability: (card: Printing) => Promise<CardAvailability[]>
+  /** Where a Card (any Printing) is offered or wanted on public Lists, per City. */
+  getCardAvailability: (cardId: CardId) => Promise<CardAvailability[]>
 }
 
 export interface PlacesService {
@@ -126,8 +132,8 @@ export interface ContentService {
 export interface BinderService {
   getCounts: () => Promise<BinderCounts>
   listItems: (query: BinderQuery) => Promise<BinderPage>
-  /** Copies owned per section, matched by card name across printings. */
-  getOwnership: (cardIds: string[]) => Promise<Partial<Record<string, Ownership>>>
+  /** Copies owned per section of each Printing's Card (counting every Printing), keyed by the Printing id asked for. */
+  getOwnership: (printingIds: string[]) => Promise<Partial<Record<string, Ownership>>>
   addItems: (items: BinderItemInput[]) => Promise<BinderItem[]>
   updateItem: (itemId: string, patch: BinderItemPatch) => Promise<BinderItem>
   /** Moves items to another section and/or list (multi-select "Move to…"). */

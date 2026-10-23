@@ -195,12 +195,12 @@ function CardDetailsStep({ card, defaultListId, defaultSection, onBack, onDone }
   const [language, setLanguage] = useState<Language>('en')
   const [quantity, setQuantity] = useState(1)
 
-  const printingsResult = useQuery(printingsQuery(card))
+  const printingsResult = useQuery(printingsQuery(card.cardId))
   const listsResult = useQuery({
     ...tradeListsQuery(viewer.id, { type: section === 'wants' ? 'wants' : 'haves' }),
     enabled: section !== 'collection',
   })
-  const otherPrintings = printingsResult.data ?? []
+  const otherPrintings = (printingsResult.data ?? []).filter(candidate => candidate.id !== card.id)
   const lists = listsResult.data ?? []
   // Without the lists we can't tell which one to add to, so don't guess.
   const listsUnavailable = section !== 'collection' && listsResult.isError
@@ -349,7 +349,7 @@ function CardDetailsStep({ card, defaultListId, defaultSection, onBack, onDone }
                 compact
                 error={printingsResult.error}
                 onRetry={() => void printingsResult.refetch()}
-                title="Could not load other printings"
+                title="Could not load other Printings"
               />
             )}
           </Field>

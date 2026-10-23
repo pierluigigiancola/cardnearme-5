@@ -41,8 +41,9 @@ export function requirePrinting(cardId: string) {
   return card
 }
 
-export function cardKey(card: Pick<Printing, 'gameId' | 'name'>) {
-  return `${card.gameId}:${card.name.toLowerCase()}`
+/** Printings of the same Card share this key. */
+export function cardKey(printing: Pick<Printing, 'cardId'>) {
+  return printing.cardId
 }
 
 export function clampQuantity(quantity: number) {

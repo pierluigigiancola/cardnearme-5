@@ -156,10 +156,10 @@ export function binderService(ctx: TraderContext): BinderService {
       return counts
     },
     getImport: async importId => trader.imports.find(draft => draft.id === importId) ?? null,
-    getOwnership: async (cardIds) => {
+    getOwnership: async (printingIds) => {
       const result: Partial<Record<string, Ownership>> = {}
-      for (const cardId of cardIds) {
-        const card = printingsById.get(cardId)
+      for (const printingId of printingIds) {
+        const card = printingsById.get(printingId)
         if (!card) continue
         const ownership: Ownership = {
           collection: 0,
@@ -170,7 +170,7 @@ export function binderService(ctx: TraderContext): BinderService {
           const other = printingsById.get(record.cardId)
           if (other && cardKey(other) === cardKey(card)) ownership[record.section] += record.quantity
         }
-        result[cardId] = ownership
+        result[printingId] = ownership
       }
       return result
     },

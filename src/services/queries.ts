@@ -4,7 +4,7 @@ import { getServices } from './services'
 import type { CatalogueService, Services } from './services'
 import type {
   BinderQuery,
-  Printing,
+  CardId,
   PrintingQuery,
   GameId,
   ListsQuery,
@@ -65,17 +65,17 @@ export const printingQuery = (gameId: GameId, setCode: string, number: string) =
     queryKey: ['card', gameId, setCode, number],
   })
 
-export const printingsQuery = (card: Printing) =>
+export const printingsQuery = (cardId: CardId) =>
   queryOptions({
     ...staticData,
-    queryFn: fromServices(services => services.catalogue.listPrintings(card)),
-    queryKey: ['printings', card.id],
+    queryFn: fromServices(services => services.catalogue.listPrintings(cardId)),
+    queryKey: ['printings', cardId],
   })
 
-export const cardAvailabilityQuery = (card: Printing) =>
+export const cardAvailabilityQuery = (cardId: CardId) =>
   queryOptions({
-    queryFn: fromServices(services => services.catalogue.getCardAvailability(card)),
-    queryKey: ['availability', card.id],
+    queryFn: fromServices(services => services.catalogue.getCardAvailability(cardId)),
+    queryKey: ['availability', cardId],
   })
 
 export const sealedQuery = (gameId: GameId, setCode: string) =>

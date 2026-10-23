@@ -26,8 +26,8 @@ export const Route = createFileRoute('/sets/$game/$set/$card/$number')({
     const card = await queryClient.ensureQueryData(printingQuery(game.id, params.set, params.number))
     if (!card) throw notFound()
     await Promise.all([
-      queryClient.ensureQueryData(printingsQuery(card)),
-      queryClient.ensureQueryData(cardAvailabilityQuery(card)),
+      queryClient.ensureQueryData(printingsQuery(card.cardId)),
+      queryClient.ensureQueryData(cardAvailabilityQuery(card.cardId)),
     ])
     return {
       card,
@@ -47,8 +47,9 @@ const legalityStyle = {
 
 function CardPage() {
   const { card, game } = Route.useLoaderData()
-  const { data: printings } = useSuspenseQuery(printingsQuery(card))
-  const { data: availability } = useSuspenseQuery(cardAvailabilityQuery(card))
+  const { data: printings } = useSuspenseQuery(printingsQuery(card.cardId))
+  const otherPrintings = printings.filter(printing => printing.id !== card.id)
+  const { data: availability } = useSuspenseQuery(cardAvailabilityQuery(card.cardId))
   const requireAuth = useRequireAuth()
   const [finish, setFinish] = useState<Finish>('nonfoil')
   const [adding, setAdding] = useState(false)
@@ -261,10 +262,10 @@ function CardPage() {
           )}
       </Section>
 
-      {printings.length > 0 && (
-        <Section title={`Other printings (${printings.length})`}>
+      {otherPrintings.length > 0 && (
+        <Section title={`Other Printings (${otherPrintings.length})`}>
           <CardList
-            cards={printings}
+            cards={otherPrintings}
             view="visual"
           />
         </Section>
@@ -307,7 +308,7 @@ function CardPage() {
   )
 }
 
-/** Copies of this card (any printing) in the viewer's binder. */
+/** Copies of this Card (any Printing) in the viewer's Binder. */
 function OwnershipCounts({ card }: { card: Printing }) {
   const viewer = useSignedInViewer()
   const result = useQuery(ownershipQuery(viewer.id, [card.id]))

@@ -36,7 +36,7 @@ export const mockServices: Services = {
       delay(printings.find(card => card.gameId === gameId && card.setCode === setCode && card.number === number) ?? null),
     getSet: async (gameId, setCode) => delay(sets.find(set => set.gameId === gameId && set.code === setCode) ?? null),
     listGames: async () => delay(games),
-    listPrintings: async card => delay(printings.filter(other => other.name === card.name && other.id !== card.id)),
+    listPrintings: async cardId => delay(printings.filter(printing => printing.cardId === cardId)),
     listSealed: async (gameId, setCode) =>
       delay(sealedProducts.filter(product => product.gameId === gameId && product.setCode === setCode)),
     listSetPrintings: async ({ facets, gameId, order = 'asc', q, setCode, sort = 'number' }) => {
@@ -71,7 +71,7 @@ export const mockServices: Services = {
         printings
           .filter(card => (!gameId || card.gameId === gameId) && matchesText(card.name, q))
           .filter((card) => {
-            const key = `${card.gameId}:${card.name}`
+            const key = card.cardId
             if (seen.has(key)) return false
             seen.add(key)
             return true

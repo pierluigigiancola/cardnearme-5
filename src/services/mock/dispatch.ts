@@ -1,6 +1,6 @@
 import type { WorkspaceServices } from '../services'
 
-import { args, arrayOf, bool, either, looseShape, nullable, num, oneOf, optional, recordOf, shape, str } from './checks'
+import { args, arrayOf, bool, either, nullable, num, oneOf, optional, recordOf, shape, str } from './checks'
 import type { ArgsCheck } from './checks'
 import { games } from './data'
 import { publicServices } from './public'
@@ -112,13 +112,6 @@ const tradeDraft = shape({
   partner: str,
 })
 
-/** Cards are re-read on the server; only the fields the services use are checked. */
-const card = looseShape({
-  gameId,
-  id: str,
-  name: str,
-})
-
 const workspaceMethods: { [TName in keyof WorkspaceServices]: MethodTable<WorkspaceServices[TName]> } = {
   binder: {
     addItems: args(arrayOf(binderItemInput)),
@@ -227,7 +220,7 @@ const workspaceMethods: { [TName in keyof WorkspaceServices]: MethodTable<Worksp
 }
 
 const publicMethods: { [TName in keyof StorePublicServices]: MethodTable<StorePublicServices[TName]> } = {
-  catalogue: { getCardAvailability: args(card) },
+  catalogue: { getCardAvailability: args(str) },
   community: {
     getDeck: args(str),
     getUser: args(str),

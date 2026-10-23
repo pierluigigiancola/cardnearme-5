@@ -1,5 +1,5 @@
 import type {
-  Printing,
+  Card,
   CardColor,
   CardSet,
   ChangelogEntry,
@@ -15,6 +15,7 @@ import type {
   HelpArticle,
   Language,
   NewsItem,
+  Printing,
   Rarity,
   SealedProduct,
   SetType,
@@ -222,6 +223,26 @@ const priceCeiling: Record<Rarity, number> = {
 
 export const sets: CardSet[] = []
 export const printings: Printing[] = []
+/** The Cards the Printings belong to: one per name within a Game. */
+export const cards: Card[] = []
+const cardsById = new Map<string, Card>()
+
+/** Mock Card id: the name within its Game. A real catalogue uses its own stable ids. */
+function cardFor(gameId: GameId, name: string): Card {
+  const slug = slugify(name)
+  const id = `${gameId}:${slug}`
+  const existing = cardsById.get(id)
+  if (existing) return existing
+  const card: Card = {
+    gameId,
+    id,
+    name,
+    slug, 
+  }
+  cardsById.set(id, card)
+  cards.push(card)
+  return card
+}
 
 for (const game of games) {
   setNames[game.id].forEach(([name, type], setIndex) => {
@@ -247,6 +268,7 @@ for (const game of games) {
 
       setCards.push({
         artist: random.pick(artists),
+        cardId: cardFor(game.id, cardName).id,
         colors,
         cost: isLand ? 0 : random.int(1, 7),
         finishes,

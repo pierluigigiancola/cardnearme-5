@@ -62,9 +62,25 @@ export interface Ruling {
   text: string
 }
 
-/** One printing of a card in a set. */
+/** Identifies a Card. Opaque: never parse it, and don't confuse it with a Printing id. */
+export type CardId = string
+
+/**
+ * A game piece, identified by its name within a Game regardless of where it
+ * was printed. It groups that name's Printings across Sets; Wants target it.
+ */
+export interface Card {
+  id: CardId
+  gameId: GameId
+  name: string
+  slug: string
+}
+
+/** One release of a Card in a Set, with its own collector number. Collection entries are always a Printing. */
 export interface Printing {
   id: string
+  /** The Card this is a release of. */
+  cardId: CardId
   gameId: GameId
   setCode: string
   setName: string
@@ -334,7 +350,7 @@ export interface BinderItem {
   price: number
   /** Offered in a pending or accepted trade. */
   inTrade: boolean
-  /** Collection only: the same printing is also on a haves list. */
+  /** Collection only: the same Printing is also on a haves List. */
   listed: boolean
   updatedAt: string
 }
@@ -364,7 +380,7 @@ export interface BinderStats {
   marketValue: number
   /** Total copies, counting quantities. */
   cards: number
-  /** Distinct printings. */
+  /** Distinct Printings. */
   distinct: number
 }
 
@@ -377,10 +393,10 @@ export interface BinderPage {
 
 export type BinderCounts = Record<BinderSection, number>
 
-/** How many copies of a card (any printing) the viewer has in each section. */
+/** How many copies of a Card (any Printing) the viewer has in each section. */
 export type Ownership = Record<BinderSection, number>
 
-/** One line of a CSV or pasted card list, before it is matched to a printing. */
+/** One line of a CSV or pasted card list, before it is matched to a Printing. */
 export interface ParsedImportRow {
   line: number
   raw: string

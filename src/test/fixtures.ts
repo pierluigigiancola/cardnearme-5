@@ -5,6 +5,7 @@ export function makePrinting(overrides: Partial<Printing> = {}): Printing {
   const name = overrides.name ?? 'Test Card'
   return {
     artist: 'Test Artist',
+    cardId: `mtg:${name.toLowerCase().replaceAll(' ', '-')}`,
     colors: [],
     cost: 1,
     finishes: ['nonfoil'],
