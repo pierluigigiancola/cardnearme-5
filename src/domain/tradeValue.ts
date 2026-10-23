@@ -1,4 +1,4 @@
-import type { Trade, TradeLine } from '#/services/types'
+import type { Trade, TradeLine, UserId } from '#/services/types'
 
 function toCents(amount: number) {
   // `|| 0` drops -0, which would format as "-€0.00".
@@ -23,12 +23,12 @@ export function marketValue(lines: readonly Pick<TradeLine, 'marketPrice' | 'qua
  * A Trade seen from one participant: what they give and get, and the totals
  * including the cash balance (cash counts towards the side that pays it).
  */
-export function tradeFromPerspective(trade: Trade, username: string) {
-  const isProposer = trade.proposer === username
+export function tradeFromPerspective(trade: Trade, me: UserId) {
+  const isProposer = trade.proposer === me
   const partner = isProposer ? trade.recipient : trade.proposer
   const give = isProposer ? trade.proposerGives : trade.recipientGives
   const get = isProposer ? trade.recipientGives : trade.proposerGives
-  const myCash = trade.cashPayer === username ? trade.cashAmount : 0
+  const myCash = trade.cashPayer === me ? trade.cashAmount : 0
   const theirCash = trade.cashPayer === partner ? trade.cashAmount : 0
   const myTotal = tradeValue(give) + myCash
   const theirTotal = tradeValue(get) + theirCash
@@ -39,6 +39,7 @@ export function tradeFromPerspective(trade: Trade, username: string) {
     give,
     myCash,
     myTotal,
+    /** The other Trader's UserId. */
     partner,
     theirCash,
     theirTotal,

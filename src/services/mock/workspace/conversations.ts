@@ -1,6 +1,6 @@
-import type { AppNotification, ChatSummary, Trade } from '../../types'
+import type { AppNotification, ChatSummary, Trade, UserId } from '../../types'
 import { compare } from '../queryHelpers'
-import { participant } from '../store'
+import { participant, usernameOf } from '../store'
 import type { ChatRecord } from '../store'
 
 import { now } from './context'
@@ -11,7 +11,7 @@ import type { NewMessage, TraderContext } from './context'
 /** Mock partners accept the Trader's proposals after this long. */
 export const PARTNER_REPLY_MS = 20_000
 
-export function partnerIn(chat: ChatRecord, me: string) {
+export function partnerIn(chat: ChatRecord, me: UserId) {
   return chat.traders[0] === me ? chat.traders[1] : chat.traders[0]
 }
 
@@ -30,7 +30,7 @@ export function requireChat(ctx: TraderContext, chatId: string) {
 }
 
 /** The conversation with a Trader, started if needed. */
-export function chatWith(ctx: TraderContext, partner: string) {
+export function chatWith(ctx: TraderContext, partner: UserId) {
   if (partner === ctx.me) throw new Error('You cannot trade with yourself')
   participant(ctx.store, partner)
   let chat = myChats(ctx).find(candidate => candidate.traders.includes(partner))
@@ -124,7 +124,7 @@ export function runPartners(ctx: TraderContext) {
       body: 'Meet up and mark it completed once you have swapped cards.',
       href: `/x/inbox/${chat.id}`,
       kind: 'trade',
-      title: `${trade.recipient} accepted your trade`,
+      title: `${usernameOf(ctx.store, trade.recipient)} accepted your trade`,
     })
   }
 }

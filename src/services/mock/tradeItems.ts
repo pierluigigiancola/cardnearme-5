@@ -14,13 +14,13 @@ import type { CapViewer } from '#/domain'
  */
 export async function listTradeItemsFor(
   viewer: CapViewer,
-  { citySlug, facets, limit, listType, order = 'desc', ownerUsername, q, sort = 'updated', storeSlug }: TradeItemQuery,
+  { citySlug, facets, limit, listType, order = 'desc', ownerId, q, sort = 'updated', storeSlug }: TradeItemQuery,
   store: MockStore = mockStore,
 ): Promise<Page<TradeItem> & { facets: Facet[] }> {
   const scoped = listedItems(store, listType).filter(item =>
     (!citySlug || item.citySlug === citySlug)
     && (!storeSlug || item.storeSlugs.includes(storeSlug))
-    && (!ownerUsername || item.ownerUsername === ownerUsername))
+    && (!ownerId || item.ownerId === ownerId))
   const filtered = scoped
     .filter(item => matchesText(item.card.name, q) && matchesFacets(item, tradeItemFacets, facets))
     .sort((a, b) => {

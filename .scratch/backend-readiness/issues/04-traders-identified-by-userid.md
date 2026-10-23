@@ -4,13 +4,13 @@
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** done
 
 Spec: [../spec.md](../spec.md), decision 1
 
-- [ ] A `UserId` type exists.
-- [ ] `Trade.proposer`, `recipient`, `awaiting`, `cancelledBy` and `cashPayer`, `ChatMessage.author` and the TradeItem owner refer to a `UserId`. The TradeItem owner field is renamed to match.
-- [ ] `openChat` and `getContext` take a `UserId`.
-- [ ] The mock store keys Traders by `UserId`. Routes that take a username look it up at the boundary.
-- [ ] Usernames appear only as display fields and in URLs.
-- [ ] Trades, chat and public profiles still work in the browser, and `pnpm lint`, `pnpm exec tsc --noEmit` and `pnpm test` pass.
+- [x] A `UserId` type exists.
+- [x] `Trade.proposer`, `recipient`, `awaiting`, `cancelledBy` and `cashPayer`, `ChatMessage.author` and the TradeItem owner refer to a `UserId`. The TradeItem owner field is renamed to match.
+- [x] `openChat` and `getContext` take a `UserId`.
+- [x] The mock store keys Traders by `UserId`. Routes that take a username look it up at the boundary.
+- [x] Usernames appear only as display fields and in URLs.
+- [x] Trades, chat and public profiles still work in the browser, and `pnpm lint`, `pnpm exec tsc --noEmit` and `pnpm test` pass.

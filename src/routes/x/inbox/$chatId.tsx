@@ -12,7 +12,7 @@ import { formatRelative } from '#/lib/format'
 import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
 import { chatThreadQuery, storesQuery } from '#/services/queries'
-import type { ChatMessage } from '#/services/types'
+import type { ChatMessage, UserId } from '#/services/types'
 
 export const Route = createFileRoute('/x/inbox/$chatId')({
   loader: async ({ context: { queryClient, user }, params }) => {
@@ -129,7 +129,7 @@ function ConversationPage() {
 
           <Button
             onClick={() => openTradeBuilder({
-              partner: partner.username,
+              partner: partner.id,
               useMatches: true,
             })}
             size="sm"
@@ -140,7 +140,7 @@ function ConversationPage() {
           </Button>
 
           <Button
-            onClick={() => openTradeBuilder({ partner: partner.username })}
+            onClick={() => openTradeBuilder({ partner: partner.id })}
             size="sm"
           >
             <ArrowLeftRight />
@@ -163,8 +163,9 @@ function ConversationPage() {
               {newDay && <p className="py-2 text-center text-xs font-semibold text-muted-foreground">{dayFormatter.format(new Date(message.sentAt))}</p>}
 
               <Message
-                me={user.username}
+                me={user.id}
                 message={message}
+                partnerName={partner.username}
                 trade={message.kind === 'trade' ? trades[message.tradeId] : undefined}
               />
             </div>
@@ -208,9 +209,11 @@ function ConversationPage() {
   )
 }
 
-function Message({ me, message, trade }: {
+function Message({ me, message, partnerName, trade }: {
   message: ChatMessage;
-  me: string;
+  me: UserId;
+  /** Every message not by `me` is by the partner, so this names its author. */
+  partnerName: string;
   trade?: Parameters<typeof TradeCard>[0]['trade']
 }) {
   const mine = message.author === me
@@ -219,7 +222,7 @@ function Message({ me, message, trade }: {
   if (message.kind === 'event') {
     return (
       <p className="text-center text-xs text-muted-foreground">
-        <span className="font-semibold">{mine ? 'You' : message.author}</span>
+        <span className="font-semibold">{mine ? 'You' : partnerName}</span>
 
         {` ${message.body} · ${time}`}
       </p>
@@ -232,6 +235,7 @@ function Message({ me, message, trade }: {
           ? (
             <TradeCard
               me={me}
+              partnerName={partnerName}
               trade={trade}
             />
           )

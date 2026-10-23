@@ -11,6 +11,7 @@ import type {
   MatchScope,
   NotificationQuery,
   TradeItemQuery,
+  UserId,
 } from './types'
 
 /**
@@ -147,7 +148,7 @@ export const cityTradeStatsQuery = (citySlug: string) =>
 export const decksQuery = (options: {
   gameId?: GameId;
   format?: string;
-  ownerUsername?: string;
+  ownerId?: UserId;
   limit?: number
 } = {}) =>
   queryOptions({
@@ -285,7 +286,7 @@ export const matchesQuery = (viewerId: string, scope: MatchScope = {}) =>
     queryKey: [...workspaceKey(viewerId), 'matches', scope],
   })
 
-export const tradeContextQuery = (viewerId: string, partner: string) =>
+export const tradeContextQuery = (viewerId: string, partner: UserId) =>
   queryOptions({
     queryFn: fromServices(services => services.trades.getContext(partner)),
     queryKey: [...workspaceKey(viewerId), 'trade-context', partner],
