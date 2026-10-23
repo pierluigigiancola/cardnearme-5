@@ -71,7 +71,7 @@ export const publicCommands: NavItem[] = [
   },
   {
     icon: Layers,
-    label: 'Card sets',
+    label: 'Sets',
     shortcut: 'f',
     to: '/sets',
   },
@@ -89,7 +89,7 @@ export const publicCommands: NavItem[] = [
   },
   {
     icon: Calculator,
-    label: 'Swap calculator',
+    label: 'Trade calculator',
     shortcut: 'w',
     to: '/swap-calculator',
   },
@@ -183,7 +183,7 @@ export const footerNav: {
   {
     links: [
       {
-        label: 'Swap calculator',
+        label: 'Trade calculator',
         to: '/swap-calculator',
       },
       {
@@ -191,7 +191,7 @@ export const footerNav: {
         to: '/scanner',
       },
       {
-        label: 'Card sets',
+        label: 'Sets',
         to: '/sets',
       },
     ],

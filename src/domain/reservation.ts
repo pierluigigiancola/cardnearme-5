@@ -6,7 +6,7 @@ import type { Trade, TradeLine, UserId } from '#/services/types'
 /**
  * Reservation and completion (ADR 0003). Accepting a Trade reserves the
  * cards each side gives: a Collection entry's reserved quantity is what its
- * owner gives in accepted Trades. Pending proposals reserve nothing. When a
+ * owner gives in accepted Trades. Pending Trades reserve nothing. When a
  * Trade completes, the reservation ends because the copies leave the giver's
  * Collection.
  */
@@ -27,6 +27,14 @@ export function reservedQuantities(trades: (TradeSides & Pick<Trade, 'status'>)[
     for (const line of linesGivenBy(trade, trader)) reserved.set(line.sourceId, (reserved.get(line.sourceId) ?? 0) + line.quantity)
   }
   return reserved
+}
+
+/** The entry with its reserved copies, read from `reservedQuantities`'s map. */
+export function withReserved<TEntry extends { id: string }>(entry: TEntry, reserved: ReadonlyMap<string, number>) {
+  return {
+    ...entry,
+    reservedQuantity: reserved.get(entry.id) ?? 0,
+  }
 }
 
 /** Copies of a Collection entry not reserved by an accepted Trade. */

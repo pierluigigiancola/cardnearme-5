@@ -49,7 +49,7 @@ const steps = [
   },
   {
     text: 'Meet at game night, check the cards, walk away with what you wanted.',
-    title: 'Swap in person',
+    title: 'Trade in person',
   },
 ]
 

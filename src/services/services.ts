@@ -85,8 +85,9 @@ export interface CatalogueService {
     limit?: number
   }) => Promise<Printing[]>
   /**
-   * Resolves a whole imported list in one call: one Printing (or null when nothing matches) per row, in row order.
-   * A row matches by Set code and collector number first, then by name (within its Set when given).
+   * Resolves a whole imported list to Printings in one call: one Printing (or null when nothing fits) per row, in row order.
+   * The name is fixed by ticket 12; it resolves rows to Printings and has nothing to do with a glossary Match between Traders.
+   * A row resolves by Set code and collector number first, then by name (within its Set when given).
    * `gameId` limits matching to one Game; `preferGames` breaks ties between Games for name-only rows.
    */
   matchCards: (rows: CardMatchRow[], options?: {
@@ -203,8 +204,9 @@ export interface ChatService {
 
 export interface TradesService {
   /**
-   * The viewer's Matches with other Traders in a City (the viewer's own when no
-   * scope is given; none if they have no City). A Match is another Trader's Have
+   * The viewer's Matches with other Traders in the viewer's own City, read from
+   * the session (spec decisions 4 and 6). None if the viewer has no City, or if
+   * the scope names a City other than theirs. A Match is another Trader's Have
    * on a public List that fulfils one of the viewer's Wants (filters included,
    * private Lists too), or a Have of the viewer's that fulfils one of the other
    * Trader's public Wants. A Store in the scope only narrows the City to its
@@ -219,15 +221,20 @@ export interface TradesService {
    */
   getContext: (partner: UserId) => Promise<TradeContext>
   /**
-   * Posts a proposal into the chat with the partner; returns the new trade.
+   * Proposes a Trade in the chat with the partner; returns the new Trade.
    * Refused unless the Trade is eligible (`#/domain` `tradeEligibility`): the
-   * viewer must have picked a City, and neither Trader's City may still be
-   * locked. Traders in different unlocked Cities may trade.
+   * both Traders must have picked a City, and neither Trader's City may still
+   * be locked. Traders in different unlocked Cities may trade.
    */
   propose: (draft: TradeDraft) => Promise<Trade>
-  /** Counter-offer or edit: replaces the terms and hands the turn to the other side. */
+  /**
+   * Counter-offer or edit: replaces the terms and hands the turn to the other
+   * side. Its terms are proposed afresh, so the same eligibility rule as
+   * `propose` applies. (Accepting is not checked: spec decision 5 locks only
+   * proposing, and ADR 0003 adds only the reservation check.)
+   */
   revise: (tradeId: string, draft: TradeDraft) => Promise<Trade>
-  /** Accepts the proposal awaiting the viewer and reserves both sides' cards; refused when either side lacks unreserved copies. */
+  /** Accepts the pending Trade awaiting the viewer and reserves both sides' cards; refused when either side lacks unreserved copies. */
   accept: (tradeId: string) => Promise<Trade>
   /**
    * Confirms the accepted Trade took place, for the viewer's side only (ADR 0003).
@@ -235,7 +242,7 @@ export interface TradesService {
    * completes the Trade and updates both Binders in that one step.
    */
   confirm: (tradeId: string) => Promise<Trade>
-  /** Withdraw (proposer) or decline (recipient) a proposal, or call off an accepted Trade until both have confirmed. */
+  /** Withdraw (proposer) or decline (recipient) a pending Trade, or call off an accepted Trade until both have confirmed. */
   cancel: (tradeId: string) => Promise<Trade>
 }
 

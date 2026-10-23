@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { fulfilsWant, fulfilWants } from './want'
+import { checkWantFilters, fulfilsWant, fulfilWants } from './want'
 import type { ReceivedCopy, WantTarget } from './want'
 
 import type { WantFilters } from '#/services/types'
@@ -105,5 +105,50 @@ describe('fulfilWants', () => {
       ...received,
       quantity: 1,
     })).toEqual([])
+  })
+})
+
+describe('checkWantFilters', () => {
+  const printingsOfBolt = [
+    {
+      finishes: ['nonfoil' as const],
+      name: 'Lightning Bolt',
+      setCode: 'LEA',
+    },
+    {
+      finishes: ['nonfoil' as const, 'foil' as const],
+      name: 'Lightning Bolt',
+      setCode: 'M10',
+    },
+  ]
+
+  it('fills unset filters with "any" and spells the Set as the catalogue does', () => {
+    expect(checkWantFilters(printingsOfBolt, { setCode: 'lea' })).toEqual({
+      finish: null,
+      language: null,
+      minCondition: null,
+      setCode: 'LEA',
+    })
+  })
+
+  it('refuses a Card with no Printings', () => {
+    expect(() => checkWantFilters([], {})).toThrow('Card not found')
+  })
+
+  it('refuses a Set the Card was never printed in', () => {
+    expect(() => checkWantFilters(printingsOfBolt, { setCode: 'ZEN' })).toThrow('Lightning Bolt was never printed in ZEN')
+  })
+
+  it('refuses a finish the Card has no Printing with in the Set', () => {
+    expect(() => checkWantFilters(printingsOfBolt, {
+      finish: 'foil',
+      setCode: 'LEA',
+    })).toThrow('Lightning Bolt has no foil printing in LEA')
+  })
+
+  it('refuses values outside the known conditions, languages and finishes', () => {
+    expect(() => checkWantFilters(printingsOfBolt, { minCondition: 'XX' as never })).toThrow('Invalid condition')
+    expect(() => checkWantFilters(printingsOfBolt, { language: 'xx' as never })).toThrow('Invalid language')
+    expect(() => checkWantFilters(printingsOfBolt, { finish: 'xx' as never })).toThrow('Invalid finish')
   })
 })

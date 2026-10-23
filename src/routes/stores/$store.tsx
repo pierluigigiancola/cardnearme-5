@@ -8,13 +8,14 @@ import { useViewer } from '#/auth/useViewer'
 import { ErrorState } from '#/components/layout/ErrorState'
 import { PageHeader, Section } from '#/components/layout/PageHeader'
 import { StoreMap } from '#/components/places/Places'
-import { MatchList } from '#/components/trading/MatchList'
+import { MatchCityNotice, MatchList } from '#/components/trading/MatchList'
 import { HeadStartSteps, ShareButton, UnlockProgress } from '#/components/trading/Promos'
 import { TradeItems } from '#/components/trading/TradeItems'
+import { matchCityNotice } from '#/components/trading/matchCityNotice'
 import { Button } from '#/components/ui/button'
 import { useWorkspaceMutation } from '#/services/mutations'
 import { cityQuery, matchesQuery, profileQuery, storeQuery, storesQuery, tradeItemsQuery } from '#/services/queries'
-import type { Store } from '#/services/types'
+import type { City, Store } from '#/services/types'
 
 const PREVIEW = 8
 
@@ -136,6 +137,7 @@ function StorePage() {
               <>
                 {viewer.kind === 'user' && (
                   <StoreMatches
+                    city={city}
                     joined={joined}
                     store={store}
                     viewerId={viewer.id}
@@ -257,7 +259,8 @@ function StorePage() {
   )
 }
 
-function StoreMatches({ joined, store, viewerId }: {
+function StoreMatches({ city, joined, store, viewerId }: {
+  city: City;
   store: Store;
   viewerId: string;
   joined: boolean
@@ -267,12 +270,15 @@ function StoreMatches({ joined, store, viewerId }: {
     storeSlug: store.slug,
   }))
   const { data: stores } = useSuspenseQuery(storesQuery())
+  const { data: profile } = useQuery(profileQuery(viewerId))
+  const notice = profile ? matchCityNotice(profile.citySlug, city) : null
   return (
     <Section
       description={joined ? 'Traders at this store whose lists match yours' : 'Traders here whose lists match yours — join the store to meet them here'}
       title={`Your matches (${matches.length})`}
     >
       <MatchList
+        empty={notice ? <MatchCityNotice notice={notice} /> : undefined}
         matches={matches}
         storeNames={Object.fromEntries(stores.map(candidate => [candidate.slug, candidate.name]))}
       />

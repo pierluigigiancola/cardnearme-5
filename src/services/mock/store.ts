@@ -161,7 +161,7 @@ export function createStore(): MockStore {
       gameId: null,
       id: `${user.id}-${type}`,
       isDefault: true,
-      name: type === 'haves' ? 'Trade binder' : 'Wishlist',
+      name: type === 'haves' ? 'Haves' : 'Wants',
       type,
       updatedAt: user.memberSince,
       visibility: 'public',

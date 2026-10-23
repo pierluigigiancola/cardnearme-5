@@ -46,6 +46,7 @@ import {
 } from '#/components/ui/table'
 import { ConfirmDialog } from '#/components/workspace/ConfirmDialog'
 import { QuantityStepper } from '#/components/workspace/QuantityStepper'
+import { isHave } from '#/domain'
 import { conditionLabels, conditions, finishLabels, isCondition, isFinish, isLanguage, languageLabels, languages } from '#/lib/cardOptions'
 import { formatRelative } from '#/lib/format'
 import { cn } from '#/lib/utils'
@@ -112,7 +113,7 @@ function CollectionQuantities({ entry }: { entry: CollectionEntry }) {
           label={`Copies of ${entry.card.name} for trade`}
           max={entry.quantity}
           min={0}
-          onChange={forTradeQuantity => update.mutate({ forTradeQuantity }, { onSuccess: () => toast.success(forTradeQuantity > 0 ? `${entry.card.name} is on your Haves` : `${entry.card.name} is no longer for trade`) })}
+          onChange={forTradeQuantity => update.mutate({ forTradeQuantity }, { onSuccess: () => toast.success(isHave({ forTradeQuantity }) ? `${entry.card.name} is on your Haves` : `${entry.card.name} is no longer for trade`) })}
           value={entry.forTradeQuantity}
         />
       </span>
@@ -253,7 +254,7 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
                   <div className="absolute bottom-2 left-2 flex flex-wrap gap-1">
                     {item.listId && <Badge className="bg-background/90 text-[10px] text-foreground shadow">{listNames.get(item.listId)}</Badge>}
 
-                    {item.kind === 'collection' && item.forTradeQuantity > 0 && <Badge className="bg-have/90 text-[10px] text-background shadow">{`${item.forTradeQuantity} for trade`}</Badge>}
+                    {item.kind === 'collection' && isHave(item) && <Badge className="bg-have/90 text-[10px] text-background shadow">{`${item.forTradeQuantity} for trade`}</Badge>}
 
                     {item.kind === 'collection' && item.reservedQuantity > 0 && <ReservedBadge quantity={item.reservedQuantity} />}
                   </div>
@@ -576,7 +577,7 @@ function EditItemForm({ item, lists, onClose }: {
   const update = useWorkspaceMutation((services, next: BinderItemPatch) => services.binder.updateItem(item.id, next))
   const sameTypeLists = lists.filter(list => list.type === 'haves' && (!list.gameId || list.gameId === item.card.gameId))
   // A Collection entry is always on a Haves List, but the List only matters while copies are for trade.
-  const showList = sameTypeLists.length > 0 && patch.forTradeQuantity > 0
+  const showList = sameTypeLists.length > 0 && isHave(patch)
   const submitted: BinderItemPatch = {
     ...patch,
     forTradeQuantity: Math.min(patch.forTradeQuantity, patch.quantity),

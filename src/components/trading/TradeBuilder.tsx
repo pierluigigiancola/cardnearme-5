@@ -24,7 +24,7 @@ import { Label } from '#/components/ui/label'
 import { Textarea } from '#/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { QuantityStepper } from '#/components/workspace/QuantityStepper'
-import { freeQuantity, tradeFromPerspective, tradeValue } from '#/domain'
+import { freeQuantity, isHave, tradeFromPerspective, tradeValue } from '#/domain'
 import { formatPrice } from '#/lib/format'
 import { usePricingSource } from '#/lib/pricing'
 import { cn } from '#/lib/utils'
@@ -296,7 +296,7 @@ function TradeBuilderForm({ context, onClose, request }: {
         ...item,
         matched: wanted.has(item.id),
         note: [
-          item.forTradeQuantity > 0 ? `${item.forTradeQuantity} for trade` : 'Collection',
+          isHave(item) ? `${item.forTradeQuantity} for trade` : 'Collection',
           item.reservedQuantity > 0 ? `${item.reservedQuantity} reserved` : null,
         ].filter(Boolean).join(' · '),
         quantity: freeQuantity(item),
@@ -358,7 +358,7 @@ function TradeBuilderForm({ context, onClose, request }: {
     }
     propose.mutate(draft, {
       onSuccess: (trade) => {
-        toast.success(request.trade ? 'Proposal updated' : `Proposal sent to ${partner}`)
+        toast.success(request.trade ? 'Trade updated' : `Trade sent to ${partner}`)
         onClose()
         void router.navigate({
           params: { chatId: trade.chatId },
@@ -381,7 +381,7 @@ function TradeBuilderForm({ context, onClose, request }: {
             username={partner}
           />
 
-          {request.trade ? (request.trade.awaiting === viewer.id ? 'Counter-offer to ' : 'Edit proposal to ') : 'Trade with '}
+          {request.trade ? (request.trade.awaiting === viewer.id ? 'Counter-offer to ' : 'Edit trade with ') : 'Trade with '}
 
           {partner}
         </DialogTitle>
@@ -625,7 +625,7 @@ function TradeBuilderForm({ context, onClose, request }: {
         >
           {propose.isPending ? <Loader2 className="animate-spin" /> : <ArrowLeftRight />}
 
-          {request.trade ? 'Send updated proposal' : 'Send proposal'}
+          {request.trade ? 'Send updated trade' : 'Propose trade'}
         </Button>
       </DialogFooter>
     </>

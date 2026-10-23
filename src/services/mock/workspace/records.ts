@@ -1,14 +1,13 @@
-import type { BinderItem, BinderItemInput, BinderSection, CardId, CollectionEntry, Printing, TradeListType, UserId, WantFilters } from '../../types'
+import type { BinderItem, BinderItemInput, BinderSection, CollectionEntry, Printing, TradeListType, UserId, WantFilters } from '../../types'
 import { cities, games } from '../data'
 import { listedItems, priceOf, printingsById, printingsOf, requireTrader, shownPrinting, wantDetails } from '../store'
 import type { CollectionRecord, ItemRecord, ListRecord, TraderRecord, WantRecord } from '../store'
 
-import { clampQuantity, MAX_QUANTITY, now, requirePrinting } from './context'
+import { checkQuantity, MAX_QUANTITY, now, requirePrinting } from './context'
 import type { TraderContext } from './context'
 
-import { checkForTradeQuantity, isHave, reservedQuantities, wantFilters } from '#/domain'
+import { checkForTradeQuantity, checkWantFilters, isCondition, isFinish, isHave, isLanguage, reservedQuantities } from '#/domain'
 import type { MatchTrader } from '#/domain'
-import { isCondition, isFinish, isLanguage } from '#/lib/cardOptions'
 
 /** Binder and List records of the signed-in Trader, shared by several services. */
 
@@ -69,6 +68,13 @@ export function toBinderItems(ctx: TraderContext, records: ItemRecord[]): Binder
 /** The Printing a record shows: the one owned, or the one shown for a Want. */
 export function printingOf(record: ItemRecord) {
   return record.kind === 'collection' ? printingsById.get(record.printingId) : shownPrinting(record)
+}
+
+/** The Printing a record shows; throws "not found" when it has none. */
+export function requirePrintingOf(record: ItemRecord) {
+  const printing = printingOf(record)
+  if (!printing) throw new Error('Card not found')
+  return printing
 }
 
 export function itemsIn(ctx: TraderContext, section: BinderSection) {
@@ -187,31 +193,6 @@ export function markForTrade(ctx: TraderContext, record: CollectionRecord, forTr
   touchList(ctx, record.listId)
 }
 
-/**
- * Checks a Want's filters against its Card and fills the unset ones with
- * "any". A Set filter must be a Set the Card was printed in, and a finish
- * filter one it was printed with.
- */
-export function checkWantFilters(cardId: CardId, filters: Partial<WantFilters> | undefined) {
-  const checked = wantFilters(filters)
-  const cardPrintings = printingsOf(cardId)
-  if (cardPrintings.length === 0) throw new Error('Card not found')
-  if (checked.minCondition !== null && !isCondition(checked.minCondition)) throw new Error('Invalid condition')
-  if (checked.language !== null && !isLanguage(checked.language)) throw new Error('Invalid language')
-  if (checked.finish !== null && !isFinish(checked.finish)) throw new Error('Invalid finish')
-  const inSet = cardPrintings.filter(printing => checked.setCode === null || printing.setCode.toLowerCase() === checked.setCode.toLowerCase())
-  const name = cardPrintings[0]?.name ?? 'This card'
-  if (inSet.length === 0) throw new Error(`${name} was never printed in ${checked.setCode}`)
-  if (checked.finish !== null && !inSet.some(printing => checked.finish !== null && printing.finishes.includes(checked.finish))) {
-    throw new Error(`${name} has no ${checked.finish} printing${checked.setCode ? ` in ${checked.setCode}` : ''}`)
-  }
-  return {
-    ...checked,
-    // Stored as the catalogue spells it.
-    setCode: checked.setCode === null ? null : inSet[0]?.setCode ?? checked.setCode,
-  }
-}
-
 function sameFilters(a: WantFilters, b: WantFilters) {
   return a.setCode === b.setCode && a.finish === b.finish && a.language === b.language && a.minCondition === b.minCondition
 }
@@ -226,7 +207,7 @@ function sameFilters(a: WantFilters, b: WantFilters) {
 export function addRecords(ctx: TraderContext, inputs: BinderItemInput[]) {
   const touched: ItemRecord[] = []
   for (const input of inputs) {
-    const quantity = clampQuantity(input.quantity)
+    const quantity = checkQuantity(input.quantity)
     if (input.kind === 'collection') {
       const card = requirePrinting(input.printingId)
       if (!isCondition(input.condition) || !isFinish(input.finish) || !isLanguage(input.language)) throw new Error('Invalid card details')
@@ -255,7 +236,7 @@ export function addRecords(ctx: TraderContext, inputs: BinderItemInput[]) {
       touched.push(record)
       continue
     }
-    const filters = checkWantFilters(input.cardId, input.filters)
+    const filters = checkWantFilters(printingsOf(input.cardId), input.filters)
     const shown = shownPrinting({
       cardId: input.cardId,
       filters,

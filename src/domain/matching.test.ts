@@ -132,7 +132,7 @@ describe('Matching (scoped to the City)', () => {
     expect(ids(match.theyWant)).toEqual(['mine'])
   })
 
-  it('matches only Traders in the scope\'s City, never myself', () => {
+  it('matches only Traders in my own City, never myself', () => {
     const me = trader('me', {
       haves: [have('mine', 'bolt')],
       wants: [want('w1', 'bolt')],
@@ -148,8 +148,33 @@ describe('Matching (scoped to the City)', () => {
     const milan = trader('milan', { haves: [have('h3', 'bolt')] })
     const everyone = [me, rome, noCity, milan]
 
+    expect(findMatches(me, everyone, {}).map(match => match.partnerId)).toEqual(['milan'])
     expect(findMatches(me, everyone, { citySlug: 'milan' }).map(match => match.partnerId)).toEqual(['milan'])
-    expect(findMatches(me, everyone, { citySlug: 'rome' }).map(match => match.partnerId)).toEqual(['rome'])
+  })
+
+  it('finds no Matches in a City that is not my own', () => {
+    const me = trader('me', { wants: [want('w1', 'bolt')] })
+    const rome = trader('rome', {
+      citySlug: 'rome',
+      haves: [have('h1', 'bolt')],
+    })
+
+    expect(findMatches(me, [rome], { citySlug: 'rome' })).toEqual([])
+  })
+
+  it('finds no Matches for a Trader with no City', () => {
+    const me = trader('me', {
+      citySlug: null,
+      wants: [want('w1', 'bolt')],
+    })
+    const alsoNoCity = trader('nocity', {
+      citySlug: null,
+      haves: [have('h1', 'bolt')],
+    })
+    const milan = trader('milan', { haves: [have('h2', 'bolt')] })
+
+    expect(findMatches(me, [alsoNoCity, milan], {})).toEqual([])
+    expect(findMatches(me, [alsoNoCity, milan], { citySlug: 'milan' })).toEqual([])
   })
 
   it('narrows the City to a Store\'s Traders when the scope names one', () => {

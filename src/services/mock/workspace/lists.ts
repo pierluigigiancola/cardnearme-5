@@ -1,12 +1,19 @@
 import type { ListsService } from '../../services'
 import type { TradeList, TradeListInput } from '../../types'
 import { games } from '../data'
-import { compare, matchesText } from '../queryHelpers'
+import { matchesText, sortBy } from '../queryHelpers'
+import type { SortKeys } from '../queryHelpers'
 import type { ListRecord } from '../store'
 
 import { now } from './context'
 import type { TraderContext } from './context'
 import { defaultList, printingOf, requireList } from './records'
+
+const listSortKeys: SortKeys<TradeList, 'name' | 'created' | 'updated'> = {
+  created: list => list.createdAt,
+  name: list => list.name,
+  updated: list => list.updatedAt,
+}
 
 export function listsService(ctx: TraderContext): ListsService {
   const { trader } = ctx
@@ -39,16 +46,14 @@ export function listsService(ctx: TraderContext): ListsService {
       trader.lists.push(list)
       return toList(list)
     },
-    list: async ({ order = 'desc', q, sort = 'updated', type } = {}) => trader.lists
-      .filter(list => (!type || list.type === type) && matchesText(list.name, q))
-      .map(toList)
-      .sort((a, b) => {
-        switch (sort) {
-          case 'name': return compare(a.name, b.name, order)
-          case 'created': return compare(a.createdAt, b.createdAt, order)
-          case 'updated': return compare(a.updatedAt, b.updatedAt, order)
-        }
-      }),
+    list: async ({ order = 'desc', q, sort = 'updated', type } = {}) => sortBy(
+      trader.lists
+        .filter(list => (!type || list.type === type) && matchesText(list.name, q))
+        .map(toList),
+      listSortKeys,
+      sort,
+      order,
+    ),
     remove: async (listId) => {
       const list = requireList(ctx, listId)
       if (list.isDefault) throw new Error(`${list.name} is your default ${list.type} list and cannot be deleted`)

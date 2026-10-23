@@ -21,8 +21,7 @@ function lockedReason(city: CityUnlock) {
 
 /**
  * Whether a Trader in `proposerCity` may propose a Trade to a Trader in
- * `partnerCity`: the proposer must have a City, and neither City may be locked.
- * A partner without a City is not held back by one.
+ * `partnerCity`: both Traders must have a City, and neither City may be locked.
  */
 export function tradeEligibility(proposerCity: CityUnlock | null, partnerCity: CityUnlock | null): TradeEligibility {
   if (!proposerCity) {
@@ -31,7 +30,13 @@ export function tradeEligibility(proposerCity: CityUnlock | null, partnerCity: C
       reason: 'Pick your city before proposing a trade.',
     }
   }
-  const locked = [proposerCity, partnerCity].find(city => city && !isCityUnlocked(city))
+  if (!partnerCity) {
+    return {
+      canPropose: false,
+      reason: 'This trader has not picked a city yet, so trading with them is not open.',
+    }
+  }
+  const locked = [proposerCity, partnerCity].find(city => !isCityUnlocked(city))
   return locked
     ? {
       canPropose: false,

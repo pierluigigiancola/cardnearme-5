@@ -174,7 +174,7 @@ function OnboardingPage() {
               <div>
                 <h2 className="text-xl font-bold">{`Pick your trading locations in ${city?.name ?? 'your city'}`}</h2>
 
-                <p className="text-sm text-muted-foreground">{`Choose up to ${STORE_JOIN_CAP} stores where you are happy to meet. Trade proposals suggest them as meetup spots.`}</p>
+                <p className="text-sm text-muted-foreground">{`Choose up to ${STORE_JOIN_CAP} stores where you are happy to meet. Proposed trades suggest them as meetup spots.`}</p>
               </div>
 
               <span className={cn('rounded-full px-3 py-1 text-sm font-semibold tabular-nums', full ? 'bg-have/15 text-have' : 'bg-muted')}>{`${storeSlugs.length} / ${STORE_JOIN_CAP}`}</span>

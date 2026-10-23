@@ -19,27 +19,27 @@ function reprinted() {
 describe('catalogue.matchCards', () => {
   it('resolves a row by Set code and collector number', async () => {
     const [, second] = reprinted()
-    const [match] = await matchCards([{
+    const [resolved] = await matchCards([{
       name: 'whatever',
       number: second.number,
       setCode: second.setCode.toLowerCase(), 
     }])
-    expect(match?.id).toBe(second.id)
+    expect(resolved?.id).toBe(second.id)
   })
 
   it('resolves a name within the Set given, ignoring case', async () => {
     const [, second] = reprinted()
-    const [match] = await matchCards([{
+    const [resolved] = await matchCards([{
       name: ` ${second.name.toUpperCase()} `,
       number: null,
       setCode: second.setCode, 
     }])
-    expect(match?.id).toBe(second.id)
+    expect(resolved?.id).toBe(second.id)
   })
 
-  it('returns one result per row, in order, with null for rows that match nothing', async () => {
+  it('returns one result per row, in order, with null for rows that resolve to nothing', async () => {
     const [first] = reprinted()
-    const matches = await matchCards([
+    const resolvedRows = await matchCards([
       {
         name: 'No Such Card Anywhere',
         number: null,
@@ -51,10 +51,10 @@ describe('catalogue.matchCards', () => {
         setCode: first.setCode, 
       },
     ])
-    expect(matches.map(match => match?.id ?? null)).toEqual([null, first.id])
+    expect(resolvedRows.map(printing => printing?.id ?? null)).toEqual([null, first.id])
   })
 
-  it('matches only within the Game asked for, and prefers the given Games otherwise', async () => {
+  it('resolves only within the Game asked for, and prefers the given Games otherwise', async () => {
     const shared = cards.find(card => cards.some(other => other.name === card.name && other.gameId !== card.gameId))
     if (!shared) throw new Error('Mock data has no name shared across Games')
     const other = cards.find(card => card.name === shared.name && card.gameId !== shared.gameId)
@@ -71,13 +71,13 @@ describe('catalogue.matchCards', () => {
   })
 })
 
-describe('Binder import matching', () => {
+describe('Binder import', () => {
   it('resolves rows the way catalogue.matchCards does and leaves unmatched rows out', async () => {
     const [, second] = reprinted()
     const workspace = workspaceFor({
-      id: 'match-owner',
+      id: 'import-owner',
       onboarded: true,
-      username: 'matcher', 
+      username: 'importer', 
     }, createStore())
     const base = {
       condition: null,

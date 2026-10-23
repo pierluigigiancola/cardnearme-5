@@ -53,7 +53,7 @@ describe('mock trading partners', () => {
     vi.unstubAllEnvs()
   })
 
-  it('accept the viewer\'s proposal after a delay in development', async () => {
+  it('accept the viewer\'s proposed Trade after a delay in development', async () => {
     vi.stubEnv('DEV', true)
     expect(await statusAfterReplyWindow()).toBe('accepted')
   })

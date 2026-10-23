@@ -1,6 +1,6 @@
 import type { Facet, Page, TradeItem, TradeItemQuery } from '../types'
 
-import { buildFacets, compare, matchesFacets, matchesText, tradeItemFacets } from './queryHelpers'
+import { buildFacets, cardItemSortKeys, matchesFacets, matchesText, sortBy, tradeItemFacets } from './queryHelpers'
 import { listedItems, mockStore } from './store'
 import type { MockStore } from './store'
 
@@ -21,16 +21,7 @@ export async function listTradeItemsFor(
     (!citySlug || item.citySlug === citySlug)
     && (!storeSlug || item.storeSlugs.includes(storeSlug))
     && (!ownerId || item.ownerId === ownerId))
-  const filtered = scoped
-    .filter(item => matchesText(item.card.name, q) && matchesFacets(item, tradeItemFacets, facets))
-    .sort((a, b) => {
-      switch (sort) {
-        case 'name': return compare(a.card.name, b.card.name, order)
-        case 'price': return compare(a.price, b.price, order)
-        case 'quantity': return compare(a.quantity, b.quantity, order)
-        case 'updated': return compare(a.updatedAt, b.updatedAt, order)
-      }
-    })
+  const filtered = sortBy(scoped.filter(item => matchesText(item.card.name, q) && matchesFacets(item, tradeItemFacets, facets)), cardItemSortKeys, sort, order)
   const page = capResults(filtered, {
     cap: resultCapFor(viewer),
     limit,

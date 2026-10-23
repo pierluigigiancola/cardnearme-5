@@ -1,17 +1,17 @@
 import type { BinderService } from '../../services'
 import type { BinderImport, BinderItem, BinderItemInput, BinderSection, Ownership } from '../../types'
 import { printings, games } from '../data'
-import { matchCards } from '../matchCards'
-import { baseType, buildFacets, capitalise, compare, labelFrom, matchesFacets, matchesText } from '../queryHelpers'
+import { baseType, buildFacets, capitalise, cardItemSortKeys, labelFrom, matchesFacets, matchesText, sortBy } from '../queryHelpers'
 import type { FacetDefinition } from '../queryHelpers'
-import { printingsById } from '../store'
+import { resolveImportRows } from '../resolveImportRows'
+import { printingsById, printingsOf } from '../store'
 import type { ItemRecord } from '../store'
 
-import { cardKey, clampQuantity, now, requirePrinting } from './context'
+import { cardKey, checkQuantity, now, requirePrinting } from './context'
 import type { TraderContext } from './context'
-import { addRecords, checkWantFilters, inSection, listTypeOf, markForTrade, myReserved, printingOf, requireItem, requireList, resolveList, toBinderItems, touchList } from './records'
+import { addRecords, inSection, listTypeOf, markForTrade, myReserved, printingOf, requireItem, requirePrintingOf, requireList, resolveList, toBinderItems, touchList } from './records'
 
-import { checkOwnedQuantity } from '#/domain'
+import { checkOwnedQuantity, checkWantFilters, isHave } from '#/domain'
 import { conditionLabels, isCondition, isLanguage, languageLabels } from '#/lib/cardOptions'
 
 /** Copies a record counts for in a Binder tab: owned, for trade, or wanted. */
@@ -75,7 +75,7 @@ const collectionFacets: FacetDefinition<BinderItem>[] = [
     key: 'for-trade',
     label: 'For trade',
     labelFor: value => (value === 'for-trade' ? 'For trade' : 'Not for trade'),
-    values: item => [item.kind === 'collection' && item.forTradeQuantity > 0 ? 'for-trade' : 'not-for-trade'],
+    values: item => [item.kind === 'collection' && isHave(item) ? 'for-trade' : 'not-for-trade'],
   },
   ...binderFacets,
   {
@@ -143,7 +143,8 @@ export function binderService(ctx: TraderContext): BinderService {
       if (input.rows.length === 0) throw new Error('Nothing to import')
       if (input.section !== 'collection' && input.listId) requireList(ctx, input.listId)
       const rows = input.rows.slice(0, 1000)
-      const matches = matchCards(rows, { preferGames: trader.profile.games })
+      // Same lookup as `catalogue.matchCards` (see `resolveImportRows` for why it is called directly).
+      const printingsByRow = resolveImportRows(rows, { preferGames: trader.profile.games })
       const draft: BinderImport = {
         committedAt: null,
         createdAt: now(),
@@ -151,12 +152,12 @@ export function binderService(ctx: TraderContext): BinderService {
         importedCount: 0,
         listId: input.section === 'collection' ? null : input.listId,
         rows: rows.map((row, index) => {
-          const card = matches[index] ?? null
+          const card = printingsByRow[index] ?? null
           return {
             ...row,
             card,
             include: card !== null,
-            quantity: clampQuantity(row.quantity),
+            quantity: checkQuantity(row.quantity),
           }
         }),
         section: input.section,
@@ -199,16 +200,12 @@ export function binderService(ctx: TraderContext): BinderService {
     listItems: async ({ facets, listId, order = 'desc', q, section, sort = 'updated' }) => {
       const scoped = toBinderItems(ctx, trader.items.filter(record => inSection(record, section) && (!listId || record.listId === listId)))
       const definitions = section === 'collection' ? collectionFacets : binderFacets
-      const filtered = scoped
-        .filter(item => matchesText(`${item.card.name} ${item.card.setName}`, q) && matchesFacets(item, definitions, facets))
-        .sort((a, b) => {
-          switch (sort) {
-            case 'name': return compare(a.card.name, b.card.name, order)
-            case 'price': return compare(a.price, b.price, order)
-            case 'quantity': return compare(a.quantity, b.quantity, order)
-            case 'updated': return compare(a.updatedAt, b.updatedAt, order)
-          }
-        })
+      const filtered = sortBy(
+        scoped.filter(item => matchesText(`${item.card.name} ${item.card.setName}`, q) && matchesFacets(item, definitions, facets)),
+        cardItemSortKeys,
+        sort,
+        order,
+      )
       return {
         facets: buildFacets(scoped, definitions),
         items: filtered,
@@ -226,7 +223,7 @@ export function binderService(ctx: TraderContext): BinderService {
         const record = requireItem(ctx, itemId)
         if (target.listId === null && record.kind === 'want') throw new Error('Wants always belong to a Wants List')
         return {
-          list: target.listId === null ? null : resolveList(ctx, listTypeOf(record), target.listId, requirePrinting(printingOf(record)?.id ?? '')),
+          list: target.listId === null ? null : resolveList(ctx, listTypeOf(record), target.listId, requirePrintingOf(record)),
           record,
         }
       })
@@ -269,7 +266,7 @@ export function binderService(ctx: TraderContext): BinderService {
     },
     updateItem: async (itemId, patch) => {
       const record = requireItem(ctx, itemId)
-      if (patch.quantity !== undefined) record.quantity = checkOwnedQuantity(clampQuantity(patch.quantity), myReserved(ctx).get(record.id) ?? 0)
+      if (patch.quantity !== undefined) record.quantity = checkOwnedQuantity(checkQuantity(patch.quantity), myReserved(ctx).get(record.id) ?? 0)
       if (record.kind === 'collection') {
         if (patch.filters !== undefined) throw new Error('Only Wants have filters')
         const card = requirePrinting(record.printingId)
@@ -295,12 +292,12 @@ export function binderService(ctx: TraderContext): BinderService {
           throw new Error('A Want is narrowed by its filters')
         }
         if (patch.filters !== undefined) {
-          record.filters = checkWantFilters(record.cardId, {
+          record.filters = checkWantFilters(printingsOf(record.cardId), {
             ...record.filters,
             ...patch.filters,
           })
         }
-        const shown = requirePrinting(printingOf(record)?.id ?? '')
+        const shown = requirePrintingOf(record)
         if (patch.listId) record.listId = resolveList(ctx, 'wants', patch.listId, shown).id
         touchList(ctx, record.listId)
       }

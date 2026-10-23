@@ -19,7 +19,8 @@ export function profileService({ trader }: TraderContext): ProfileService {
     completeOnboarding: async ({ citySlug, showStoresOnProfile, storeSlugs }) => {
       if (!cities.some(city => city.slug === citySlug)) throw new Error('Pick your city')
       const unique = [...new Set(storeSlugs)]
-      if (unique.length > STORE_JOIN_CAP) throw new Error(`Pick up to ${STORE_JOIN_CAP} stores`)
+      // Picking n Stores is joining the last one with n - 1 already joined.
+      if (!canJoinAnotherStore(unique.length - 1)) throw new Error(`Pick up to ${STORE_JOIN_CAP} stores`)
       unique.forEach(requireStore)
       Object.assign(profile, {
         citySlug,

@@ -218,7 +218,9 @@ export interface Deck {
 
 export interface DeckComment {
   id: string
-  username: string
+  authorId: UserId
+  /** Display only; refer to the author by `authorId`. */
+  authorUsername: string
   body: string
   createdAt: string
 }
@@ -301,8 +303,9 @@ export interface TradeItemQuery {
   order?: SortOrder
   facets?: FacetSelection
   /**
-   * Paging only: how many results this page should hold. It never raises the
-   * viewer's cap. The server works the cap out from the session (anonymous
+   * The requested page size: how many results (from the first) to return.
+   * There is no offset or cursor. It is clamped to the viewer's cap, so it
+   * never raises it. The server works the cap out from the session (anonymous
    * visitors get `ANONYMOUS_RESULT_CAP`), clamps this limit to it and reports
    * `cappedAt` when the cap held results back. Omit it to get every result the
    * viewer may see.
@@ -675,7 +678,7 @@ export interface Trade {
   updatedAt: string
 }
 
-/** A trade proposal from the viewer's point of view. */
+/** A Trade from the viewer's point of view. */
 export interface TradeDraft {
   partner: UserId
   give: TradeDraftLine[]
@@ -724,11 +727,16 @@ export interface TradeMatch {
 }
 
 /**
- * Where Matches are looked for (spec decision 4). Matching is scoped to a City;
- * a Store only narrows that City to the Traders who joined it.
+ * Where Matches are looked for (spec decision 4). Matching is scoped to the
+ * viewer's own City, read from the session; a Store only narrows that City to
+ * the Traders who joined it.
  */
 export interface MatchScope {
-  citySlug: string
+  /**
+   * The City the page shows. Matches are found only when it is the viewer's
+   * own City (or it is left out); any other City gives no Matches.
+   */
+  citySlug?: string
   /** Optional filter: only Traders who joined this Store (in the City). */
   storeSlug?: string
 }

@@ -11,6 +11,27 @@ import { CardArt } from '#/components/cards/CardArt'
 import { Button } from '#/components/ui/button'
 import type { TradeMatch } from '#/services/types'
 
+/** Shown in place of Matches when the page's City is not the viewer's own. */
+export function MatchCityNotice({ notice }: { notice: string }) {
+  return (
+    <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed p-8 text-center">
+      <Sparkles className="size-6 text-match" />
+
+      <p className="font-semibold">No matches here</p>
+
+      <p className="max-w-sm text-sm text-muted-foreground">{notice}</p>
+
+      <Button
+        asChild
+        size="sm"
+        variant="outline"
+      >
+        <Link to="/x/settings">Change your city</Link>
+      </Button>
+    </div>
+  )
+}
+
 /** Traders whose lists match the viewer's, with shortcuts to trade or chat. */
 export function MatchList({ empty, matches, storeNames }: {
   matches: TradeMatch[];

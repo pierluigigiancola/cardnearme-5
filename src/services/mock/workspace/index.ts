@@ -19,7 +19,7 @@ export type { WorkspaceOwner } from './seed'
  * The signed-in workspace of one Trader, backed by the shared mock store
  * (`../store.ts`). Runs on the server only (see `../rpc.ts`). The Trader is
  * seeded into the store on first access. Mock trading partners are the
- * seeded Traders, and in development they accept proposals on their own
+ * seeded Traders, and in development they accept pending Trades on their own
  * after a short delay so every Trade state can be exercised from one account.
  */
 export function workspaceFor(owner: WorkspaceOwner, store: MockStore = mockStore): WorkspaceServices {

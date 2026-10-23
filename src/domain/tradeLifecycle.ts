@@ -18,7 +18,7 @@ export function otherSide(trade: Pick<Trade, 'proposer' | 'recipient'>, me: User
   throw new Error('Trade not found')
 }
 
-/** A new proposal: pending, awaiting the recipient. */
+/** A newly proposed Trade: pending, awaiting the recipient. */
 export function proposeTrade(proposer: UserId, recipient: UserId): TradeLifecycle {
   if (proposer === recipient) throw new Error('You cannot trade with yourself')
   return {

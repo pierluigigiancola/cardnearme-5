@@ -13,7 +13,9 @@ import type { MatchScope, UserId } from '#/services/types'
  * Have is a Collection entry with copies for trade, and it fulfils the Want
  * (`fulfilsWant`: same Card, every filter the Want sets is met).
  *
- * - The City defines who matches: only Traders whose City is the scope's City.
+ * - The viewer's own City defines who matches: only Traders in that City. A
+ *   viewer with no City has no Matches, and so does a scope naming another
+ *   City (the City limits who finds whom).
  * - A Store in the scope only narrows that City to the Traders who joined it.
  *   Shared Stores otherwise rank Matches; they never define them.
  * - Other Traders' Haves and Wants count only on their public Lists. The
@@ -73,21 +75,32 @@ export function matchBetween<THave extends MatchHave, TWant extends MatchWant>(m
 }
 
 /**
- * The viewer's Matches with the other Traders in the scope's City, optionally
- * narrowed to one Store. Ranked by Stores shared with the viewer, then by
- * the number of matched entries.
+ * The City Matching runs in for the viewer: their own City, and only when the
+ * scope names that City or none. `null` means no Matches.
+ */
+export function matchingCity(viewerCitySlug: string | null, scope: MatchScope): string | null {
+  if (!viewerCitySlug) return null
+  return !scope.citySlug || scope.citySlug === viewerCitySlug ? viewerCitySlug : null
+}
+
+/**
+ * The viewer's Matches with the other Traders in the viewer's own City
+ * (`matchingCity`), optionally narrowed to one Store. Ranked by Stores shared
+ * with the viewer, then by the number of matched entries.
  */
 export function findMatches<THave extends MatchHave, TWant extends MatchWant>(
   me: MatchTrader<THave, TWant>,
   traders: readonly MatchTrader<THave, TWant>[],
   scope: MatchScope,
 ): MatchResult<THave>[] {
+  const citySlug = matchingCity(me.citySlug, scope)
+  if (!citySlug) return []
   return traders
     .filter(other => other.id !== me.id
-      && other.citySlug === scope.citySlug
+      && other.citySlug === citySlug
       && (!scope.storeSlug || other.storeSlugs.includes(scope.storeSlug)))
     .map(other => ({
-      citySlug: scope.citySlug,
+      citySlug,
       partnerId: other.id,
       sharedStoreSlugs: other.storeSlugs.filter(slug => me.storeSlugs.includes(slug)),
       ...matchBetween(me, other),

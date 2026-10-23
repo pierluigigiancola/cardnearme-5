@@ -51,6 +51,13 @@ describe('Trade eligibility', () => {
     })
   })
 
+  it('refuses proposing to a Trader who has not picked a City', () => {
+    expect(tradeEligibility(milan, null)).toEqual({
+      canPropose: false,
+      reason: 'This trader has not picked a city yet, so trading with them is not open.',
+    })
+  })
+
   it('throws the reason when asked to check', () => {
     expect(() => checkCanPropose(vigevano, milan)).toThrow('Trading in Vigevano unlocks once 3 traders have joined (1 so far).')
     expect(() => checkCanPropose(milan, rome)).not.toThrow()

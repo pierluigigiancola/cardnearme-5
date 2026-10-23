@@ -275,7 +275,7 @@ function DeckPage() {
                   key={comment.id}
                 >
                   <p className="text-xs text-muted-foreground">
-                    <span className="font-semibold text-foreground">{comment.username}</span>
+                    <span className="font-semibold text-foreground">{comment.authorUsername}</span>
 
                     {' · '}
 

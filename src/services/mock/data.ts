@@ -590,7 +590,7 @@ export const decks: Deck[] = Array.from({ length: 30 }, (_, index) => {
   return {
     cards: deckCards,
     commentCount,
-    description: 'A community list shared for inspiration. Swap pieces to fit your meta.',
+    description: 'A community list shared for inspiration. Change pieces to fit your meta.',
     format,
     gameId,
     id: `deck-${index + 1}`,
@@ -605,12 +605,19 @@ export const decks: Deck[] = Array.from({ length: 30 }, (_, index) => {
 export const deckComments: Record<string, DeckComment[]> = Object.fromEntries(
   decks.map(deck => [
     deck.id,
-    Array.from({ length: Math.min(deck.commentCount, 3) }, (_, index) => ({
-      body: random.pick(['Love the curve on this.', 'Have you tried a second copy of the finisher?', 'Took this to FNM, went 3-1!', 'The sideboard plan is great.']),
-      createdAt: daysAgo(random.int(1, 30)),
-      id: `${deck.id}-c${index}`,
-      username: random.pick(users).username,
-    })),
+    Array.from({ length: Math.min(deck.commentCount, 3) }, (_, index): DeckComment => {
+      // Drawn in the same order as before, so the seeded data stays the same.
+      const body = random.pick(['Love the curve on this.', 'Have you tried a second copy of the finisher?', 'Took this to FNM, went 3-1!', 'The sideboard plan is great.'])
+      const createdAt = daysAgo(random.int(1, 30))
+      const author = random.pick(users)
+      return {
+        authorId: author.id,
+        authorUsername: author.username,
+        body,
+        createdAt,
+        id: `${deck.id}-c${index}`,
+      }
+    }),
   ]),
 )
 
@@ -639,7 +646,7 @@ export const changelog: ChangelogEntry[] = [
     improved: ['Signing up from a Trade button returns you to the card you were looking at'],
   },
   {
-    added: ['Swap calculator for balancing in-person trades'],
+    added: ['Trade calculator for balancing in-person trades'],
     date: '2026-09-22',
     fixed: ['City pages show the right store count on mobile'],
     improved: ['Faster card search with keyboard navigation'],
@@ -697,7 +704,7 @@ export const helpArticles: HelpArticle[] = [
   article('search', 'Searching', 'Narrow a long card list down fast.', [['Search box and facets', 'Press / to jump to search, then refine any card list with the filters beside it.']]),
   article('stores', 'Stores', 'Find the shops in your City and join them.', [['Joining a Store', 'Open the stores page, look up your City and join the Stores where you play.']]),
   article('account', 'Account settings', 'Profile, Stores, games and price source.', [['Price source', 'Switch every price in the app between Cardmarket (EUR) and TCGplayer (USD).']]),
-  article('shortcuts', 'Keyboard shortcuts', 'Move around without the mouse.', [['Anywhere', 'Ctrl/Cmd+K opens the command palette, / jumps to search, Esc closes a dialog.'], ['Press G, then a letter', 'G H home, G F card sets, G P public decks, G S stores, G W swap calculator, G E help.']]),
+  article('shortcuts', 'Keyboard shortcuts', 'Move around without the mouse.', [['Anywhere', 'Ctrl/Cmd+K opens the command palette, / jumps to search, Esc closes a dialog.'], ['Press G, then a letter', 'G H home, G F sets, G P public decks, G S stores, G W trade calculator, G E help.']]),
   article('privacy', 'Privacy & security', 'What we keep and why.', [['Data we keep', 'Just enough to run your account and find your Matches.']]),
   article('contact', 'Contact support', 'Reach a person on the team.', [['Getting in touch', 'Send us a message from the contact form; expect an answer within two working days.']]),
 ]

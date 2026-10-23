@@ -35,7 +35,7 @@ function NoStoresPage() {
 
         <p className="text-lg font-semibold">You have not joined a store yet</p>
 
-        <p className="text-sm text-muted-foreground">{`Join up to ${STORE_JOIN_CAP} stores where you play. Matches and trade proposals use them as meetup spots.`}</p>
+        <p className="text-sm text-muted-foreground">{`Join up to ${STORE_JOIN_CAP} stores where you play. Matches and proposed trades use them as meetup spots.`}</p>
 
         <Button asChild>
           <Link to="/stores">Find stores near you</Link>
