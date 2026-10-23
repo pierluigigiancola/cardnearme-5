@@ -16,7 +16,7 @@ export function listsService(ctx: TraderContext): ListsService {
     ...list,
     cardCount: trader.items
       .filter(record => record.listId === list.id)
-      .reduce((total, record) => total + record.quantity, 0),
+      .reduce((total, record) => total + (record.kind === 'collection' ? record.forTradeQuantity : record.quantity), 0),
   })
 
   const validate = (input: Partial<TradeListInput>) => {
@@ -52,7 +52,14 @@ export function listsService(ctx: TraderContext): ListsService {
     remove: async (listId) => {
       requireList(ctx, listId)
       trader.lists = trader.lists.filter(list => list.id !== listId)
-      trader.items = trader.items.filter(record => record.listId !== listId)
+      // Owned cards stay in the Collection, no longer for trade; Wants go with the List.
+      for (const record of trader.items) {
+        if (record.kind === 'collection' && record.listId === listId) {
+          record.forTradeQuantity = 0
+          record.listId = null
+        }
+      }
+      trader.items = trader.items.filter(record => record.kind === 'collection' || record.listId !== listId)
     },
     update: async (listId, patch) => {
       validate(patch)

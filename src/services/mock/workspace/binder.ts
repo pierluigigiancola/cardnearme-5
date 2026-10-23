@@ -1,16 +1,23 @@
 import type { BinderService } from '../../services'
-import type { BinderImport, BinderItem, Ownership } from '../../types'
+import type { BinderImport, BinderItem, BinderSection, Ownership } from '../../types'
 import { printings, games } from '../data'
 import { matchCards } from '../matchCards'
 import { baseType, buildFacets, capitalise, compare, labelFrom, matchesFacets, matchesText } from '../queryHelpers'
 import type { FacetDefinition } from '../queryHelpers'
 import { printingsById } from '../store'
+import type { ItemRecord } from '../store'
 
 import { cardKey, clampQuantity, now, requirePrinting } from './context'
 import type { TraderContext } from './context'
-import { addRecords, requireItem, requireList, resolveList, toBinderItems, touchList } from './records'
+import { addRecords, inSection, listTypeOf, markForTrade, requireItem, requireList, resolveList, toBinderItems, touchList } from './records'
 
 import { conditionLabels, isCondition, isLanguage, languageLabels } from '#/lib/cardOptions'
+
+/** Copies a record counts for in a Binder tab: owned, for trade, or wanted. */
+function copiesIn(record: Pick<ItemRecord, 'kind' | 'quantity'> & { forTradeQuantity?: number }, section: BinderSection) {
+  if (section === 'haves') return record.kind === 'collection' ? record.forTradeQuantity ?? 0 : 0
+  return (section === 'wants') === (record.kind === 'want') ? record.quantity : 0
+}
 
 const binderFacets: FacetDefinition<BinderItem>[] = [
   {
@@ -60,10 +67,10 @@ const collectionFacets: FacetDefinition<BinderItem>[] = [
     values: item => [item.inTrade ? 'in-trade' : 'free'],
   },
   {
-    key: 'listed',
-    label: 'List status',
-    labelFor: value => (value === 'listed' ? 'Listed in haves' : 'Unlisted'),
-    values: item => [item.listed ? 'listed' : 'unlisted'],
+    key: 'for-trade',
+    label: 'For trade',
+    labelFor: value => (value === 'for-trade' ? 'For trade' : 'Not for trade'),
+    values: item => [item.kind === 'collection' && item.forTradeQuantity > 0 ? 'for-trade' : 'not-for-trade'],
   },
   ...binderFacets,
   {
@@ -100,11 +107,13 @@ export function binderService(ctx: TraderContext): BinderService {
         ? [{
           condition: row.condition ?? 'NM',
           finish: row.card.finishes.includes(row.finish) ? row.finish : 'nonfoil',
+          // Importing Haves creates Collection entries with every imported copy for trade.
+          forTradeQuantity: draft.section === 'haves' ? row.quantity : 0,
+          kind: draft.section === 'wants' ? 'want' as const : 'collection' as const,
           language: row.language ?? 'en',
           listId: draft.listId,
           printingId: row.card.id,
           quantity: row.quantity,
-          section: draft.section,
         }]
         : [])))
       draft.committedAt = now()
@@ -143,7 +152,9 @@ export function binderService(ctx: TraderContext): BinderService {
         haves: 0,
         wants: 0,
       }
-      for (const record of trader.items) counts[record.section] += record.quantity
+      for (const record of trader.items) {
+        for (const section of ['collection', 'haves', 'wants'] as const) counts[section] += copiesIn(record, section)
+      }
       return counts
     },
     getImport: async importId => trader.imports.find(draft => draft.id === importId) ?? null,
@@ -159,14 +170,15 @@ export function binderService(ctx: TraderContext): BinderService {
         }
         for (const record of trader.items) {
           const other = printingsById.get(record.cardId)
-          if (other && cardKey(other) === cardKey(card)) ownership[record.section] += record.quantity
+          if (!other || cardKey(other) !== cardKey(card)) continue
+          for (const section of ['collection', 'haves', 'wants'] as const) ownership[section] += copiesIn(record, section)
         }
         result[printingId] = ownership
       }
       return result
     },
     listItems: async ({ facets, listId, order = 'desc', q, section, sort = 'updated' }) => {
-      const scoped = toBinderItems(ctx, trader.items.filter(record => record.section === section && (!listId || record.listId === listId)))
+      const scoped = toBinderItems(ctx, trader.items.filter(record => inSection(record, section) && (!listId || record.listId === listId)))
       const definitions = section === 'collection' ? collectionFacets : binderFacets
       const filtered = scoped
         .filter(item => matchesText(`${item.card.name} ${item.card.setName}`, q) && matchesFacets(item, definitions, facets))
@@ -182,9 +194,9 @@ export function binderService(ctx: TraderContext): BinderService {
         facets: buildFacets(scoped, definitions),
         items: filtered,
         stats: {
-          cards: scoped.reduce((total, item) => total + item.quantity, 0),
+          cards: scoped.reduce((total, item) => total + copiesIn(item, section), 0),
           distinct: scoped.length,
-          marketValue: Math.round(scoped.reduce((total, item) => total + item.price * item.quantity, 0) * 100) / 100,
+          marketValue: Math.round(scoped.reduce((total, item) => total + item.price * copiesIn(item, section), 0) * 100) / 100,
         },
         total: filtered.length,
       }
@@ -193,17 +205,23 @@ export function binderService(ctx: TraderContext): BinderService {
       // Resolve every destination first so a rejected card leaves the whole selection untouched.
       const moves = itemIds.map((itemId) => {
         const record = requireItem(ctx, itemId)
+        if (target.listId === null && record.kind === 'want') throw new Error('Wants always belong to a Wants List')
         return {
-          list: resolveList(ctx, target.section, target.listId, requirePrinting(record.cardId)),
+          list: target.listId === null ? null : resolveList(ctx, listTypeOf(record), target.listId, requirePrinting(record.cardId)),
           record,
         }
       })
       for (const { list, record } of moves) {
-        touchList(ctx, record.listId)
-        record.section = target.section
-        record.listId = list?.id ?? null
+        if (record.kind === 'collection') {
+          // On a Haves List a Collection entry is a Have: keep its for-trade copies, or mark them all.
+          markForTrade(ctx, record, list ? record.forTradeQuantity || record.quantity : 0, list?.id)
+        }
+        else {
+          touchList(ctx, record.listId)
+          record.listId = list?.id ?? record.listId
+          touchList(ctx, record.listId)
+        }
         record.updatedAt = now()
-        touchList(ctx, record.listId)
       }
     },
     removeItems: async (itemIds) => {
@@ -241,11 +259,17 @@ export function binderService(ctx: TraderContext): BinderService {
         record.language = patch.language
       }
       if (patch.quantity !== undefined) record.quantity = clampQuantity(patch.quantity)
-      if (patch.listId !== undefined && record.section !== 'collection') {
-        record.listId = resolveList(ctx, record.section, patch.listId, card)?.id ?? null
+      if (record.kind === 'collection') {
+        // Fewer copies owned than for trade leaves every remaining copy for trade.
+        const forTrade = patch.forTradeQuantity ?? Math.min(record.forTradeQuantity, record.quantity)
+        markForTrade(ctx, record, forTrade, patch.listId)
+      }
+      else {
+        if (patch.forTradeQuantity !== undefined) throw new Error('Only cards you own can be marked for trade')
+        if (patch.listId) record.listId = resolveList(ctx, 'wants', patch.listId, card).id
+        touchList(ctx, record.listId)
       }
       record.updatedAt = now()
-      touchList(ctx, record.listId)
       const item = toBinderItems(ctx, [record]).at(0)
       if (!item) throw new Error('Card not found')
       return item

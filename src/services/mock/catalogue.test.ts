@@ -71,10 +71,11 @@ describe('Card availability', () => {
     await workspace.binder.addItems([{
       condition: 'NM',
       finish: 'nonfoil',
+      forTradeQuantity: 1,
+      kind: 'collection',
       language: 'en',
       printingId: second.id,
       quantity: 1,
-      section: 'haves',
     }])
 
     expect(await availableIn()).toBe(before + 1)
@@ -96,10 +97,10 @@ describe('Card availability', () => {
     await workspace.binder.addItems([{
       condition: 'NM',
       finish: 'nonfoil',
+      kind: 'collection',
       language: 'en',
       printingId: second.id,
       quantity: 2,
-      section: 'collection',
     }])
 
     const after = await workspace.binder.getOwnership([first.id])

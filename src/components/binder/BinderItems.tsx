@@ -48,41 +48,72 @@ import { conditionLabels, conditions, finishLabels, isCondition, isFinish, isLan
 import { formatRelative } from '#/lib/format'
 import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
-import type { BinderItem, BinderItemPatch, BinderSection, TradeList, ViewMode } from '#/services/types'
+import type { BinderItem, BinderItemKind, BinderItemPatch, CollectionEntry, TradeList, ViewMode } from '#/services/types'
 
 export interface MoveTarget {
-  section: BinderSection
+  /** A Haves or Wants List, or null to take Collection entries off trade. */
   listId: string | null
   label: string
+  /** The entry kind the target accepts: Haves Lists and "Not for trade" take Collection entries, Wants Lists take Wants. */
+  accepts: BinderItemKind
 }
 
-/** Where items can be moved: the collection and every trade list. */
+/** Where entries can be moved: off trade, or onto any List. */
 export function moveTargets(lists: TradeList[]): MoveTarget[] {
   return [
     {
-      label: 'Collection',
+      accepts: 'collection',
+      label: 'Not for trade',
       listId: null,
-      section: 'collection',
     },
-    ...lists.map(list => ({
+    ...lists.map((list): MoveTarget => ({
+      accepts: list.type === 'haves' ? 'collection' : 'want',
       label: `${sectionLabels[list.type]} · ${list.name}`,
       listId: list.id,
-      section: list.type,
     })),
   ]
 }
 
 /**
- * Where these items can all go: lists for another game are left out, and so is the place every
- * item already is. Used by the single-item menu and the bulk bar, so neither offers a move that fails.
+ * Where these items can all go: Lists of the other kind or for another game are left out, and so is
+ * the place every item already is. Used by the single-item menu and the bulk bar, so neither offers
+ * a move that fails.
  */
 export function moveTargetsFor(items: BinderItem[], lists: TradeList[]): MoveTarget[] {
   const gameOf = new Map(lists.map(list => [list.id, list.gameId]))
   return moveTargets(lists).filter((target) => {
-    if (items.every(item => item.section === target.section && item.listId === target.listId)) return false
+    if (!items.every(item => item.kind === target.accepts)) return false
+    if (items.every(item => item.listId === target.listId)) return false
     const gameId = target.listId ? gameOf.get(target.listId) : null
     return !gameId || items.every(item => item.card.gameId === gameId)
   })
+}
+
+/** Owned and for-trade copies of a Collection entry, edited together on its row. */
+function CollectionQuantities({ entry }: { entry: CollectionEntry }) {
+  const update = useWorkspaceMutation((services, patch: BinderItemPatch) => services.binder.updateItem(entry.id, patch))
+
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <QuantityStepper
+        label={`Copies of ${entry.card.name} owned`}
+        onChange={quantity => update.mutate({ quantity })}
+        value={entry.quantity}
+      />
+
+      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+        For trade
+
+        <QuantityStepper
+          label={`Copies of ${entry.card.name} for trade`}
+          max={entry.quantity}
+          min={0}
+          onChange={forTradeQuantity => update.mutate({ forTradeQuantity }, { onSuccess: () => toast.success(forTradeQuantity > 0 ? `${entry.card.name} is on your Haves` : `${entry.card.name} is no longer for trade`) })}
+          value={entry.forTradeQuantity}
+        />
+      </span>
+    </div>
+  )
 }
 
 export function BinderItems({ items, lists, onToggle, selected, view }: {
@@ -152,7 +183,7 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
 
                     <TableCell className="text-muted-foreground">{item.card.setName}</TableCell>
 
-                    <TableCell className="text-muted-foreground">{item.listId ? listNames.get(item.listId) : (item.listed ? 'Listed' : '—')}</TableCell>
+                    <TableCell className="text-muted-foreground">{item.listId ? listNames.get(item.listId) : '—'}</TableCell>
 
                     <TableCell>
                       <ConditionBadge condition={item.condition} />
@@ -160,7 +191,7 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
 
                     <TableCell className="uppercase">{item.language}</TableCell>
 
-                    <TableCell className="text-right tabular-nums">{item.quantity}</TableCell>
+                    <TableCell className="text-right tabular-nums">{item.kind === 'collection' ? <CollectionQuantities entry={item} /> : item.quantity}</TableCell>
 
                     <TableCell className="text-right">
                       <Price amount={item.price} />
@@ -209,7 +240,7 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
                   <div className="absolute bottom-2 left-2 flex flex-wrap gap-1">
                     {item.listId && <Badge className="bg-background/90 text-[10px] text-foreground shadow">{listNames.get(item.listId)}</Badge>}
 
-                    {item.listed && <Badge className="bg-have/90 text-[10px] text-background shadow">Listed</Badge>}
+                    {item.kind === 'collection' && item.forTradeQuantity > 0 && <Badge className="bg-have/90 text-[10px] text-background shadow">{`${item.forTradeQuantity} for trade`}</Badge>}
 
                     {item.inTrade && <InTradeBadge />}
                   </div>
@@ -238,6 +269,8 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
                     onRemove={() => setRemoving(item)}
                   />
                 </div>
+
+                {item.kind === 'collection' && <CollectionQuantities entry={item} />}
               </li>
             ))}
           </ul>
@@ -291,7 +324,7 @@ function ItemActions({ item, lists, onEdit, onRemove }: {
   onEdit: () => void;
   onRemove: () => void
 }) {
-  const move = useWorkspaceMutation((services, target: MoveTarget) => services.binder.moveItems([item.id], target))
+  const move = useWorkspaceMutation((services, target: MoveTarget) => services.binder.moveItems([item.id], { listId: target.listId }))
   const targets = moveTargetsFor([item], lists)
 
   return (
@@ -321,7 +354,7 @@ function ItemActions({ item, lists, onEdit, onRemove }: {
 
         {targets.map(target => (
           <DropdownMenuItem
-            key={`${target.section}-${target.listId ?? ''}`}
+            key={`${target.accepts}-${target.listId ?? ''}`}
             onSelect={() => move.mutate(target, { onSuccess: () => toast.success(`Moved ${item.card.name} to ${target.label}`) })}
           >
             <FolderInput />
@@ -400,27 +433,40 @@ function EditItemForm({ item, lists, onClose }: {
   lists: TradeList[];
   onClose: () => void
 }) {
+  const owned = item.kind === 'collection'
   const [patch, setPatch] = useState<Required<Omit<BinderItemPatch, 'listId'>> & { listId: string | null }>({
     condition: item.condition,
     finish: item.finish,
+    forTradeQuantity: item.kind === 'collection' ? item.forTradeQuantity : 0,
     language: item.language,
     listId: item.listId,
     quantity: item.quantity,
   })
   const update = useWorkspaceMutation((services, next: BinderItemPatch) => services.binder.updateItem(item.id, next))
-  const sameTypeLists = lists.filter(list => list.type === item.section && (!list.gameId || list.gameId === item.card.gameId))
+  const listType = owned ? 'haves' : 'wants'
+  const sameTypeLists = lists.filter(list => list.type === listType && (!list.gameId || list.gameId === item.card.gameId))
+  // A Collection entry sits on a Haves List only while copies are for trade.
+  const showList = sameTypeLists.length > 0 && (!owned || patch.forTradeQuantity > 0)
+  const { forTradeQuantity, ...shared } = patch
+  const submitted: BinderItemPatch = owned
+    ? {
+      ...shared,
+      forTradeQuantity: Math.min(forTradeQuantity, patch.quantity),
+      listId: forTradeQuantity > 0 ? patch.listId ?? sameTypeLists.at(0)?.id ?? null : null,
+    }
+    : shared
 
   return (
     <>
       <DialogHeader>
         <DialogTitle>{item.card.name}</DialogTitle>
 
-        <DialogDescription>{`${item.card.setName} · #${item.card.number} · ${sectionLabels[item.section]}`}</DialogDescription>
+        <DialogDescription>{`${item.card.setName} · #${item.card.number} · ${owned ? 'Collection' : 'Wants'}`}</DialogDescription>
       </DialogHeader>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label>{item.section === 'wants' ? 'Minimum condition' : 'Condition'}</Label>
+          <Label>{owned ? 'Condition' : 'Minimum condition'}</Label>
 
           <Select
             onValueChange={value => isCondition(value) && setPatch({
@@ -510,7 +556,7 @@ function EditItemForm({ item, lists, onClose }: {
         </div>
 
         <div className="space-y-1.5">
-          <Label>Quantity</Label>
+          <Label>{owned ? 'Copies owned' : 'Quantity'}</Label>
 
           <QuantityStepper
             className="h-9"
@@ -522,16 +568,34 @@ function EditItemForm({ item, lists, onClose }: {
           />
         </div>
 
-        {item.section !== 'collection' && sameTypeLists.length > 0 && (
+        {owned && (
+          <div className="space-y-1.5">
+            <Label>For trade</Label>
+
+            <QuantityStepper
+              className="h-9"
+              label="For trade"
+              max={patch.quantity}
+              min={0}
+              onChange={next => setPatch({
+                ...patch,
+                forTradeQuantity: next,
+              })}
+              value={Math.min(patch.forTradeQuantity, patch.quantity)}
+            />
+          </div>
+        )}
+
+        {showList && (
           <div className="col-span-2 space-y-1.5">
-            <Label>List</Label>
+            <Label>{owned ? 'Haves list' : 'List'}</Label>
 
             <Select
               onValueChange={listId => setPatch({
                 ...patch,
                 listId,
               })}
-              value={patch.listId ?? undefined}
+              value={patch.listId ?? sameTypeLists.at(0)?.id}
             >
               <SelectTrigger
                 aria-label="List"
@@ -565,7 +629,7 @@ function EditItemForm({ item, lists, onClose }: {
 
         <Button
           disabled={update.isPending}
-          onClick={() => update.mutate(patch, {
+          onClick={() => update.mutate(submitted, {
             onSuccess: () => {
               toast.success('Card updated')
               onClose()
@@ -586,7 +650,7 @@ export function BulkActions({ lists, onClear, selected }: {
   onClear: () => void
 }) {
   const [confirming, setConfirming] = useState(false)
-  const move = useWorkspaceMutation((services, target: MoveTarget) => services.binder.moveItems([...selected.keys()], target))
+  const move = useWorkspaceMutation((services, target: MoveTarget) => services.binder.moveItems([...selected.keys()], { listId: target.listId }))
   const remove = useWorkspaceMutation(services => services.binder.removeItems([...selected.keys()]))
   if (selected.size === 0) return null
   const targets = moveTargetsFor([...selected.values()], lists)
@@ -614,7 +678,7 @@ export function BulkActions({ lists, onClear, selected }: {
 
           {targets.map(target => (
             <DropdownMenuItem
-              key={`${target.section}-${target.listId ?? ''}`}
+              key={`${target.accepts}-${target.listId ?? ''}`}
               onSelect={() => move.mutate(target, {
                 onSuccess: () => {
                   toast.success(`Moved ${selected.size} cards to ${target.label}`)

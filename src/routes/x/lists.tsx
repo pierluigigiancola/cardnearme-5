@@ -286,7 +286,9 @@ function ListsPage() {
 
       <ConfirmDialog
         confirmLabel="Delete list"
-        description={`The list and its ${deleting?.cardCount ?? 0} cards are removed from your binder. This cannot be undone.`}
+        description={deleting?.type === 'haves'
+          ? `The list is deleted and its ${deleting.cardCount} cards are no longer for trade. They stay in your collection.`
+          : `The list and its ${deleting?.cardCount ?? 0} cards are removed from your binder. This cannot be undone.`}
         onConfirm={() => deleting && remove.mutate(deleting, {
           onSuccess: () => {
             toast.success(`Deleted ${deleting.name}`)
