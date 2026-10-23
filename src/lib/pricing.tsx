@@ -14,7 +14,7 @@ const PricingContext = createContext<PricingSource>('cardmarket-eur')
  */
 export function PricingProvider({ children }: { children: ReactNode }) {
   const viewer = useViewer()
-  const signedIn = viewer.kind === 'user' && viewer.onboarded
+  const signedIn = viewer.kind === 'user'
   const { data: profile } = useQuery({
     ...profileQuery(viewer.kind === 'user' ? viewer.id : 'anonymous'),
     enabled: signedIn,

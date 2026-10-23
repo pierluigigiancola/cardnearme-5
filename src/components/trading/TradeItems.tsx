@@ -33,7 +33,7 @@ function TradeButton({ item }: { item: TradeItem }) {
   const requireAuth = useRequireAuth()
   const openTradeBuilder = useTradeBuilder()
   const viewer = useViewer()
-  if (viewer.kind === 'user' && viewer.username === item.ownerUsername) {
+  if (viewer.kind === 'user' && viewer.id === item.ownerId) {
     return (
       <Button
         className="w-full"
@@ -50,7 +50,7 @@ function TradeButton({ item }: { item: TradeItem }) {
       className="w-full"
       onClick={() => requireAuth('trade', () => openTradeBuilder({
         item,
-        partner: item.ownerUsername,
+        partner: item.ownerId,
       }))}
       size="sm"
     >

@@ -48,6 +48,7 @@ import type {
   TradeListInput,
   TradeMatch,
   UnreadCounts,
+  UserId,
   UserProfile,
   WorkspaceProfile,
 } from './types'
@@ -108,7 +109,7 @@ export interface CommunityService {
   listDecks: (options?: {
     gameId?: GameId;
     format?: string;
-    ownerUsername?: string;
+    ownerId?: UserId;
     limit?: number
   }) => Promise<Deck[]>
   getDeck: (deckId: string) => Promise<Deck | null>
@@ -171,14 +172,14 @@ export interface ChatService {
   listChats: () => Promise<ChatSummary[]>
   getThread: (chatId: string) => Promise<ChatThread | null>
   /** Returns the conversation with a trader, starting one if needed. */
-  openChat: (partner: string) => Promise<ChatSummary>
+  openChat: (partner: UserId) => Promise<ChatSummary>
   sendMessage: (chatId: string, body: string) => Promise<void>
   markRead: (chatId: string) => Promise<void>
 }
 
 export interface TradesService {
   listMatches: (scope?: MatchScope) => Promise<TradeMatch[]>
-  getContext: (partner: string) => Promise<TradeContext>
+  getContext: (partner: UserId) => Promise<TradeContext>
   /** Posts a proposal into the chat with the partner; returns the new trade. */
   propose: (draft: TradeDraft) => Promise<Trade>
   /** Counter-offer or edit: replaces the terms and hands the turn to the other side. */
@@ -200,6 +201,11 @@ export interface NotificationsService {
 export interface ProfileService {
   get: () => Promise<WorkspaceProfile>
   update: (patch: ProfilePatch) => Promise<WorkspaceProfile>
+  /**
+   * Saves the Trader's City and Stores and records onboarding by setting
+   * `profile.onboardedAt` (once). This is the only place onboarding is
+   * recorded: the `/x` guard reads `onboardedAt`, nothing else.
+   */
   completeOnboarding: (input: OnboardingInput) => Promise<WorkspaceProfile>
   joinStore: (storeSlug: string) => Promise<WorkspaceProfile>
   leaveStore: (storeSlug: string) => Promise<WorkspaceProfile>

@@ -32,7 +32,8 @@ export function deckBuilderService(ctx: TraderContext): DeckBuilderService {
       id: existing?.id ?? ctx.id('deck'),
       likes: existing?.likes ?? 0,
       name,
-      ownerUsername: ctx.me,
+      ownerId: ctx.me,
+      ownerUsername: ctx.trader.profile.username,
       updatedAt: now(),
       visibility: input.visibility === 'private' ? 'private' : 'public',
     }

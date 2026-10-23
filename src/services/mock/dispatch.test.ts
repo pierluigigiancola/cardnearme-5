@@ -12,7 +12,6 @@ const viewer: Viewer = {
   email: 'rpc@example.test',
   id: 'rpc-test-trader',
   kind: 'user',
-  onboarded: true,
   username: 'rpctester',
 }
 

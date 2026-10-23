@@ -13,6 +13,7 @@ import type {
   Trade,
   TradeItem,
   TradeListType,
+  UserId,
   Visibility,
   WorkspaceProfile,
 } from '../types'
@@ -55,15 +56,14 @@ export interface ListRecord {
 /** A conversation between two Traders, shared by both. */
 export interface ChatRecord {
   id: string
-  /** Usernames of the two Traders. */
-  traders: [string, string]
+  traders: [UserId, UserId]
   messages: ChatMessage[]
-  /** When each Trader last read the conversation, by username. */
-  lastReadAt: Record<string, string>
+  /** When each Trader last read the conversation. */
+  lastReadAt: Record<UserId, string>
 }
 
 export interface TraderRecord {
-  id: string
+  id: UserId
   profile: WorkspaceProfile
   memberSince: string
   badges: string[]
@@ -77,8 +77,8 @@ export interface TraderRecord {
 }
 
 export interface MockStore {
-  /** Every Trader, keyed by id. */
-  traders: Map<string, TraderRecord>
+  /** Every Trader, keyed by UserId. */
+  traders: Map<UserId, TraderRecord>
   chats: ChatRecord[]
   trades: Trade[]
   nextId: number
@@ -113,7 +113,7 @@ export function createStore(): MockStore {
     store.traders.set(user.id, {
       badges: user.badges,
       decks: decks
-        .filter(deck => deck.ownerUsername === user.username)
+        .filter(deck => deck.ownerId === user.id)
         .map(deck => ({
           ...deck,
           visibility: 'public',
@@ -121,7 +121,7 @@ export function createStore(): MockStore {
       id: user.id,
       imports: [],
       items: tradeItems
-        .filter(item => item.ownerUsername === user.username)
+        .filter(item => item.ownerId === user.id)
         .map(item => ({
           cardId: item.card.id,
           condition: item.condition,
@@ -163,6 +163,10 @@ export function nextId(store: MockStore, prefix: string) {
   return `${prefix}-${store.nextId++}`
 }
 
+/**
+ * Looks a Trader up by username, for routes that take one in the URL
+ * (`/users/$username`). Everything past that boundary uses the UserId.
+ */
 export function traderByUsername(store: MockStore, username: string) {
   for (const trader of store.traders.values()) {
     if (trader.profile.username === username) return trader
@@ -170,10 +174,15 @@ export function traderByUsername(store: MockStore, username: string) {
   return undefined
 }
 
-export function requireTrader(store: MockStore, username: string) {
-  const trader = traderByUsername(store, username)
-  if (!trader) throw new Error(`Trader ${username} not found`)
+export function requireTrader(store: MockStore, id: UserId) {
+  const trader = store.traders.get(id)
+  if (!trader) throw new Error('Trader not found')
   return trader
+}
+
+/** A Trader's current username, for display. */
+export function usernameOf(store: MockStore, id: UserId) {
+  return requireTrader(store, id).profile.username
 }
 
 export function hashString(value: string) {
@@ -186,15 +195,16 @@ export function hashString(value: string) {
 }
 
 /** How a Trader appears in chats, Matches and the trade builder. */
-export function participant(store: MockStore, username: string): ChatParticipant {
-  const trader = requireTrader(store, username)
-  const hash = hashString(username)
+export function participant(store: MockStore, id: UserId): ChatParticipant {
+  const trader = requireTrader(store, id)
+  const hash = hashString(id)
   return {
     avatarHue: trader.profile.avatarHue,
+    id,
     lastSeenAt: new Date(MOCK_NOW - (hash % 30) * 3_600_000).toISOString(),
     online: hash % 3 === 0,
     storeSlugs: trader.profile.storeSlugs,
-    username,
+    username: trader.profile.username,
   }
 }
 
@@ -219,6 +229,7 @@ export function listedItems(store: MockStore, listType: TradeListType, trader?: 
         id: record.id,
         language: record.language,
         listType,
+        ownerId: owner.id,
         ownerUsername: owner.profile.username,
         price: priceOf(card, record.finish),
         quantity: record.quantity,

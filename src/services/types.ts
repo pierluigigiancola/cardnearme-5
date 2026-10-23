@@ -142,8 +142,16 @@ export interface Store {
   isHub: boolean
 }
 
+/**
+ * Identifies a Trader: the Supabase auth user id. Every reference from one
+ * record to a person uses it, so a Trader can change their username without
+ * breaking Trades or chats. Usernames are for display and URLs only.
+ */
+export type UserId = string
+
 export interface UserProfile {
-  id: string
+  id: UserId
+  /** Display name and URL segment (`/users/$username`); never a reference. */
   username: string
   avatarHue: number
   memberSince: string
@@ -162,6 +170,9 @@ export interface TradeItem {
   id: string
   listType: TradeListType
   card: Printing
+  /** The Trader who listed it. */
+  ownerId: UserId
+  /** Display only; refer to the owner by `ownerId`. */
   ownerUsername: string
   storeSlugs: string[]
   citySlug: string
@@ -184,6 +195,8 @@ export interface Deck {
   gameId: GameId
   format: string
   name: string
+  ownerId: UserId
+  /** Display only; refer to the owner by `ownerId`. */
   ownerUsername: string
   description: string
   updatedAt: string
@@ -270,7 +283,7 @@ export interface PrintingQuery {
 export interface TradeItemQuery {
   citySlug?: string
   storeSlug?: string
-  ownerUsername?: string
+  ownerId?: UserId
   listType: TradeListType
   q?: string
   sort?: 'name' | 'price' | 'updated' | 'quantity'
@@ -451,6 +464,8 @@ export interface DeckInput {
 }
 
 export interface ChatParticipant {
+  id: UserId
+  /** Display only. */
   username: string
   avatarHue: number
   online: boolean
@@ -462,7 +477,7 @@ export interface ChatParticipant {
 interface ChatMessageBase {
   id: string
   chatId: string
-  author: string
+  author: UserId
   sentAt: string
 }
 
@@ -531,27 +546,27 @@ export type MeetupLocation =
 export interface Trade {
   id: string
   chatId: string
-  proposer: string
-  recipient: string
+  proposer: UserId
+  recipient: UserId
   proposerGives: TradeLine[]
   recipientGives: TradeLine[]
   /** Cash added to balance the values; `cashPayer` hands it over. */
   cashAmount: number
-  cashPayer: string | null
+  cashPayer: UserId | null
   meetup: MeetupLocation | null
   meetAt: string | null
   note: string
   status: TradeStatus
   /** Who has to act next: the side that did not make the latest offer. */
-  awaiting: string | null
-  cancelledBy: string | null
+  awaiting: UserId | null
+  cancelledBy: UserId | null
   createdAt: string
   updatedAt: string
 }
 
 /** A trade proposal from the viewer's point of view. */
 export interface TradeDraft {
-  partner: string
+  partner: UserId
   give: TradeDraftLine[]
   get: TradeDraftLine[]
   cash: {
@@ -608,7 +623,8 @@ export interface AppNotification {
   body: string
   /** In-app path the notification opens. */
   href: string
-  actor: string | null
+  /** The Trader the notification is about. */
+  actor: UserId | null
   createdAt: string
   readAt: string | null
 }

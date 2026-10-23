@@ -501,6 +501,7 @@ export const tradeItems: TradeItem[] = users.flatMap((user) => {
       id: `${user.id}-${listType}-${index}`,
       language: random.pick(languages),
       listType,
+      ownerId: user.id,
       ownerUsername: user.username,
       price: card.prices[finish] ?? card.prices.nonfoil ?? 0,
       quantity: random.chance(0.8) ? 1 : random.int(2, 4),
@@ -579,16 +580,22 @@ export const decks: Deck[] = Array.from({ length: 30 }, (_, index) => {
   const gameId: GameId = index < 18 ? 'mtg' : index < 24 ? 'riftbound' : 'onepiece'
   const game = games.find(g => g.id === gameId)
   const format = gameId === 'mtg' ? random.pick(['Commander', 'Modern', 'Legacy', 'Standard', 'Commander']) : (game?.formats[0] ?? 'Standard')
+  // Draw in the original order so the seeded decks stay the same.
+  const deckCards = buildDeck(gameId, format)
+  const commentCount = random.int(0, 6)
+  const likes = random.int(0, 40)
+  const owner = random.pick(users)
   return {
-    cards: buildDeck(gameId, format),
-    commentCount: random.int(0, 6),
+    cards: deckCards,
+    commentCount,
     description: 'A community list shared for inspiration. Swap pieces to fit your meta.',
     format,
     gameId,
     id: `deck-${index + 1}`,
-    likes: random.int(0, 40),
+    likes,
     name: deckNames[index % deckNames.length] ?? 'Untitled deck',
-    ownerUsername: random.pick(users).username,
+    ownerId: owner.id,
+    ownerUsername: owner.username,
     updatedAt: daysAgo(random.int(1, 120)),
   }
 })
