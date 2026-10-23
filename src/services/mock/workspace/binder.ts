@@ -216,9 +216,9 @@ export function binderService(ctx: TraderContext): BinderService {
           // On a Haves List a Collection entry is a Have: keep its for-trade copies, or mark them all.
           markForTrade(ctx, record, list ? record.forTradeQuantity || record.quantity : 0, list?.id)
         }
-        else {
+        else if (list) {
           touchList(ctx, record.listId)
-          record.listId = list?.id ?? record.listId
+          record.listId = list.id
           touchList(ctx, record.listId)
         }
         record.updatedAt = now()

@@ -100,47 +100,56 @@ export function requireItem({ trader }: TraderContext, itemId: string) {
   return record
 }
 
-/** Resolves the List an entry goes on, creating a default List when the Trader has none of that type. */
-export function resolveList(ctx: TraderContext, type: TradeListType, listId: string | null | undefined, card: Printing) {
-  if (listId) {
-    const list = requireList(ctx, listId)
-    if (list.type !== type) throw new Error(`${list.name} is a ${list.type} list`)
-    if (list.gameId && list.gameId !== card.gameId) {
-      throw new Error(`${list.name} only accepts ${games.find(game => game.id === list.gameId)?.name ?? list.gameId} cards`)
-    }
-    return list
-  }
-  const fallback = ctx.trader.lists.find(list => list.type === type && (!list.gameId || list.gameId === card.gameId))
-  if (fallback) return fallback
-  const created: ListRecord = {
-    createdAt: now(),
+/** A new default List: public and open to every game. */
+export function newDefaultList(id: string, type: TradeListType, createdAt: string): ListRecord {
+  return {
+    createdAt,
     gameId: null,
-    id: ctx.id('list'),
+    id,
+    isDefault: true,
     name: type === 'haves' ? 'My haves' : 'My wants',
     type,
-    updatedAt: now(),
+    updatedAt: createdAt,
     visibility: 'public',
   }
+}
+
+/** The Trader's default Haves or Wants List, created if their records predate it. */
+export function defaultList(ctx: TraderContext, type: TradeListType) {
+  const existing = ctx.trader.lists.find(list => list.type === type && list.isDefault)
+  if (existing) return existing
+  const created = newDefaultList(ctx.id('list'), type, now())
   ctx.trader.lists.push(created)
   return created
 }
 
-export function touchList({ trader }: TraderContext, listId: string | null) {
+/** Resolves the List an entry goes on: the one asked for, else the default List of that type. */
+export function resolveList(ctx: TraderContext, type: TradeListType, listId: string | null | undefined, card: Printing) {
+  if (!listId) return defaultList(ctx, type)
+  const list = requireList(ctx, listId)
+  if (list.type !== type) throw new Error(`${list.name} is a ${list.type} list`)
+  if (list.gameId && list.gameId !== card.gameId) {
+    throw new Error(`${list.name} only accepts ${games.find(game => game.id === list.gameId)?.name ?? list.gameId} cards`)
+  }
+  return list
+}
+
+export function touchList({ trader }: TraderContext, listId: string) {
   const list = trader.lists.find(candidate => candidate.id === listId)
   if (list) list.updatedAt = now()
 }
 
 /**
- * Sets how many copies of a Collection entry are for trade. Copies for trade
- * put the entry on a Haves List (`listId`, else the one it is on, else the
- * default); none for trade takes it off.
+ * Sets how many copies of a Collection entry are for trade, optionally moving
+ * it to the Haves List `listId`. The entry always stays on a Haves List; with
+ * no copies for trade it is not a Have there.
  */
 export function markForTrade(ctx: TraderContext, record: CollectionRecord, forTradeQuantity: number, listId?: string | null) {
   const checked = checkForTradeQuantity(record.quantity, forTradeQuantity)
-  const list = checked > 0 ? resolveList(ctx, 'haves', listId ?? record.listId, requirePrinting(record.cardId)) : null
+  const list = resolveList(ctx, 'haves', listId ?? record.listId, requirePrinting(record.cardId))
   touchList(ctx, record.listId)
   record.forTradeQuantity = checked
-  record.listId = list?.id ?? null
+  record.listId = list.id
   touchList(ctx, record.listId)
 }
 
@@ -170,7 +179,7 @@ export function addRecords(ctx: TraderContext, inputs: BinderItemInput[]) {
         id: ctx.id('item'),
         kind: 'collection',
         language: input.language,
-        listId: null,
+        listId: resolveList(ctx, 'haves', input.listId, card).id,
         quantity: 0,
         updatedAt: now(),
       }

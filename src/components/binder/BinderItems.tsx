@@ -434,7 +434,7 @@ function EditItemForm({ item, lists, onClose }: {
   onClose: () => void
 }) {
   const owned = item.kind === 'collection'
-  const [patch, setPatch] = useState<Required<Omit<BinderItemPatch, 'listId'>> & { listId: string | null }>({
+  const [patch, setPatch] = useState<Required<BinderItemPatch>>({
     condition: item.condition,
     finish: item.finish,
     forTradeQuantity: item.kind === 'collection' ? item.forTradeQuantity : 0,
@@ -445,14 +445,14 @@ function EditItemForm({ item, lists, onClose }: {
   const update = useWorkspaceMutation((services, next: BinderItemPatch) => services.binder.updateItem(item.id, next))
   const listType = owned ? 'haves' : 'wants'
   const sameTypeLists = lists.filter(list => list.type === listType && (!list.gameId || list.gameId === item.card.gameId))
-  // A Collection entry sits on a Haves List only while copies are for trade.
+  // A Collection entry is always on a Haves List, but the List only matters while copies are for trade.
   const showList = sameTypeLists.length > 0 && (!owned || patch.forTradeQuantity > 0)
   const { forTradeQuantity, ...shared } = patch
   const submitted: BinderItemPatch = owned
     ? {
       ...shared,
       forTradeQuantity: Math.min(forTradeQuantity, patch.quantity),
-      listId: forTradeQuantity > 0 ? patch.listId ?? sameTypeLists.at(0)?.id ?? null : null,
+      listId: patch.listId,
     }
     : shared
 
@@ -595,7 +595,7 @@ function EditItemForm({ item, lists, onClose }: {
                 ...patch,
                 listId,
               })}
-              value={patch.listId ?? sameTypeLists.at(0)?.id}
+              value={patch.listId}
             >
               <SelectTrigger
                 aria-label="List"
