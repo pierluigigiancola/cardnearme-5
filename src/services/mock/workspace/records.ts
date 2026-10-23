@@ -6,21 +6,14 @@ import type { CollectionRecord, ItemRecord, ListRecord } from '../store'
 import { clampQuantity, MAX_QUANTITY, now, requirePrinting } from './context'
 import type { TraderContext } from './context'
 
-import { checkForTradeQuantity, isHave } from '#/domain'
+import { checkForTradeQuantity, isHave, reservedQuantities } from '#/domain'
 import { isCondition, isFinish, isLanguage } from '#/lib/cardOptions'
 
 /** Binder and List records of the signed-in Trader, shared by several services. */
 
-/** Ids of the Trader's entries offered in a pending or accepted Trade. */
-export function itemsInTrade({ me, store }: TraderContext) {
-  const ids = new Set<string>()
-  for (const trade of store.trades) {
-    if (trade.status !== 'pending' && trade.status !== 'accepted') continue
-    if (trade.proposer !== me && trade.recipient !== me) continue
-    const mine = trade.proposer === me ? trade.proposerGives : trade.recipientGives
-    for (const line of mine) ids.add(line.sourceId)
-  }
-  return ids
+/** Copies of the Trader's Collection entries reserved by accepted Trades, by entry id. */
+export function myReserved({ me, store }: TraderContext) {
+  return reservedQuantities(store.trades, me)
 }
 
 /** True when a record shows in a Binder tab: `haves` is the Collection entries with copies for trade. */
@@ -40,7 +33,7 @@ export function listTypeOf(record: Pick<ItemRecord, 'kind'>): TradeListType {
 export function toBinderItems(ctx: TraderContext, records: CollectionRecord[]): CollectionEntry[]
 export function toBinderItems(ctx: TraderContext, records: ItemRecord[]): BinderItem[]
 export function toBinderItems(ctx: TraderContext, records: ItemRecord[]): BinderItem[] {
-  const inTrade = itemsInTrade(ctx)
+  const reserved = myReserved(ctx)
   return records.flatMap((record): BinderItem[] => {
     const card = printingsById.get(record.cardId)
     if (!card) return []
@@ -49,7 +42,6 @@ export function toBinderItems(ctx: TraderContext, records: ItemRecord[]): Binder
       condition: record.condition,
       finish: record.finish,
       id: record.id,
-      inTrade: inTrade.has(record.id),
       language: record.language,
       listId: record.listId,
       price: priceOf(card, record.finish),
@@ -61,6 +53,7 @@ export function toBinderItems(ctx: TraderContext, records: ItemRecord[]): Binder
         ...base,
         forTradeQuantity: record.forTradeQuantity,
         kind: 'collection',
+        reservedQuantity: Math.min(record.quantity, reserved.get(record.id) ?? 0),
       }
       : {
         ...base,

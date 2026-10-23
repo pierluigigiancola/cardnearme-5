@@ -4,15 +4,15 @@
 
 **Blocked by:** 04, 07
 
-**Status:** ready-for-agent
+**Status:** done
 
 Spec: [../spec.md](../spec.md), decision 9 · ADR: [0003](../../../docs/adr/0003-trade-completes-on-mutual-confirmation.md)
 
-- [ ] The Trade lifecycle lives in the domain module: propose, counter-offer, accept, cancel and confirm. `awaiting` is the side that didn't make the latest offer. A Trade never completes on its own.
-- [ ] Reservation: a Collection entry has a reserved quantity. Accepting is refused when it would need more copies than owned minus already reserved. Pending proposals reserve nothing.
-- [ ] Completion returns the Binder changes for both Traders together. Given cards leave the giver's Collection, including their for-trade and reserved quantities, and received cards join the receiver's Collection.
-- [ ] `Trade` records a confirmation timestamp for each Trader. `trades.complete` becomes `trades.confirm`, and its doc comment describes mutual confirmation.
-- [ ] The `inTrade` flag is gone, replaced by reserved quantity.
-- [ ] The Trade UI shows each side's confirmation and offers "Confirm trade" to the Trader still to confirm. The Binder shows reserved quantities.
-- [ ] In development only, mock partners auto-confirm accepted Trades after a short delay.
-- [ ] Every rule has unit tests, and `pnpm lint`, `pnpm exec tsc --noEmit` and `pnpm test` pass.
+- [x] The Trade lifecycle lives in the domain module: propose, counter-offer, accept, cancel and confirm. `awaiting` is the side that didn't make the latest offer. A Trade never completes on its own.
+- [x] Reservation: a Collection entry has a reserved quantity. Accepting is refused when it would need more copies than owned minus already reserved. Pending proposals reserve nothing.
+- [x] Completion returns the Binder changes for both Traders together. Given cards leave the giver's Collection, including their for-trade and reserved quantities, and received cards join the receiver's Collection.
+- [x] `Trade` records a confirmation timestamp for each Trader. `trades.complete` becomes `trades.confirm`, and its doc comment describes mutual confirmation.
+- [x] The `inTrade` flag is gone, replaced by reserved quantity.
+- [x] The Trade UI shows each side's confirmation and offers "Confirm trade" to the Trader still to confirm. The Binder shows reserved quantities.
+- [x] In development only, mock partners auto-confirm accepted Trades after a short delay.
+- [x] Every rule has unit tests, and `pnpm lint`, `pnpm exec tsc --noEmit` and `pnpm test` pass.

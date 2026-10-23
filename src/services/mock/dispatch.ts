@@ -207,7 +207,7 @@ const workspaceMethods: { [TName in keyof WorkspaceServices]: MethodTable<Worksp
   trades: {
     accept: args(str),
     cancel: args(str),
-    complete: args(str),
+    confirm: args(str),
     getContext: args(str),
     listMatches: args(optional(shape({
       citySlug: optional(str),
