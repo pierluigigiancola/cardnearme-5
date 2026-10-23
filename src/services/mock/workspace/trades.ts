@@ -1,14 +1,24 @@
 import type { TradesService } from '../../services'
-import type { MeetupLocation, Trade, TradeDraft, TradeLine } from '../../types'
-import { participant, priceOf, requireTrader, storesBySlug, usernameOf } from '../store'
+import type { MeetupLocation, Trade, TradeDraft, TradeLine, TradeMatch } from '../../types'
+import { listedItems, participant, priceOf, requireTrader, storesBySlug, usernameOf } from '../store'
 
-import { cardKey, now, requirePrinting, validPrice } from './context'
+import { now, requirePrinting, validPrice } from './context'
 import type { TraderContext } from './context'
 import { chatWith, partnerOf, post, requireChat, requireTrade } from './conversations'
 import { acceptAs, confirmAs } from './lifecycle'
-import { collectionRecords, itemsIn, myHaves, myReserved, partnerItems, requireItem, toBinderItems } from './records'
+import { cityOf, collectionRecords, matchTraderOf, myHaves, myReserved, partnerItems, requireItem, toBinderItems } from './records'
 
-import { cancelTrade, counterOffer, giveLineQuantity, proposeTrade, reservedQuantities } from '#/domain'
+import {
+  cancelTrade,
+  checkCanPropose,
+  counterOffer,
+  findMatches,
+  giveLineQuantity,
+  matchBetween,
+  proposeTrade,
+  reservedQuantities,
+  tradeEligibility,
+} from '#/domain'
 
 export function tradesService(ctx: TraderContext): TradesService {
   const { me, store, trader } = ctx
@@ -132,9 +142,12 @@ export function tradesService(ctx: TraderContext): TradesService {
       const myItems = toBinderItems(ctx, collectionRecords(ctx))
       const partnerHaves = partnerItems(ctx, partner.id, 'haves')
       const partnerWants = partnerItems(ctx, partner.id, 'wants')
-      const myWants = new Set(itemsIn(ctx, 'wants').map(item => cardKey(item.card)))
-      const theirWants = new Set(partnerWants.map(item => cardKey(item.card)))
-      const partnerProfile = requireTrader(store, partner.id).profile
+      const partnerRecord = requireTrader(store, partner.id)
+      const partnerProfile = partnerRecord.profile
+      // Pre-selection follows the Matching rule (Want filters included), whatever the partner's City.
+      const matched = matchBetween(matchTraderOf(trader), matchTraderOf(partnerRecord))
+      const suggestedGet = new Set(matched.theyHave.map(entry => entry.id))
+      const suggestedGive = new Set(matched.theyWant.map(entry => entry.id))
       return {
         meetingPlaces: [...new Set([...trader.profile.meetingPlaces, ...partnerProfile.meetingPlaces])],
         myItems,
@@ -144,36 +157,35 @@ export function tradesService(ctx: TraderContext): TradesService {
         sharedStores: partner.storeSlugs
           .filter(slug => trader.profile.storeSlugs.includes(slug))
           .flatMap(slug => storesBySlug.get(slug) ?? []),
-        suggestedGet: partnerHaves.filter(item => myWants.has(cardKey(item.card))).map(item => item.id),
-        suggestedGive: myItems.filter(item => item.forTradeQuantity > 0 && theirWants.has(cardKey(item.card))).map(item => item.id),
+        suggestedGet: partnerHaves.filter(item => suggestedGet.has(item.id)).map(item => item.id),
+        suggestedGive: myItems.filter(item => suggestedGive.has(item.id)).map(item => item.id),
       }
     },
-    listMatches: async ({ citySlug, storeSlug } = {}) => {
-      const myWants = new Set(itemsIn(ctx, 'wants').map(item => cardKey(item.card)))
-      const haves = myHaves(ctx)
-      const myStores = trader.profile.storeSlugs
-      const candidates = [...store.traders.values()].filter(({ id, profile }) => {
-        if (id === me) return false
-        if (storeSlug) return profile.storeSlugs.includes(storeSlug)
-        if (citySlug) return profile.citySlug === citySlug
-        return profile.storeSlugs.some(slug => myStores.includes(slug))
+    listMatches: async (scope) => {
+      const citySlug = scope?.citySlug ?? trader.profile.citySlug
+      if (!citySlug) return []
+      const myHaveEntries = new Map(myHaves(ctx).map(entry => [entry.id, entry]))
+      const myCity = cityOf(trader)
+      const traders = [...store.traders.values()]
+      return findMatches(matchTraderOf(trader), traders.map(matchTraderOf), {
+        citySlug,
+        storeSlug: scope?.storeSlug,
+      }).map((match): TradeMatch => {
+        const partner = requireTrader(store, match.partnerId)
+        const listed = new Map(listedItems(store, 'haves', partner).map(item => [item.id, item]))
+        return {
+          citySlug: match.citySlug,
+          eligibility: tradeEligibility(myCity, cityOf(partner)),
+          partner: participant(store, partner.id),
+          sharedStoreSlugs: match.sharedStoreSlugs,
+          theyHave: match.theyHave.flatMap(entry => listed.get(entry.id) ?? []),
+          theyWant: match.theyWant.flatMap(entry => myHaveEntries.get(entry.id) ?? []),
+        }
       })
-      return candidates
-        .map(({ id, profile }) => {
-          const theirWants = new Set(partnerItems(ctx, id, 'wants').map(item => cardKey(item.card)))
-          return {
-            citySlug: profile.citySlug ?? '',
-            partner: participant(store, id),
-            sharedStoreSlugs: profile.storeSlugs.filter(slug => myStores.includes(slug)),
-            theyHave: partnerItems(ctx, id, 'haves').filter(item => myWants.has(cardKey(item.card))),
-            theyWant: haves.filter(item => theirWants.has(cardKey(item.card))),
-          }
-        })
-        .filter(match => match.theyHave.length + match.theyWant.length > 0)
-        .sort((a, b) => (b.theyHave.length + b.theyWant.length) - (a.theyHave.length + a.theyWant.length))
     },
     propose: async (draft) => {
       const resolved = resolveDraft(draft)
+      checkCanPropose(cityOf(trader), cityOf(requireTrader(store, resolved.partner)))
       const chat = chatWith(ctx, resolved.partner)
       const trade: Trade = {
         ...proposeTrade(me, resolved.partner),

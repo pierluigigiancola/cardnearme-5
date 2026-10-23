@@ -37,8 +37,8 @@ const unlockFeatures = [
   },
   {
     icon: Sparkles,
-    text: 'Discover matches between your lists and nearby players.',
-    title: 'Matched trades',
+    text: 'Propose trades to the players you match with. Your matches already show.',
+    title: 'Trade proposals',
   },
   {
     icon: Bell,
@@ -184,6 +184,14 @@ function CityPage() {
                   </li>
                 ))}
               </ul>
+
+              <Link
+                className="inline-block text-sm font-semibold text-match"
+                params={{ city: slug }}
+                to="/city/$city/matched"
+              >
+                See your matches now →
+              </Link>
             </div>
 
             <div className="lg:col-span-2">

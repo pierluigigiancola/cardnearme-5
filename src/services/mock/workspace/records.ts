@@ -1,12 +1,13 @@
 import type { BinderItem, BinderItemInput, BinderSection, CardId, CollectionEntry, Printing, TradeListType, UserId, WantFilters } from '../../types'
-import { games } from '../data'
+import { cities, games } from '../data'
 import { listedItems, priceOf, printingsById, printingsOf, requireTrader, shownPrinting, wantDetails } from '../store'
-import type { CollectionRecord, ItemRecord, ListRecord, WantRecord } from '../store'
+import type { CollectionRecord, ItemRecord, ListRecord, TraderRecord, WantRecord } from '../store'
 
 import { clampQuantity, MAX_QUANTITY, now, requirePrinting } from './context'
 import type { TraderContext } from './context'
 
 import { checkForTradeQuantity, isHave, reservedQuantities, wantFilters } from '#/domain'
+import type { MatchTrader } from '#/domain'
 import { isCondition, isFinish, isLanguage } from '#/lib/cardOptions'
 
 /** Binder and List records of the signed-in Trader, shared by several services. */
@@ -87,6 +88,33 @@ export function wantRecords({ trader }: TraderContext) {
 /** The Trader's Haves, as Binder entries. */
 export function myHaves(ctx: TraderContext) {
   return toBinderItems(ctx, collectionRecords(ctx).filter(isHave))
+}
+
+/** A Trader as the domain's Matching rule reads them (`#/domain` `MatchTrader`). */
+export function matchTraderOf(trader: TraderRecord): MatchTrader {
+  return {
+    citySlug: trader.profile.citySlug,
+    haves: trader.items.flatMap((record) => {
+      if (record.kind !== 'collection') return []
+      const printing = printingsById.get(record.printingId)
+      return printing
+        ? [{
+          ...record,
+          cardId: printing.cardId,
+          setCode: printing.setCode,
+        }]
+        : []
+    }),
+    id: trader.id,
+    lists: trader.lists,
+    storeSlugs: trader.profile.storeSlugs,
+    wants: trader.items.filter((record): record is WantRecord => record.kind === 'want'),
+  }
+}
+
+/** The City a Trader picked, if any. */
+export function cityOf(trader: TraderRecord) {
+  return cities.find(city => city.slug === trader.profile.citySlug) ?? null
 }
 
 /** Another Trader's Haves or Wants, as other Traders see them. */
