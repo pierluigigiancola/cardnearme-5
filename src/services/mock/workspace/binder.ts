@@ -1,7 +1,7 @@
 import type { BinderService } from '../../services'
 import type { BinderImport, BinderItem, BinderItemInput, BinderSection, Ownership } from '../../types'
 import { printings, games } from '../data'
-import { baseType, buildFacets, capitalise, compare, labelFrom, matchesFacets, matchesText } from '../queryHelpers'
+import { baseType, buildFacets, capitalise, cardItemSortKeys, labelFrom, matchesFacets, matchesText, sortBy } from '../queryHelpers'
 import type { FacetDefinition } from '../queryHelpers'
 import { resolveImportRows } from '../resolveImportRows'
 import { printingsById, printingsOf } from '../store'
@@ -200,16 +200,12 @@ export function binderService(ctx: TraderContext): BinderService {
     listItems: async ({ facets, listId, order = 'desc', q, section, sort = 'updated' }) => {
       const scoped = toBinderItems(ctx, trader.items.filter(record => inSection(record, section) && (!listId || record.listId === listId)))
       const definitions = section === 'collection' ? collectionFacets : binderFacets
-      const filtered = scoped
-        .filter(item => matchesText(`${item.card.name} ${item.card.setName}`, q) && matchesFacets(item, definitions, facets))
-        .sort((a, b) => {
-          switch (sort) {
-            case 'name': return compare(a.card.name, b.card.name, order)
-            case 'price': return compare(a.price, b.price, order)
-            case 'quantity': return compare(a.quantity, b.quantity, order)
-            case 'updated': return compare(a.updatedAt, b.updatedAt, order)
-          }
-        })
+      const filtered = sortBy(
+        scoped.filter(item => matchesText(`${item.card.name} ${item.card.setName}`, q) && matchesFacets(item, definitions, facets)),
+        cardItemSortKeys,
+        sort,
+        order,
+      )
       return {
         facets: buildFacets(scoped, definitions),
         items: filtered,
