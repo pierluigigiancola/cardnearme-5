@@ -28,17 +28,17 @@ export const Route = createFileRoute('/users/$username')({
       queryClient.ensureQueryData(storesQuery()),
       queryClient.ensureQueryData(decksQuery({
         limit: 4,
-        ownerUsername: user.username,
+        ownerId: user.id,
       })),
       queryClient.ensureQueryData(tradeItemsQuery({
         limit: PREVIEW,
         listType: 'haves',
-        ownerUsername: user.username,
+        ownerId: user.id,
       })),
       queryClient.ensureQueryData(tradeItemsQuery({
         limit: PREVIEW,
         listType: 'wants',
-        ownerUsername: user.username,
+        ownerId: user.id,
       })),
     ])
     return user
@@ -51,7 +51,7 @@ function ProfilePage() {
   const user = Route.useLoaderData()
   const requireAuth = useRequireAuth()
   const viewer = useViewer()
-  const isMe = viewer.kind === 'user' && viewer.username === user.username
+  const isMe = viewer.kind === 'user' && viewer.id === user.id
   const openTradeBuilder = useTradeBuilder()
   const { isPending: startingChat, startChat } = useStartChat()
   const { data: games } = useSuspenseQuery(gamesQuery())
@@ -59,17 +59,17 @@ function ProfilePage() {
   const { data: stores } = useSuspenseQuery(storesQuery())
   const { data: decks } = useSuspenseQuery(decksQuery({
     limit: 4,
-    ownerUsername: user.username,
+    ownerId: user.id,
   }))
   const { data: haves } = useSuspenseQuery(tradeItemsQuery({
     limit: PREVIEW,
     listType: 'haves',
-    ownerUsername: user.username,
+    ownerId: user.id,
   }))
   const { data: wants } = useSuspenseQuery(tradeItemsQuery({
     limit: PREVIEW,
     listType: 'wants',
-    ownerUsername: user.username,
+    ownerId: user.id,
   }))
   const userCities = cities.filter(city => user.citySlugs.includes(city.slug))
   const userStores = stores.filter(store => user.storeSlugs.includes(store.slug))
@@ -121,7 +121,7 @@ function ProfilePage() {
             <>
               <Button
                 disabled={startingChat}
-                onClick={() => requireAuth('message', () => startChat(user.username))}
+                onClick={() => requireAuth('message', () => startChat(user.id))}
                 variant="outline"
               >
                 <MessageSquare />
@@ -130,7 +130,7 @@ function ProfilePage() {
 
               <Button
                 onClick={() => requireAuth('trade', () => openTradeBuilder({
-                  partner: user.username,
+                  partner: user.id,
                   useMatches: true,
                 }))}
               >

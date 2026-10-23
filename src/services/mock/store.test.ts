@@ -41,7 +41,7 @@ describe('one mock store', () => {
     const { have, publicView } = await addHave()
     const page = await publicView.trading.listTradeItems({
       listType: 'haves',
-      ownerUsername: trader.username,
+      ownerId: trader.id,
     })
     expect(page.items.map(item => item.id)).toContain(have.id)
   })
@@ -77,7 +77,7 @@ describe('one mock store', () => {
     })
     const page = await publicView.trading.listTradeItems({
       listType: 'haves',
-      ownerUsername: trader.username,
+      ownerId: trader.id,
     })
     expect(page.items.map(item => item.id)).not.toContain(have.id)
   })

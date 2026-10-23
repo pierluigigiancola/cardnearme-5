@@ -236,7 +236,7 @@ const publicMethods: { [TName in keyof StorePublicServices]: MethodTable<StorePu
       format: optional(str),
       gameId: optional(gameId),
       limit: optional(num),
-      ownerUsername: optional(str),
+      ownerId: optional(str),
     }))),
   },
   trading: {
@@ -247,7 +247,7 @@ const publicMethods: { [TName in keyof StorePublicServices]: MethodTable<StorePu
       limit: optional(num),
       listType,
       order,
-      ownerUsername: optional(str),
+      ownerId: optional(str),
       q: optional(str),
       sort: optional(oneOf('name', 'price', 'updated', 'quantity')),
       storeSlug: optional(str),

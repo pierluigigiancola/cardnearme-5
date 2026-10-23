@@ -13,7 +13,7 @@ import { formatPrice, formatRelative } from '#/lib/format'
 import { usePricingSource } from '#/lib/pricing'
 import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
-import type { Trade, TradeLine } from '#/services/types'
+import type { Trade, TradeLine, UserId } from '#/services/types'
 
 const meetFormatter = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
@@ -23,10 +23,14 @@ const meetFormatter = new Intl.DateTimeFormat('en-GB', {
   weekday: 'short',
 })
 
-/** A trade proposal as it appears in the conversation, with the actions open to the viewer. */
-export function TradeCard({ me, trade }: {
+/**
+ * A trade proposal as it appears in the conversation, with the actions open to the viewer.
+ * The Trade refers to both Traders by UserId; `partnerName` is the other Trader's username, for display.
+ */
+export function TradeCard({ me, partnerName, trade }: {
   trade: Trade;
-  me: string
+  me: UserId;
+  partnerName: string
 }) {
   const source = usePricingSource()
   const sides = tradeFromPerspective(trade, me)
@@ -51,7 +55,7 @@ export function TradeCard({ me, trade }: {
         <TradeStatusPill status={trade.status} />
 
         <span className="ml-auto text-xs text-muted-foreground">
-          {trade.proposer === me ? 'You proposed' : `${trade.proposer} proposed`}
+          {trade.proposer === me ? 'You proposed' : `${partnerName} proposed`}
 
           {' · '}
 
@@ -110,7 +114,7 @@ export function TradeCard({ me, trade }: {
         <p className="mt-3 flex items-center gap-2 text-sm">
           <Coins className="size-4 text-price" />
 
-          {trade.cashPayer === me ? 'You add' : `${trade.cashPayer} adds`}
+          {trade.cashPayer === me ? 'You add' : `${partnerName} adds`}
 
           <Price amount={trade.cashAmount} />
           in cash
@@ -126,7 +130,7 @@ export function TradeCard({ me, trade }: {
 
         <div>
           <dt className="text-xs text-muted-foreground">
-            {sides.partner}
+            {partnerName}
             &apos;s total
           </dt>
 
@@ -148,13 +152,13 @@ export function TradeCard({ me, trade }: {
 
       <footer className="mt-4 flex flex-wrap items-center gap-2">
         <p className="mr-auto text-sm font-semibold text-muted-foreground">
-          {trade.status === 'pending' && (awaitingMe ? 'Waiting for your answer' : `Awaiting @${trade.awaiting ?? sides.partner}`)}
+          {trade.status === 'pending' && (awaitingMe ? 'Waiting for your answer' : `Awaiting @${partnerName}`)}
 
           {trade.status === 'accepted' && 'Accepted — meet up, swap the cards, then mark it completed'}
 
           {trade.status === 'completed' && 'Completed — the cards moved between your binders'}
 
-          {trade.status === 'cancelled' && cancelledCopy(trade, me)}
+          {trade.status === 'cancelled' && cancelledCopy(trade, me, partnerName)}
         </p>
 
         {awaitingMe && (
@@ -250,11 +254,11 @@ export function TradeCard({ me, trade }: {
  * proposer cancelling is a withdrawal. A trade does not record whether it had been accepted before
  * it was cancelled, so "withdrew from" is worded to also fit a proposer cancelling after acceptance.
  */
-function cancelledCopy(trade: Trade, me: string) {
+function cancelledCopy(trade: Trade, me: UserId, partnerName: string) {
   if (!trade.cancelledBy) return 'This trade was cancelled'
   const withdrew = trade.cancelledBy === trade.proposer
   if (trade.cancelledBy === me) return withdrew ? 'You withdrew from this trade' : 'You declined this trade'
-  return withdrew ? `${trade.cancelledBy} withdrew from this trade` : `${trade.cancelledBy} declined this trade`
+  return withdrew ? `${partnerName} withdrew from this trade` : `${partnerName} declined this trade`
 }
 
 function TradeColumn({ lines, title }: {

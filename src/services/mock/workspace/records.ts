@@ -1,4 +1,4 @@
-import type { BinderItem, BinderItemInput, BinderSection, Card, TradeListType } from '../../types'
+import type { BinderItem, BinderItemInput, BinderSection, Card, TradeListType, UserId } from '../../types'
 import { games } from '../data'
 import { cardsById, listedItems, priceOf, requireTrader } from '../store'
 import type { ItemRecord, ListRecord } from '../store'
@@ -50,8 +50,8 @@ export function itemsIn(ctx: TraderContext, section: BinderSection) {
 }
 
 /** Another Trader's Haves or Wants, as other Traders see them. */
-export function partnerItems({ store }: TraderContext, username: string, listType: TradeListType) {
-  return listedItems(store, listType, requireTrader(store, username))
+export function partnerItems({ store }: TraderContext, partner: UserId, listType: TradeListType) {
+  return listedItems(store, listType, requireTrader(store, partner))
 }
 
 export function requireList({ trader }: TraderContext, listId: string) {

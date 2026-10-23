@@ -30,10 +30,10 @@ import { usePricingSource } from '#/lib/pricing'
 import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
 import { tradeContextQuery } from '#/services/queries'
-import type { Card, Condition, Finish, Language, Trade, TradeContext, TradeDraft, TradeItem } from '#/services/types'
+import type { Card, Condition, Finish, Language, Trade, TradeContext, TradeDraft, TradeItem, UserId } from '#/services/types'
 
 export interface TradeBuilderRequest {
-  partner: string
+  partner: UserId
   /** A card of the partner's (haves or wants) the trade starts from. */
   item?: TradeItem
   /** Pre-select every match between both traders' lists. */
@@ -149,7 +149,7 @@ function toLocalInput(iso: string | null) {
     .slice(0, 16)
 }
 
-function initialState(context: TradeContext, request: TradeBuilderRequest, me: string) {
+function initialState(context: TradeContext, request: TradeBuilderRequest, me: UserId) {
   const give = new Map<string, Selection>()
   const get = new Map<string, Selection>()
   let cash = {
@@ -260,13 +260,14 @@ function TradeBuilderForm({ context, onClose, request }: {
   const viewer = useSignedInViewer()
   const router = useRouter()
   const source = usePricingSource()
-  const [initial] = useState(() => initialState(context, request, viewer.username))
+  const [initial] = useState(() => initialState(context, request, viewer.id))
   const [give, setGive] = useState(initial.give)
   const [get, setGet] = useState(initial.get)
   const [cash, setCash] = useState(initial.cash)
   const [meetup, setMeetup] = useState<MeetupChoice>(initial.meetup)
   const [meetAt, setMeetAt] = useState(initial.meetAt)
   const [note, setNote] = useState(initial.note)
+  /** The partner's username, for display; the draft refers to them by `context.partner.id`. */
   const partner = context.partner.username
   // Shared stores, plus the store of the trade being edited if it is not shared.
   const storeOptions = useMemo(() => {
@@ -346,7 +347,7 @@ function TradeBuilderForm({ context, onClose, request }: {
           ? meetup
           : null,
       note,
-      partner,
+      partner: context.partner.id,
     }
     propose.mutate(draft, {
       onSuccess: (trade) => {
@@ -373,7 +374,7 @@ function TradeBuilderForm({ context, onClose, request }: {
             username={partner}
           />
 
-          {request.trade ? (request.trade.awaiting === viewer.username ? 'Counter-offer to ' : 'Edit proposal to ') : 'Trade with '}
+          {request.trade ? (request.trade.awaiting === viewer.id ? 'Counter-offer to ' : 'Edit proposal to ') : 'Trade with '}
 
           {partner}
         </DialogTitle>

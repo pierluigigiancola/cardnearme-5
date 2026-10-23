@@ -1,4 +1,4 @@
-import type { Card, ChatMessage, TradeDraftLine } from '../../types'
+import type { Card, ChatMessage, TradeDraftLine, UserId } from '../../types'
 import { cardsById, nextId } from '../store'
 import type { MockStore, TraderRecord } from '../store'
 
@@ -10,15 +10,15 @@ import type { MockStore, TraderRecord } from '../store'
 export interface TraderContext {
   store: MockStore
   trader: TraderRecord
-  /** The Trader's username, as Trades and chats refer to them. */
-  me: string
+  /** The Trader's UserId, as Trades and chats refer to them. */
+  me: UserId
   id: (prefix: string) => string
 }
 
 export function traderContext(store: MockStore, trader: TraderRecord): TraderContext {
   return {
     id: prefix => nextId(store, prefix),
-    me: trader.profile.username,
+    me: trader.id,
     store,
     trader,
   }

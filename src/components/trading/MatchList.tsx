@@ -39,7 +39,7 @@ export function MatchList({ empty, matches, storeNames }: {
       {matches.map(match => (
         <li
           className="flex flex-col gap-3 rounded-xl border bg-card p-4"
-          key={match.partner.username}
+          key={match.partner.id}
         >
           <div className="flex items-center gap-3">
             <TraderAvatar
@@ -91,7 +91,7 @@ export function MatchList({ empty, matches, storeNames }: {
             <Button
               className="flex-1"
               onClick={() => requireAuth('trade', () => openTradeBuilder({
-                partner: match.partner.username,
+                partner: match.partner.id,
                 useMatches: true,
               }))}
               size="sm"
@@ -102,7 +102,7 @@ export function MatchList({ empty, matches, storeNames }: {
 
             <Button
               disabled={isPending}
-              onClick={() => requireAuth('message', () => startChat(match.partner.username))}
+              onClick={() => requireAuth('message', () => startChat(match.partner.id))}
               size="sm"
               variant="outline"
             >
