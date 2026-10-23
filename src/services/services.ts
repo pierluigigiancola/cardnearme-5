@@ -222,8 +222,8 @@ export interface TradesService {
   /**
    * Posts a proposal into the chat with the partner; returns the new trade.
    * Refused unless the Trade is eligible (`#/domain` `tradeEligibility`): the
-   * viewer must have picked a City, and neither Trader's City may still be
-   * locked. Traders in different unlocked Cities may trade.
+   * both Traders must have picked a City, and neither Trader's City may still
+   * be locked. Traders in different unlocked Cities may trade.
    */
   propose: (draft: TradeDraft) => Promise<Trade>
   /** Counter-offer or edit: replaces the terms and hands the turn to the other side. */
