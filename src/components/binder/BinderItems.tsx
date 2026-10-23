@@ -1,9 +1,11 @@
+import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { ArrowLeftRight, FolderInput, MoreHorizontal, Pencil, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { sectionLabels } from './AddCardDialog'
+import { WantFilterBadges, WantFilterFields } from './WantFilters'
 
 import { CardArt } from '#/components/cards/CardArt'
 import { ConditionBadge, FinishBadge, Price } from '#/components/cards/CardBits'
@@ -48,7 +50,8 @@ import { conditionLabels, conditions, finishLabels, isCondition, isFinish, isLan
 import { formatRelative } from '#/lib/format'
 import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
-import type { BinderItem, BinderItemKind, BinderItemPatch, CollectionEntry, TradeList, ViewMode } from '#/services/types'
+import { printingsQuery } from '#/services/queries'
+import type { BinderItem, BinderItemKind, BinderItemPatch, CollectionEntry, TradeList, ViewMode, WantEntry, WantFilters } from '#/services/types'
 
 export interface MoveTarget {
   /** A Haves or Wants List, or null to take Collection entries off trade. */
@@ -176,7 +179,7 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
 
                       {' '}
 
-                      <FinishBadge finish={item.finish} />
+                      {item.kind === 'collection' ? <FinishBadge finish={item.finish} /> : <WantFilterBadges filters={item.filters} />}
 
                       {item.kind === 'collection' && item.reservedQuantity > 0 && (
                         <ReservedBadge
@@ -186,15 +189,19 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
                       )}
                     </TableCell>
 
-                    <TableCell className="text-muted-foreground">{item.card.setName}</TableCell>
+                    <TableCell className="text-muted-foreground">{item.kind === 'collection' || item.filters.setCode ? item.card.setName : 'Any set'}</TableCell>
 
                     <TableCell className="text-muted-foreground">{item.listId ? listNames.get(item.listId) : '—'}</TableCell>
 
                     <TableCell>
-                      <ConditionBadge condition={item.condition} />
+                      {item.kind === 'collection'
+                        ? <ConditionBadge condition={item.condition} />
+                        : item.filters.minCondition
+                          ? <ConditionBadge condition={item.filters.minCondition} />
+                          : <span className="text-muted-foreground">Any</span>}
                     </TableCell>
 
-                    <TableCell className="uppercase">{item.language}</TableCell>
+                    <TableCell className="uppercase">{item.kind === 'collection' ? item.language : item.filters.language ?? <span className="text-muted-foreground normal-case">Any</span>}</TableCell>
 
                     <TableCell className="text-right tabular-nums">{item.kind === 'collection' ? <CollectionQuantities entry={item} /> : item.quantity}</TableCell>
 
@@ -229,7 +236,7 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
                   <CardLink item={item}>
                     <CardArt
                       card={item.card}
-                      finish={item.finish}
+                      finish={item.kind === 'collection' ? item.finish : item.filters.finish ?? undefined}
                     />
                   </CardLink>
 
@@ -252,11 +259,17 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <ConditionBadge condition={item.condition} />
+                  {item.kind === 'collection'
+                    ? (
+                      <>
+                        <ConditionBadge condition={item.condition} />
 
-                  <span className="text-xs text-muted-foreground uppercase">{item.language}</span>
+                        <span className="text-xs text-muted-foreground uppercase">{item.language}</span>
 
-                  <FinishBadge finish={item.finish} />
+                        <FinishBadge finish={item.finish} />
+                      </>
+                    )
+                    : <WantFilterBadges filters={item.filters} />}
 
                   <Price
                     amount={item.price}
@@ -428,8 +441,17 @@ function EditItemDialog({ item, lists, onClose }: {
       open={item !== null}
     >
       <DialogContent className="sm:max-w-md">
-        {item && (
+        {item?.kind === 'collection' && (
           <EditItemForm
+            item={item}
+            key={item.id}
+            lists={lists}
+            onClose={onClose}
+          />
+        )}
+
+        {item?.kind === 'want' && (
+          <EditWantForm
             item={item}
             key={item.id}
             lists={lists}
@@ -441,45 +463,135 @@ function EditItemDialog({ item, lists, onClose }: {
   )
 }
 
-function EditItemForm({ item, lists, onClose }: {
-  item: BinderItem;
+/** Edits a Want: its filters, quantity and List. */
+function EditWantForm({ item, lists, onClose }: {
+  item: WantEntry;
   lists: TradeList[];
   onClose: () => void
 }) {
-  const owned = item.kind === 'collection'
-  const [patch, setPatch] = useState<Required<BinderItemPatch>>({
-    condition: item.condition,
-    finish: item.finish,
-    forTradeQuantity: item.kind === 'collection' ? item.forTradeQuantity : 0,
-    language: item.language,
-    listId: item.listId,
-    quantity: item.quantity,
-  })
+  const [filters, setFilters] = useState<WantFilters>(item.filters)
+  const [quantity, setQuantity] = useState(item.quantity)
+  const [listId, setListId] = useState(item.listId)
+  const printingsResult = useQuery(printingsQuery(item.cardId))
   const update = useWorkspaceMutation((services, next: BinderItemPatch) => services.binder.updateItem(item.id, next))
-  const listType = owned ? 'haves' : 'wants'
-  const sameTypeLists = lists.filter(list => list.type === listType && (!list.gameId || list.gameId === item.card.gameId))
-  // A Collection entry is always on a Haves List, but the List only matters while copies are for trade.
-  const showList = sameTypeLists.length > 0 && (!owned || patch.forTradeQuantity > 0)
-  const { forTradeQuantity, ...shared } = patch
-  const submitted: BinderItemPatch = owned
-    ? {
-      ...shared,
-      forTradeQuantity: Math.min(forTradeQuantity, patch.quantity),
-      listId: patch.listId,
-    }
-    : shared
+  const wantsLists = lists.filter(list => list.type === 'wants' && (!list.gameId || list.gameId === item.card.gameId))
 
   return (
     <>
       <DialogHeader>
         <DialogTitle>{item.card.name}</DialogTitle>
 
-        <DialogDescription>{`${item.card.setName} · #${item.card.number} · ${owned ? 'Collection' : 'Wants'}`}</DialogDescription>
+        <DialogDescription>Wants · any printing unless you narrow it</DialogDescription>
+      </DialogHeader>
+
+      <WantFilterFields
+        filters={filters}
+        onChange={setFilters}
+        printings={printingsResult.data ?? [item.card]}
+      />
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label>Quantity</Label>
+
+          <QuantityStepper
+            className="h-9"
+            onChange={setQuantity}
+            value={quantity}
+          />
+        </div>
+
+        {wantsLists.length > 0 && (
+          <div className="space-y-1.5">
+            <Label>List</Label>
+
+            <Select
+              onValueChange={setListId}
+              value={listId}
+            >
+              <SelectTrigger
+                aria-label="List"
+                className="w-full"
+              >
+                <SelectValue />
+              </SelectTrigger>
+
+              <SelectContent>
+                {wantsLists.map(list => (
+                  <SelectItem
+                    key={list.id}
+                    value={list.id}
+                  >
+                    {list.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+
+      <DialogFooter>
+        <Button
+          onClick={onClose}
+          variant="ghost"
+        >
+          Cancel
+        </Button>
+
+        <Button
+          disabled={update.isPending}
+          onClick={() => update.mutate({
+            filters,
+            listId,
+            quantity,
+          }, {
+            onSuccess: () => {
+              toast.success('Want updated')
+              onClose()
+            },
+          })}
+        >
+          Save
+        </Button>
+      </DialogFooter>
+    </>
+  )
+}
+
+function EditItemForm({ item, lists, onClose }: {
+  item: CollectionEntry;
+  lists: TradeList[];
+  onClose: () => void
+}) {
+  const [patch, setPatch] = useState({
+    condition: item.condition,
+    finish: item.finish,
+    forTradeQuantity: item.forTradeQuantity,
+    language: item.language,
+    listId: item.listId,
+    quantity: item.quantity,
+  })
+  const update = useWorkspaceMutation((services, next: BinderItemPatch) => services.binder.updateItem(item.id, next))
+  const sameTypeLists = lists.filter(list => list.type === 'haves' && (!list.gameId || list.gameId === item.card.gameId))
+  // A Collection entry is always on a Haves List, but the List only matters while copies are for trade.
+  const showList = sameTypeLists.length > 0 && patch.forTradeQuantity > 0
+  const submitted: BinderItemPatch = {
+    ...patch,
+    forTradeQuantity: Math.min(patch.forTradeQuantity, patch.quantity),
+  }
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>{item.card.name}</DialogTitle>
+
+        <DialogDescription>{`${item.card.setName} · #${item.card.number} · Collection`}</DialogDescription>
       </DialogHeader>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label>{owned ? 'Condition' : 'Minimum condition'}</Label>
+          <Label>Condition</Label>
 
           <Select
             onValueChange={value => isCondition(value) && setPatch({
@@ -569,7 +681,7 @@ function EditItemForm({ item, lists, onClose }: {
         </div>
 
         <div className="space-y-1.5">
-          <Label>{owned ? 'Copies owned' : 'Quantity'}</Label>
+          <Label>Copies owned</Label>
 
           <QuantityStepper
             className="h-9"
@@ -581,27 +693,25 @@ function EditItemForm({ item, lists, onClose }: {
           />
         </div>
 
-        {owned && (
-          <div className="space-y-1.5">
-            <Label>For trade</Label>
+        <div className="space-y-1.5">
+          <Label>For trade</Label>
 
-            <QuantityStepper
-              className="h-9"
-              label="For trade"
-              max={patch.quantity}
-              min={0}
-              onChange={next => setPatch({
-                ...patch,
-                forTradeQuantity: next,
-              })}
-              value={Math.min(patch.forTradeQuantity, patch.quantity)}
-            />
-          </div>
-        )}
+          <QuantityStepper
+            className="h-9"
+            label="For trade"
+            max={patch.quantity}
+            min={0}
+            onChange={next => setPatch({
+              ...patch,
+              forTradeQuantity: next,
+            })}
+            value={Math.min(patch.forTradeQuantity, patch.quantity)}
+          />
+        </div>
 
         {showList && (
           <div className="col-span-2 space-y-1.5">
-            <Label>{owned ? 'Haves list' : 'List'}</Label>
+            <Label>Haves list</Label>
 
             <Select
               onValueChange={listId => setPatch({

@@ -1,6 +1,7 @@
 import type {
   AppNotification,
   BinderImport,
+  CardId,
   Printing,
   ChatMessage,
   ChatParticipant,
@@ -14,13 +15,14 @@ import type {
   TradeListType,
   UserId,
   Visibility,
+  WantFilters,
   WorkspaceProfile,
 } from '../types'
 
 import { printings, decks, stores, tradeItems, users } from './data'
 import { MOCK_NOW } from './random'
 
-import { isHave, publicOnly } from '#/domain'
+import { isHave, publicOnly, wantFilters } from '#/domain'
 
 /**
  * The one in-memory store behind every mock service. It holds every Trader's
@@ -280,40 +282,52 @@ export function participant(store: MockStore, id: UserId): ChatParticipant {
   }
 }
 
-/** The copies of a record shown as a Have or Want: for-trade copies of a Collection entry, wanted copies of a Want. */
-function listedQuantity(record: ItemRecord, listType: TradeListType) {
-  if (listType === 'haves') return record.kind === 'collection' && isHave(record) ? record.forTradeQuantity : 0
-  return record.kind === 'want' ? record.quantity : 0
-}
-
 /**
  * The Haves or Wants other Traders can see, projected from Binder records: a
  * Have is a Collection entry with copies for trade, on a public List of a
- * Trader who has picked a City. Nothing else in the Collection is shown.
+ * Trader who has picked a City. Nothing else in the Collection is shown. A
+ * Want shows its Card through `shownPrinting`, with its filters.
  */
 export function listedItems(store: MockStore, listType: TradeListType, trader?: TraderRecord): TradeItem[] {
   const owners = trader ? [trader] : [...store.traders.values()]
   return owners.flatMap((owner) => {
     const citySlug = owner.profile.citySlug
     if (!citySlug) return []
-    return publicOnly(owner.items, owner.lists).flatMap((record) => {
-      const card = printingsById.get(record.cardId)
-      const quantity = listedQuantity(record, listType)
-      if (quantity === 0 || !card) return []
+    const shared = {
+      citySlug,
+      listType,
+      ownerId: owner.id,
+      ownerUsername: owner.profile.username,
+      storeSlugs: owner.profile.storeSlugs,
+    }
+    return publicOnly(owner.items, owner.lists).flatMap((record): TradeItem[] => {
+      if (listType === 'haves') {
+        const card = printingsById.get(record.kind === 'collection' ? record.printingId : '')
+        if (record.kind !== 'collection' || !isHave(record) || !card) return []
+        return [{
+          ...shared,
+          card,
+          condition: record.condition,
+          finish: record.finish,
+          id: record.id,
+          language: record.language,
+          price: priceOf(card, record.finish),
+          quantity: record.forTradeQuantity,
+          updatedAt: record.updatedAt,
+          wantFilters: null,
+        }]
+      }
+      if (record.kind !== 'want' || record.quantity <= 0) return []
+      const card = shownPrinting(record)
+      if (!card) return []
       return [{
+        ...shared,
+        ...wantDetails(record, card),
         card,
-        citySlug,
-        condition: record.condition,
-        finish: record.finish,
         id: record.id,
-        language: record.language,
-        listType,
-        ownerId: owner.id,
-        ownerUsername: owner.profile.username,
-        price: priceOf(card, record.finish),
-        quantity,
-        storeSlugs: owner.profile.storeSlugs,
+        quantity: record.quantity,
         updatedAt: record.updatedAt,
+        wantFilters: record.filters,
       }]
     })
   })

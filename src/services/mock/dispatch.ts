@@ -37,16 +37,32 @@ const visibility = oneOf('public', 'private')
 const facets = optional(recordOf(optional(arrayOf(str))))
 const ids = arrayOf(str)
 
-const binderItemInput = shape({
-  condition,
-  finish,
-  forTradeQuantity: optional(num),
-  kind: oneOf('collection', 'want'),
-  language,
-  listId: optional(nullable(str)),
-  printingId: str,
-  quantity: num,
+const wantFilters = shape({
+  finish: optional(nullable(finish)),
+  language: optional(nullable(language)),
+  minCondition: optional(nullable(condition)),
+  setCode: optional(nullable(str)),
 })
+
+const binderItemInput = either(
+  shape({
+    condition,
+    finish,
+    forTradeQuantity: optional(num),
+    kind: oneOf('collection'),
+    language,
+    listId: optional(nullable(str)),
+    printingId: str,
+    quantity: num,
+  }),
+  shape({
+    cardId: str,
+    filters: optional(wantFilters),
+    kind: oneOf('want'),
+    listId: optional(nullable(str)),
+    quantity: num,
+  }),
+)
 
 const parsedImportRow = shape({
   condition: nullable(condition),
@@ -142,6 +158,7 @@ const workspaceMethods: { [TName in keyof WorkspaceServices]: MethodTable<Worksp
     })),
     updateItem: args(str, shape({
       condition: optional(condition),
+      filters: optional(wantFilters),
       finish: optional(finish),
       forTradeQuantity: optional(num),
       language: optional(language),

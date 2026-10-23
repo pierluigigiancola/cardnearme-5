@@ -1,11 +1,11 @@
 import type { Trade, UserId } from '../../types'
-import { printingsById, requireTrader } from '../store'
+import { requireTrader } from '../store'
 import type { ItemRecord, MockStore } from '../store'
 
 import { now, traderContext } from './context'
-import { addRecords, collectionRecords } from './records'
+import { addRecords, collectionRecords, wantRecords } from './records'
 
-import { acceptTrade, afterGiving, checkReservable, completionChanges, confirmTrade, freeQuantity, linesGivenBy, reservedQuantities } from '#/domain'
+import { acceptTrade, afterGiving, checkReservable, completionChanges, confirmTrade, freeQuantity, fulfilWants, linesGivenBy, reservedQuantities } from '#/domain'
 import type { BinderChange } from '#/domain'
 
 /**
@@ -42,7 +42,7 @@ export function confirmAs(store: MockStore, trade: Trade, by: UserId) {
   return trade
 }
 
-/** Given copies leave the giver's Collection (for-trade and reserved copies with them); received copies join it and fulfil a matching Want. */
+/** Given copies leave the giver's Collection (for-trade and reserved copies with them); received copies join it and fulfil the Wants they meet (see `fulfilWants`). */
 function applyBinderChange(store: MockStore, { gives, receives, trader: id }: BinderChange) {
   const ctx = traderContext(store, requireTrader(store, id))
   const { trader } = ctx
@@ -65,9 +65,19 @@ function applyBinderChange(store: MockStore, { gives, receives, trader: id }: Bi
       printingId: line.card.id,
       quantity: line.quantity,
     }])
-    const want = trader.items.find(record => record.kind === 'want' && printingsById.get(record.cardId)?.name === line.card.name)
-    if (want) {
-      want.quantity -= line.quantity
+    const wants = wantRecords(ctx)
+    const reduced = fulfilWants(wants, {
+      cardId: line.card.cardId,
+      condition: line.condition,
+      finish: line.finish,
+      language: line.language,
+      quantity: line.quantity,
+      setCode: line.card.setCode,
+    })
+    for (const { id: wantId, quantity } of reduced) {
+      const want = wants.find(record => record.id === wantId)
+      if (!want) continue
+      want.quantity = quantity
       dropEmpty(want)
     }
   }

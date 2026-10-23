@@ -22,7 +22,7 @@ export function tradesService(ctx: TraderContext): TradesService {
       // Your side: any of your own Collection entries.
       const record = requireItem(ctx, line.sourceId)
       if (record.kind !== 'collection') throw new Error('Wanted cards cannot be offered')
-      const card = requirePrinting(record.cardId)
+      const card = requirePrinting(record.printingId)
       return {
         card,
         condition: record.condition,

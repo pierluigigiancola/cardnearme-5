@@ -507,6 +507,8 @@ export const tradeItems: TradeItem[] = users.flatMap((user) => {
       quantity: random.chance(0.8) ? 1 : random.int(2, 4),
       storeSlugs: user.storeSlugs,
       updatedAt: daysAgo(random.next() * 60),
+      // Seed rows only: store.ts turns wanted rows into Card-level Wants with filters.
+      wantFilters: null,
     }
   }
   return [

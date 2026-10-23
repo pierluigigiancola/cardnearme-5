@@ -2,12 +2,11 @@ import type { ListsService } from '../../services'
 import type { TradeList, TradeListInput } from '../../types'
 import { games } from '../data'
 import { compare, matchesText } from '../queryHelpers'
-import { printingsById } from '../store'
 import type { ListRecord } from '../store'
 
 import { now } from './context'
 import type { TraderContext } from './context'
-import { defaultList, requireList } from './records'
+import { defaultList, printingOf, requireList } from './records'
 
 export function listsService(ctx: TraderContext): ListsService {
   const { trader } = ctx
@@ -71,7 +70,7 @@ export function listsService(ctx: TraderContext): ListsService {
       if (patch.type && patch.type !== list.type) throw new Error('A list cannot change between haves and wants')
       if (patch.gameId && list.isDefault) throw new Error('Your default list accepts cards from every game')
       if (patch.gameId) {
-        const otherGame = trader.items.some(record => record.listId === listId && printingsById.get(record.cardId)?.gameId !== patch.gameId)
+        const otherGame = trader.items.some(record => record.listId === listId && printingOf(record)?.gameId !== patch.gameId)
         if (otherGame) throw new Error('The list has cards from other games')
       }
       if (patch.name !== undefined) list.name = patch.name.trim().slice(0, 60)

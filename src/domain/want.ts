@@ -63,13 +63,19 @@ export function fulfilsWant(copy: ReceivedCopy, want: WantTarget) {
     && (filters.minCondition === null || meetsCondition(copy.condition, filters.minCondition))
 }
 
+/** How many copies a Want still wants. */
+export interface WantQuantity {
+  id: string
+  quantity: number
+}
+
 /**
  * Applies received copies to a Trader's Wants: each fulfilled Want, in order,
  * takes as many copies as it still wants until the copies run out. Returns
  * the new quantity of every Want it reduced (0 = fulfilled, remove it).
  */
-export function fulfilWants(wants: (WantTarget & { id: string, quantity: number })[], copies: ReceivedCopy & { quantity: number }) {
-  const reduced: { id: string, quantity: number }[] = []
+export function fulfilWants(wants: (WantTarget & WantQuantity)[], copies: ReceivedCopy & { quantity: number }) {
+  const reduced: WantQuantity[] = []
   let remaining = copies.quantity
   for (const want of wants) {
     if (remaining <= 0) break

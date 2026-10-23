@@ -45,7 +45,7 @@ describe('Wants target a Card', () => {
       quantity: 2,
     }])
 
-    const [want] = await myWants(workspace)
+    const want = (await myWants(workspace)).at(0)
     expect(want?.cardId).toBe(card.id)
     expect(want?.quantity).toBe(2)
     expect(want?.filters).toEqual({
@@ -71,7 +71,7 @@ describe('Wants target a Card', () => {
       quantity: 1,
     }])
 
-    const [want] = await myWants(workspace)
+    const want = (await myWants(workspace)).at(0)
     expect(want?.filters).toEqual({
       finish: null,
       language: 'it',
@@ -134,7 +134,7 @@ describe('Wants target a Card', () => {
     })
     await workspace.binder.commitImport(draft.id)
 
-    const [want] = await myWants(workspace)
+    const want = (await myWants(workspace)).at(0)
     expect(want?.cardId).toBe(card.id)
     expect(want?.quantity).toBe(3)
     expect(want?.filters).toEqual({
@@ -190,7 +190,8 @@ describe('Trade completion fulfils Wants', () => {
       username: partnerHave.ownerUsername,
     }, setup.store)
     await partner.trades.accept(trade.id)
-    await setup.workspace.trades.complete(trade.id)
+    await setup.workspace.trades.confirm(trade.id)
+    await partner.trades.confirm(trade.id)
     return {
       ...setup,
       otherFinish,
