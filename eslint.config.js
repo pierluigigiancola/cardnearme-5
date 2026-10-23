@@ -82,6 +82,6 @@ export default [
     },
   },
   {
-    ignores: ['.sandcastle/*.ts', 'eslint.config.js', 'prettier.config.js', 'src/paraglide/*', 'supabase-selfhosted', 'public', 'src/supabase/database.types.ts', '.output'],
+    ignores: ['.claude/worktrees', '.sandcastle/*.ts', 'eslint.config.js', 'prettier.config.js', 'src/paraglide/*', 'supabase-selfhosted', 'public', 'src/supabase/database.types.ts', '.output'],
   },
 ]
