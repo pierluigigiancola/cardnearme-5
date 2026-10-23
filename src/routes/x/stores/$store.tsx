@@ -252,7 +252,7 @@ function InviteDialog({ onOpenChange, open, store, username }: {
   username: string
 }) {
   const link = typeof window === 'undefined' ? `/stores/${store.slug}` : `${window.location.origin}/stores/${store.slug}?ref=${encodeURIComponent(username)}`
-  const message = `I trade cards at ${store.name} on CardNearMe — join so we can swap: ${link}`
+  const message = `I trade cards at ${store.name} on CardNearMe — join so we can trade: ${link}`
   const copy = (value: string, label: string) => {
     void navigator.clipboard.writeText(value)
     toast.success(`${label} copied`)

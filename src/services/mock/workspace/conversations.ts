@@ -138,7 +138,7 @@ function autoAccept(ctx: TraderContext, chat: ChatRecord, trade: Trade, partner:
   })
   notify(ctx, {
     actor: partner,
-    body: 'Meet up, swap the cards, then confirm the trade took place.',
+    body: 'Meet up, exchange the cards, then confirm the trade took place.',
     href: `/x/inbox/${chat.id}`,
     kind: 'trade',
     title: `${usernameOf(ctx.store, partner)} accepted your trade`,
@@ -155,7 +155,7 @@ function autoConfirm(ctx: TraderContext, chat: ChatRecord, trade: Trade, partner
   })
   notify(ctx, {
     actor: partner,
-    body: completed ? 'Both of you confirmed, so your Binder is updated.' : 'Confirm it too once you have swapped the cards.',
+    body: completed ? 'Both of you confirmed, so your Binder is updated.' : 'Confirm it too once you have exchanged the cards.',
     href: `/x/inbox/${chat.id}`,
     kind: 'trade',
     title: completed ? `Your trade with ${usernameOf(ctx.store, partner)} is completed` : `${usernameOf(ctx.store, partner)} confirmed your trade`,

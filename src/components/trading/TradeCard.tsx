@@ -272,8 +272,8 @@ export function TradeCard({ me, partnerName, trade }: {
 
 function acceptedCopy(iConfirmed: boolean, partnerConfirmed: boolean, partnerName: string) {
   if (iConfirmed) return `You confirmed — waiting for @${partnerName} to confirm`
-  if (partnerConfirmed) return `@${partnerName} confirmed — confirm once you have swapped the cards`
-  return 'Accepted — meet up, swap the cards, then each of you confirms'
+  if (partnerConfirmed) return `@${partnerName} confirmed — confirm once you have exchanged the cards`
+  return 'Accepted — meet up, exchange the cards, then each of you confirms'
 }
 
 function ConfirmationItem({ at, who }: {

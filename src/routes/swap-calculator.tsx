@@ -21,7 +21,7 @@ import type { Printing, Finish } from '#/services/types'
 
 export const Route = createFileRoute('/swap-calculator')({
   head: () => ({ meta: [{ title: 'Trade value calculator | CardNearMe' }] }),
-  component: SwapCalculator,
+  component: TradeCalculator,
 })
 
 interface Line {
@@ -33,7 +33,7 @@ interface Line {
 
 const lineValue = (line: Line) => (line.card.prices[line.finish] ?? line.card.prices.nonfoil ?? 0) * line.quantity
 
-function SwapCalculator() {
+function TradeCalculator() {
   const [left, setLeft] = useState<Line[]>([])
   const [right, setRight] = useState<Line[]>([])
   const leftTotal = left.reduce((sum, line) => sum + lineValue(line), 0)
@@ -43,9 +43,9 @@ function SwapCalculator() {
   return (
     <div className="page-wrap">
       <PageHeader
-        crumbs={[{ label: 'Swap calculator' }]}
-        description="Calculate fair trade values and compare card prices before you swap."
-        title="Swap calculator"
+        crumbs={[{ label: 'Trade calculator' }]}
+        description="Calculate fair trade values and compare card prices before you trade."
+        title="Trade calculator"
       />
 
       <div className="grid gap-4 lg:grid-cols-2">

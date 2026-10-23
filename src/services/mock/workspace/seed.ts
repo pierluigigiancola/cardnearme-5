@@ -80,7 +80,7 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
       gameId: null,
       id: id('list'),
       isDefault: true,
-      name: 'Trade binder',
+      name: 'Haves',
       type: 'haves',
       updatedAt: daysAgo(2),
       visibility: 'public',
@@ -100,7 +100,7 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
       gameId: null,
       id: id('list'),
       isDefault: true,
-      name: 'Wishlist',
+      name: 'Wants',
       type: 'wants',
       updatedAt: daysAgo(1),
       visibility: 'public',
@@ -116,7 +116,7 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
       visibility: 'private',
     },
   ]
-  const [tradeBinder, bulkRares, wishlist, commanderUpgrades] = lists as [ListRecord, ListRecord, ListRecord, ListRecord]
+  const [mainHaves, bulkRares, mainWants, commanderUpgrades] = lists as [ListRecord, ListRecord, ListRecord, ListRecord]
 
   const items: ItemRecord[] = []
   const randomDetails = (card: Printing) => ({
@@ -133,7 +133,7 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
       ...randomDetails(card),
       forTradeQuantity: 0,
       kind: 'collection',
-      listId: tradeBinder.id,
+      listId: mainHaves.id,
       ...options,
     }
     items.push(record)
@@ -162,7 +162,7 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
   // Haves: one copy of part of the Collection marked for trade, plus cards other Traders are looking for (so matches exist).
   for (const record of random.sample(collection, 10)) {
     const card = requirePrinting(record.printingId)
-    const list = card.gameId === 'mtg' && (card.rarity === 'rare' || card.rarity === 'mythic') ? bulkRares : tradeBinder
+    const list = card.gameId === 'mtg' && (card.rarity === 'rare' || card.rarity === 'mythic') ? bulkRares : mainHaves
     record.forTradeQuantity = 1
     record.listId = list.id
   }
@@ -173,7 +173,7 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
     addEntry(wanted.card, {
       finish: wanted.finish,
       forTradeQuantity: 1,
-      listId: tradeBinder.id,
+      listId: mainHaves.id,
       quantity: 1,
     })
   }
@@ -188,7 +188,7 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
     wantSources.push(...random.sample(listedItems(store, 'haves', partner), 2))
   }
   for (const source of wantSources) {
-    const list = source.card.gameId === 'mtg' && random.chance(0.4) ? commanderUpgrades : wishlist
+    const list = source.card.gameId === 'mtg' && random.chance(0.4) ? commanderUpgrades : mainWants
     addWant(source.card, list.id, {
       finish: source.finish === 'foil' ? 'foil' : null,
       minCondition: random.pick(['NM', 'EX', 'GD'] as const),
@@ -398,7 +398,7 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
     ], daysAgo(0.9))
     notify({
       actor: bob,
-      body: 'Meet up, swap the cards, then confirm the trade took place.',
+      body: 'Meet up, exchange the cards, then confirm the trade took place.',
       createdAt: daysAgo(1),
       href: `/x/inbox/${trade.chatId}`,
       kind: 'trade',
