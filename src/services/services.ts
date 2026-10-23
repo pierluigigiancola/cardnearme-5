@@ -200,10 +200,15 @@ export interface TradesService {
   propose: (draft: TradeDraft) => Promise<Trade>
   /** Counter-offer or edit: replaces the terms and hands the turn to the other side. */
   revise: (tradeId: string, draft: TradeDraft) => Promise<Trade>
+  /** Accepts the proposal awaiting the viewer and reserves both sides' cards; refused when either side lacks unreserved copies. */
   accept: (tradeId: string) => Promise<Trade>
-  /** Moves the cards between both binders and closes the trade. */
-  complete: (tradeId: string) => Promise<Trade>
-  /** Withdraw (proposer) or decline (recipient). */
+  /**
+   * Confirms the accepted Trade took place, for the viewer's side only (ADR 0003).
+   * The first confirmation changes no Binder. The second, from the other Trader,
+   * completes the Trade and updates both Binders in that one step.
+   */
+  confirm: (tradeId: string) => Promise<Trade>
+  /** Withdraw (proposer) or decline (recipient) a proposal, or call off an accepted Trade until both have confirmed. */
   cancel: (tradeId: string) => Promise<Trade>
 }
 

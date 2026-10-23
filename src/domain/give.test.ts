@@ -43,3 +43,26 @@ describe('giveLineQuantity', () => {
     expect(() => giveLineQuantity(oneForTrade, 'giver', 1.5)).toThrow()
   })
 })
+
+describe('giving reserved copies', () => {
+  const twoReserved = {
+    forTradeQuantity: 3,
+    quantity: 3,
+    reservedQuantity: 2,
+  }
+
+  it('leaves copies reserved by accepted Trades out of what may be given', () => {
+    expect(givableQuantity(twoReserved, 'giver')).toBe(1)
+    expect(givableQuantity(twoReserved, 'partner')).toBe(1)
+    expect(giveLineQuantity(twoReserved, 'giver', 3)).toBe(1)
+  })
+
+  it('refuses a line when every copy is reserved', () => {
+    const allReserved = {
+      ...twoReserved,
+      reservedQuantity: 3,
+    }
+    expect(() => giveLineQuantity(allReserved, 'giver', 1)).toThrow('Every copy is reserved by other trades')
+    expect(() => giveLineQuantity(allReserved, 'partner', 1)).toThrow('Every copy is reserved by other trades')
+  })
+})

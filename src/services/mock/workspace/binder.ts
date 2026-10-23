@@ -62,9 +62,9 @@ const binderFacets: FacetDefinition<BinderItem>[] = [
 const collectionFacets: FacetDefinition<BinderItem>[] = [
   {
     key: 'trade',
-    label: 'Trade status',
-    labelFor: value => (value === 'in-trade' ? 'In a trade' : 'Not in a trade'),
-    values: item => [item.inTrade ? 'in-trade' : 'free'],
+    label: 'Reserved',
+    labelFor: value => (value === 'reserved' ? 'Reserved by a trade' : 'Not reserved'),
+    values: item => [item.kind === 'collection' && item.reservedQuantity > 0 ? 'reserved' : 'free'],
   },
   {
     key: 'for-trade',

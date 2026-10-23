@@ -5,10 +5,13 @@ import type { ChatRecord } from '../store'
 
 import { now } from './context'
 import type { NewMessage, TraderContext } from './context'
+import { acceptAs, confirmAs } from './lifecycle'
+
+import { hasConfirmed } from '#/domain'
 
 /** Chats, Trades and notifications of the signed-in Trader, shared by several services. */
 
-/** Mock partners accept the Trader's proposals after this long. */
+/** Mock partners answer the Trader (accept, confirm) after this long. */
 export const PARTNER_REPLY_MS = 20_000
 
 export function partnerIn(chat: ChatRecord, me: UserId) {
@@ -96,35 +99,65 @@ export function partnerOf({ me }: TraderContext, trade: Trade) {
 }
 
 /**
- * Mock partners accept the Trader's proposals after PARTNER_REPLY_MS, in
- * development only, so a deployed mock never answers on someone's behalf.
+ * Mock partners, in development only, so a deployed mock never acts on
+ * someone's behalf. After PARTNER_REPLY_MS they accept the Trader's
+ * proposals (when the cards can be reserved) and confirm accepted Trades
+ * they haven't confirmed yet. Confirming never completes a Trade alone: it
+ * completes once the Trader has confirmed too (ADR 0003).
  */
 export function runPartners(ctx: TraderContext) {
   if (!import.meta.env.DEV) return
   const cutoff = Date.now() - PARTNER_REPLY_MS
   for (const trade of ctx.store.trades) {
-    if (trade.status !== 'pending' || trade.proposer !== ctx.me || Date.parse(trade.updatedAt) > cutoff) continue
+    if (Date.parse(trade.updatedAt) > cutoff || (trade.proposer !== ctx.me && trade.recipient !== ctx.me)) continue
     const chat = findChat(ctx, trade.chatId)
     if (!chat) continue
-    trade.status = 'accepted'
-    trade.awaiting = null
-    trade.updatedAt = now()
-    post(ctx, chat, {
-      author: trade.recipient,
-      body: 'accepted the trade',
-      kind: 'event',
-    })
-    post(ctx, chat, {
-      author: trade.recipient,
-      body: 'Sounds good, see you there!',
-      kind: 'text',
-    })
-    notify(ctx, {
-      actor: trade.recipient,
-      body: 'Meet up and mark it completed once you have swapped cards.',
-      href: `/x/inbox/${chat.id}`,
-      kind: 'trade',
-      title: `${usernameOf(ctx.store, trade.recipient)} accepted your trade`,
-    })
+    const partner = partnerOf(ctx, trade)
+    if (trade.status === 'pending' && trade.proposer === ctx.me) autoAccept(ctx, chat, trade, partner)
+    else if (trade.status === 'accepted' && !hasConfirmed(trade, partner)) autoConfirm(ctx, chat, trade, partner)
   }
+}
+
+function autoAccept(ctx: TraderContext, chat: ChatRecord, trade: Trade, partner: UserId) {
+  try {
+    acceptAs(ctx.store, trade, partner)
+  }
+  catch {
+    // The cards can't be reserved any more: leave the proposal pending.
+    return
+  }
+  post(ctx, chat, {
+    author: partner,
+    body: 'accepted the trade',
+    kind: 'event',
+  })
+  post(ctx, chat, {
+    author: partner,
+    body: 'Sounds good, see you there!',
+    kind: 'text',
+  })
+  notify(ctx, {
+    actor: partner,
+    body: 'Meet up, swap the cards, then confirm the trade took place.',
+    href: `/x/inbox/${chat.id}`,
+    kind: 'trade',
+    title: `${usernameOf(ctx.store, partner)} accepted your trade`,
+  })
+}
+
+function autoConfirm(ctx: TraderContext, chat: ChatRecord, trade: Trade, partner: UserId) {
+  confirmAs(ctx.store, trade, partner)
+  const completed = trade.status === 'completed'
+  post(ctx, chat, {
+    author: partner,
+    body: completed ? 'confirmed the trade, which is now completed' : 'confirmed the trade took place',
+    kind: 'event',
+  })
+  notify(ctx, {
+    actor: partner,
+    body: completed ? 'Both of you confirmed, so your Binder is updated.' : 'Confirm it too once you have swapped the cards.',
+    href: `/x/inbox/${chat.id}`,
+    kind: 'trade',
+    title: completed ? `Your trade with ${usernameOf(ctx.store, partner)} is completed` : `${usernameOf(ctx.store, partner)} confirmed your trade`,
+  })
 }

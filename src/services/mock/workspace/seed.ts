@@ -288,6 +288,7 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
       cancelledBy: null,
       cashAmount: Math.abs(Math.round(difference)) >= 2 ? Math.abs(Math.round(difference)) : 0,
       cashPayer: Math.abs(Math.round(difference)) >= 2 ? (difference > 0 ? me : alice) : null,
+      confirmedAt: {},
       createdAt: hoursAgo(1.9),
       meetAt: daysFromNow(3, 17),
       meetup: storeMeetup(alice),
@@ -343,6 +344,7 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
       cancelledBy: null,
       cashAmount: 0,
       cashPayer: null,
+      confirmedAt: {},
       createdAt: daysAgo(2),
       meetAt: daysFromNow(1, 18),
       meetup: {
@@ -386,7 +388,7 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
     ], daysAgo(0.9))
     notify({
       actor: bob,
-      body: 'Meet up and mark it completed once you have swapped cards.',
+      body: 'Meet up, swap the cards, then confirm the trade took place.',
       createdAt: daysAgo(1),
       href: `/x/inbox/${trade.chatId}`,
       kind: 'trade',
@@ -405,6 +407,10 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
       cancelledBy: null,
       cashAmount: 2,
       cashPayer: me,
+      confirmedAt: {
+        [carol]: daysAgo(6.1),
+        [me]: daysAgo(6),
+      },
       createdAt: daysAgo(9),
       meetAt: daysAgo(6),
       meetup: storeMeetup(carol),
@@ -430,8 +436,14 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
         sentAt: daysAgo(8),
       },
       {
+        author: carol,
+        body: 'confirmed the trade took place',
+        kind: 'event',
+        sentAt: daysAgo(6.1),
+      },
+      {
         author: me,
-        body: 'marked the trade as completed',
+        body: 'confirmed the trade, which is now completed',
         kind: 'event',
         sentAt: daysAgo(6),
       },
@@ -463,6 +475,7 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
       cancelledBy: dave,
       cashAmount: 0,
       cashPayer: null,
+      confirmedAt: {},
       createdAt: daysAgo(14),
       meetAt: null,
       meetup: storeMeetup(dave),

@@ -365,8 +365,6 @@ interface BinderEntryBase {
   finish: Finish
   language: Language
   price: number
-  /** Offered in a pending or accepted trade. */
-  inTrade: boolean
   updatedAt: string
 }
 
@@ -382,6 +380,8 @@ export interface CollectionEntry extends BinderEntryBase {
   forTradeQuantity: number
   /** The Haves List the for-trade copies are on; null while no copy is for trade. */
   listId: string | null
+  /** Copies promised to other Traders in accepted Trades (ADR 0003), from 0 to `quantity`. They cannot go on another Trade. */
+  reservedQuantity: number
 }
 
 /** A card the viewer is looking for, on one of their Wants Lists. */
@@ -608,6 +608,11 @@ export interface Trade {
   /** Who has to act next: the side that did not make the latest offer. */
   awaiting: UserId | null
   cancelledBy: UserId | null
+  /**
+   * When each Trader confirmed the accepted Trade took place, keyed by UserId.
+   * The Trade becomes Completed when both have (ADR 0003).
+   */
+  confirmedAt: Partial<Record<UserId, string>>
   createdAt: string
   updatedAt: string
 }

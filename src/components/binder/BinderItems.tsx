@@ -178,7 +178,12 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
 
                       <FinishBadge finish={item.finish} />
 
-                      {item.inTrade && <InTradeBadge className="ml-1" />}
+                      {item.kind === 'collection' && item.reservedQuantity > 0 && (
+                        <ReservedBadge
+                          className="ml-1"
+                          quantity={item.reservedQuantity}
+                        />
+                      )}
                     </TableCell>
 
                     <TableCell className="text-muted-foreground">{item.card.setName}</TableCell>
@@ -242,7 +247,7 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
 
                     {item.kind === 'collection' && item.forTradeQuantity > 0 && <Badge className="bg-have/90 text-[10px] text-background shadow">{`${item.forTradeQuantity} for trade`}</Badge>}
 
-                    {item.inTrade && <InTradeBadge />}
+                    {item.kind === 'collection' && item.reservedQuantity > 0 && <ReservedBadge quantity={item.reservedQuantity} />}
                   </div>
                 </div>
 
@@ -290,11 +295,19 @@ export function BinderItems({ items, lists, onToggle, selected, view }: {
   )
 }
 
-function InTradeBadge({ className }: { className?: string }) {
+/** Copies promised in accepted Trades (ADR 0003): they leave the Collection once both Traders confirm. */
+function ReservedBadge({ className, quantity }: {
+  className?: string;
+  quantity: number
+}) {
   return (
-    <Badge className={cn('bg-match text-[10px] text-background shadow', className)}>
+    <Badge
+      className={cn('bg-match text-[10px] text-background shadow', className)}
+      title="Promised in an accepted trade; these copies can't go on another trade"
+    >
       <ArrowLeftRight />
-      In trade
+
+      {`${quantity} reserved`}
     </Badge>
   )
 }
