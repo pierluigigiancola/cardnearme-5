@@ -14,6 +14,7 @@ import { viewerQuery } from '../auth/viewer'
 import { AppFooter } from '../components/layout/AppFooter'
 import { AppHeader } from '../components/layout/AppHeader'
 import { CommandPalette } from '../components/layout/CommandPalette'
+import { ConsentBanner } from '../components/layout/ConsentBanner'
 import { TradeBuilderProvider } from '../components/trading/TradeBuilder'
 import { Button } from '../components/ui/button'
 import { Toaster } from '../components/ui/sonner'
@@ -106,6 +107,8 @@ function RootLayout() {
               </div>
 
               <CommandPalette />
+
+              <ConsentBanner />
 
               <Toaster />
             </TradeBuilderProvider>
