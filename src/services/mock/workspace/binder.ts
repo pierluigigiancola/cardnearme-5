@@ -1,6 +1,7 @@
 import type { BinderService } from '../../services'
-import type { BinderImport, BinderItem, Ownership, ParsedImportRow } from '../../types'
+import type { BinderImport, BinderItem, Ownership } from '../../types'
 import { printings, games } from '../data'
+import { matchCards } from '../matchCards'
 import { baseType, buildFacets, capitalise, compare, labelFrom, matchesFacets, matchesText } from '../queryHelpers'
 import type { FacetDefinition } from '../queryHelpers'
 import { printingsById } from '../store'
@@ -86,18 +87,6 @@ export function binderService(ctx: TraderContext): BinderService {
     return draft
   }
 
-  const matchImportRow = (row: ParsedImportRow) => {
-    const name = row.name.trim().toLowerCase()
-    const setCode = row.setCode?.toLowerCase()
-    const byPrinting = setCode && row.number
-      ? printings.find(card => card.setCode.toLowerCase() === setCode && card.number === row.number)
-      : undefined
-    if (byPrinting) return byPrinting
-    const named = printings.filter(card => card.name.toLowerCase() === name)
-    const inSet = setCode ? named.find(card => card.setCode.toLowerCase() === setCode) : undefined
-    return inSet ?? named.find(card => trader.profile.games.includes(card.gameId)) ?? named.at(0) ?? null
-  }
-
   return {
     addItems: async (inputs) => {
       const ids = new Set(addRecords(ctx, inputs).map(record => record.id))
@@ -125,14 +114,16 @@ export function binderService(ctx: TraderContext): BinderService {
     createImport: async (input) => {
       if (input.rows.length === 0) throw new Error('Nothing to import')
       if (input.section !== 'collection' && input.listId) requireList(ctx, input.listId)
+      const rows = input.rows.slice(0, 1000)
+      const matches = matchCards(rows, { preferGames: trader.profile.games })
       const draft: BinderImport = {
         committedAt: null,
         createdAt: now(),
         id: ctx.id('import'),
         importedCount: 0,
         listId: input.section === 'collection' ? null : input.listId,
-        rows: input.rows.slice(0, 1000).map((row) => {
-          const card = matchImportRow(row)
+        rows: rows.map((row, index) => {
+          const card = matches[index] ?? null
           return {
             ...row,
             card,

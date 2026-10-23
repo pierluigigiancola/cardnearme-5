@@ -422,6 +422,13 @@ export interface ParsedImportRow {
   language: Language | null
 }
 
+/** What `catalogue.matchCards` needs from one line of an imported list. */
+export interface CardMatchRow {
+  name: string
+  setCode: string | null
+  number: string | null
+}
+
 export interface ImportRow extends ParsedImportRow {
   card: Printing | null
   include: boolean

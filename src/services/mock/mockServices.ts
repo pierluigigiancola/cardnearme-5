@@ -13,6 +13,7 @@ import {
   sets,
   stores,
 } from './data'
+import { matchCards } from './matchCards'
 import { buildFacets, cardFacets, compare, matchesFacets, matchesText, rarityOrder } from './queryHelpers'
 import { mockStoreServices, mockWorkspaceServices } from './rpc'
 
@@ -64,6 +65,7 @@ export const mockServices: Services = {
           .filter(set => set.gameId === gameId && (matchesText(set.name, q) || matchesText(set.code, q)))
           .sort((a, b) => compare(a[sort] ?? 0, b[sort] ?? 0, order)),
       ),
+    matchCards: async (rows, options) => delay(matchCards(rows, options)),
     searchCards: async (q, { gameId, limit = 8 } = {}) => {
       if (!q.trim()) return delay([])
       const seen = new Set<string>()
