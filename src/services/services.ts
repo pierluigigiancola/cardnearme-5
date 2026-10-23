@@ -195,6 +195,11 @@ export interface NotificationsService {
 export interface ProfileService {
   get: () => Promise<WorkspaceProfile>
   update: (patch: ProfilePatch) => Promise<WorkspaceProfile>
+  /**
+   * Saves the Trader's City and Stores and records onboarding by setting
+   * `profile.onboardedAt` (once). This is the only place onboarding is
+   * recorded: the `/x` guard reads `onboardedAt`, nothing else.
+   */
   completeOnboarding: (input: OnboardingInput) => Promise<WorkspaceProfile>
   joinStore: (storeSlug: string) => Promise<WorkspaceProfile>
   leaveStore: (storeSlug: string) => Promise<WorkspaceProfile>

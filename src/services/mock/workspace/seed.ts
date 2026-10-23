@@ -31,7 +31,12 @@ import { conditionLabels } from '#/lib/cardOptions'
 export interface WorkspaceOwner {
   id: string
   username: string
-  onboarded: boolean
+  /**
+   * Fixtures only: seed the Trader as already onboarded, with a City and
+   * Stores. The app never passes it; a signed-in Trader is onboarded only by
+   * `profile.completeOnboarding`.
+   */
+  onboarded?: boolean
 }
 
 function hoursAgo(hours: number) {
@@ -57,7 +62,6 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
   const profile: WorkspaceProfile = {
     avatarHue: random.int(0, 360),
     bio: '',
-    // Already-onboarded accounts (e.g. after a server restart) get a sensible trading setup.
     citySlug: owner.onboarded ? (milan?.slug ?? null) : null,
     displayName: owner.username,
     games: profileGames,

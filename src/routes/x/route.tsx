@@ -1,5 +1,6 @@
-import { Outlet, createFileRoute, redirect, useMatch } from '@tanstack/react-router'
+import { Outlet, createFileRoute, useMatch } from '@tanstack/react-router'
 
+import { guardWorkspace } from '#/auth/workspaceGuard'
 import { WorkspaceNav } from '#/components/workspace/WorkspaceNav'
 import { gamesQuery, profileQuery, unreadCountsQuery } from '#/services/queries'
 
@@ -8,21 +9,15 @@ import { gamesQuery, profileQuery, unreadCountsQuery } from '#/services/queries'
  * must check the session itself (route guards do not protect server functions).
  */
 export const Route = createFileRoute('/x')({
-  beforeLoad: ({ context, location }) => {
-    const { viewer } = context
-    if (viewer.kind === 'anonymous') {
-      throw redirect({
-        search: { redirect: location.href },
-        to: '/sign-in',
-      })
-    }
-    if (!viewer.onboarded && location.pathname !== '/x/onboarding') {
-      throw redirect({
-        search: { redirect: location.href },
-        to: '/x/onboarding',
-      })
-    }
-    return { user: viewer }
+  beforeLoad: async ({ context: { queryClient, viewer }, location }) => {
+    const user = await guardWorkspace({
+      href: location.href,
+      // The profile comes from the workspace services on the server; onboarding is `profile.onboardedAt`.
+      loadProfile: ({ id }) => queryClient.ensureQueryData(profileQuery(id)),
+      pathname: location.pathname,
+      viewer,
+    })
+    return { user }
   },
   loader: async ({ context: { queryClient, user } }) => {
     await Promise.all([
