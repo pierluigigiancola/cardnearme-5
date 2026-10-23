@@ -2,7 +2,7 @@
 import type { Services } from '../services'
 
 import {
-  cards,
+  printings,
   changelog,
   cities,
   faq,
@@ -30,13 +30,17 @@ function delay<T>(value: T, ms = 80): Promise<T> {
 export const mockServices: Services = {
   ...mockWorkspaceServices,
   catalogue: {
-    getCard: async (gameId, setCode, number) =>
-      delay(cards.find(card => card.gameId === gameId && card.setCode === setCode && card.number === number) ?? null),
     getCardAvailability: mockStoreServices.catalogue.getCardAvailability,
     getGame: async gameId => delay(games.find(game => game.id === gameId) ?? null),
+    getPrinting: async (gameId, setCode, number) =>
+      delay(printings.find(card => card.gameId === gameId && card.setCode === setCode && card.number === number) ?? null),
     getSet: async (gameId, setCode) => delay(sets.find(set => set.gameId === gameId && set.code === setCode) ?? null),
-    listCards: async ({ facets, gameId, order = 'asc', q, setCode, sort = 'number' }) => {
-      const inSet = cards.filter(card => card.gameId === gameId && card.setCode === setCode)
+    listGames: async () => delay(games),
+    listPrintings: async cardId => delay(printings.filter(printing => printing.cardId === cardId)),
+    listSealed: async (gameId, setCode) =>
+      delay(sealedProducts.filter(product => product.gameId === gameId && product.setCode === setCode)),
+    listSetPrintings: async ({ facets, gameId, order = 'asc', q, setCode, sort = 'number' }) => {
+      const inSet = printings.filter(card => card.gameId === gameId && card.setCode === setCode)
       const filtered = inSet
         .filter(card => matchesText(card.name, q) && matchesFacets(card, cardFacets, facets))
         .sort((a, b) => {
@@ -54,10 +58,6 @@ export const mockServices: Services = {
         total: filtered.length,
       })
     },
-    listGames: async () => delay(games),
-    listPrintings: async card => delay(cards.filter(other => other.name === card.name && other.id !== card.id)),
-    listSealed: async (gameId, setCode) =>
-      delay(sealedProducts.filter(product => product.gameId === gameId && product.setCode === setCode)),
     listSets: async (gameId, { order = 'desc', q, sort = 'releasedAt' } = {}) =>
       delay(
         sets
@@ -68,10 +68,10 @@ export const mockServices: Services = {
       if (!q.trim()) return delay([])
       const seen = new Set<string>()
       return delay(
-        cards
+        printings
           .filter(card => (!gameId || card.gameId === gameId) && matchesText(card.name, q))
           .filter((card) => {
-            const key = `${card.gameId}:${card.name}`
+            const key = card.cardId
             if (seen.has(key)) return false
             seen.add(key)
             return true

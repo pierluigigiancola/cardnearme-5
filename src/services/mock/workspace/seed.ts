@@ -1,20 +1,21 @@
 import type {
   AppNotification,
-  Card,
+  Printing,
   GameId,
   MeetupLocation,
   Trade,
   TradeItem,
   TradeLine,
+  UserId,
   WorkspaceProfile,
 } from '../../types'
-import { cards, cities, stores } from '../data'
+import { printings, cities, stores } from '../data'
 import { createRandom, daysAgo, MOCK_NOW } from '../random'
 import type { Random } from '../random'
-import { hashString, listedItems, priceOf, storesBySlug, traderByUsername } from '../store'
+import { hashString, listedItems, priceOf, storesBySlug, usernameOf } from '../store'
 import type { CollectionRecord, ItemRecord, ListRecord, MockStore, TraderRecord, WantRecord } from '../store'
 
-import { requireCard, traderContext } from './context'
+import { requirePrinting, traderContext } from './context'
 import type { NewMessage, TraderContext } from './context'
 
 import { isHave, tradeValue } from '#/domain'
@@ -29,7 +30,12 @@ import { conditionLabels } from '#/lib/cardOptions'
 export interface WorkspaceOwner {
   id: string
   username: string
-  onboarded: boolean
+  /**
+   * Fixtures only: seed the Trader as already onboarded, with a City and
+   * Stores. The app never passes it; a signed-in Trader is onboarded only by
+   * `profile.completeOnboarding`.
+   */
+  onboarded?: boolean
 }
 
 function hoursAgo(hours: number) {
@@ -55,7 +61,6 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
   const profile: WorkspaceProfile = {
     avatarHue: random.int(0, 360),
     bio: '',
-    // Already-onboarded accounts (e.g. after a server restart) get a sensible trading setup.
     citySlug: owner.onboarded ? (milan?.slug ?? null) : null,
     displayName: owner.username,
     games: profileGames,
@@ -109,7 +114,7 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
   const [tradeBinder, bulkRares, wishlist, commanderUpgrades] = lists as [ListRecord, ListRecord, ListRecord, ListRecord]
 
   const items: ItemRecord[] = []
-  const randomDetails = (card: Card) => ({
+  const randomDetails = (card: Printing) => ({
     cardId: card.id,
     condition: random.pick(['NM', 'NM', 'NM', 'EX', 'M', 'GD'] as const),
     finish: card.finishes.includes('foil') && random.chance(0.15) ? 'foil' as const : 'nonfoil' as const,
@@ -118,7 +123,7 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
     quantity: random.chance(0.75) ? 1 : random.int(2, 4),
     updatedAt: daysAgo(random.next() * 45),
   })
-  const addEntry = (card: Card, options: Partial<CollectionRecord> = {}) => {
+  const addEntry = (card: Printing, options: Partial<CollectionRecord> = {}) => {
     const record: CollectionRecord = {
       ...randomDetails(card),
       forTradeQuantity: 0,
@@ -129,7 +134,7 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
     items.push(record)
     return record
   }
-  const addWant = (card: Card, listId: string, options: Partial<WantRecord> = {}) => {
+  const addWant = (card: Printing, listId: string, options: Partial<WantRecord> = {}) => {
     items.push({
       ...randomDetails(card),
       kind: 'want',
@@ -139,12 +144,12 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
   }
 
   // Collection: cards from the Trader's games.
-  const pool = cards.filter(card => profileGames.includes(card.gameId))
+  const pool = printings.filter(card => profileGames.includes(card.gameId))
   const collection = random.sample(pool, 36).map(card => addEntry(card))
 
   // Haves: one copy of part of the Collection marked for trade, plus cards other Traders are looking for (so matches exist).
   for (const record of random.sample(collection, 10)) {
-    const card = requireCard(record.cardId)
+    const card = requirePrinting(record.cardId)
     const list = card.gameId === 'mtg' && (card.rarity === 'rare' || card.rarity === 'mythic') ? bulkRares : tradeBinder
     record.forTradeQuantity = 1
     record.listId = list.id
@@ -199,13 +204,13 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
 
 function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random: Random) {
   const { me, store, trader } = ctx
-  const partners = [...new Set(wantSources.map(source => source.ownerUsername))]
-    .filter(username => username !== me && traderByUsername(store, username))
+  const partners = [...new Set(wantSources.map(source => source.ownerId))]
+    .filter(id => id !== me && store.traders.has(id))
   const [alice, bob, carol, dave] = partners
   const myHaves = trader.items.filter(item => item.kind === 'collection' && isHave(item))
 
   const lineFromItem = (record: ItemRecord): TradeLine => {
-    const card = requireCard(record.cardId)
+    const card = requirePrinting(record.cardId)
     return {
       card,
       condition: record.condition,
@@ -229,8 +234,8 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
     quantity: 1,
     sourceId: item.id,
   })
-  const storeMeetup = (username: string): MeetupLocation | null => {
-    const meetupStore = storesBySlug.get(traderByUsername(store, username)?.profile.storeSlugs[0] ?? '')
+  const storeMeetup = (partner: UserId): MeetupLocation | null => {
+    const meetupStore = storesBySlug.get(store.traders.get(partner)?.profile.storeSlugs[0] ?? '')
     return meetupStore
       ? {
         address: meetupStore.address,
@@ -240,7 +245,7 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
       }
       : null
   }
-  const addChat = (partner: string, messages: (NewMessage & { sentAt: string })[], lastReadAt: string) => {
+  const addChat = (partner: UserId, messages: (NewMessage & { sentAt: string })[], lastReadAt: string) => {
     const chatId = ctx.id('chat')
     store.chats.push({
       id: chatId,
@@ -275,7 +280,7 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
 
   // 1. Incoming proposal waiting for the Trader.
   if (alice) {
-    const theirs = wantSources.filter(source => source.ownerUsername === alice).map(lineFromTradeItem)
+    const theirs = wantSources.filter(source => source.ownerId === alice).map(lineFromTradeItem)
     const mine = random.sample(myHaves, 1).map(lineFromItem)
     const difference = tradeValue(theirs) - tradeValue(mine)
     const trade = addTrade({
@@ -315,7 +320,7 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
       href: `/x/inbox/${trade.chatId}`,
       kind: 'message',
       readAt: null,
-      title: `New message from ${alice}`,
+      title: `New message from ${usernameOf(store, alice)}`,
     })
     notify({
       actor: alice,
@@ -324,13 +329,13 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
       href: `/x/inbox/${trade.chatId}`,
       kind: 'trade',
       readAt: null,
-      title: `${alice} sent you a trade proposal`,
+      title: `${usernameOf(store, alice)} sent you a trade proposal`,
     })
   }
 
   // 2. The Trader's proposal, already accepted.
   if (bob) {
-    const theirs = wantSources.filter(source => source.ownerUsername === bob).slice(0, 1)
+    const theirs = wantSources.filter(source => source.ownerId === bob).slice(0, 1)
       .map(lineFromTradeItem)
     const mine = random.sample(myHaves, 2).map(lineFromItem)
     const trade = addTrade({
@@ -356,7 +361,7 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
     trade.chatId = addChat(bob, [
       {
         author: me,
-        body: `Hi ${bob}, would you trade your ${theirs.at(0)?.card.name ?? 'card'}?`,
+        body: `Hi ${usernameOf(store, bob)}, would you trade your ${theirs.at(0)?.card.name ?? 'card'}?`,
         kind: 'text',
         sentAt: daysAgo(2.01),
       },
@@ -386,13 +391,13 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
       href: `/x/inbox/${trade.chatId}`,
       kind: 'trade',
       readAt: daysAgo(0.9),
-      title: `${bob} accepted your trade`,
+      title: `${usernameOf(store, bob)} accepted your trade`,
     })
   }
 
   // 3. A completed trade.
   if (carol) {
-    const theirs = wantSources.filter(source => source.ownerUsername === carol).slice(0, 1)
+    const theirs = wantSources.filter(source => source.ownerId === carol).slice(0, 1)
       .map(lineFromTradeItem)
     const mine = random.sample(myHaves, 1).map(lineFromItem)
     const trade = addTrade({
@@ -444,13 +449,13 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
       href: `/x/inbox/${trade.chatId}`,
       kind: 'message',
       readAt: daysAgo(5),
-      title: `New message from ${carol}`,
+      title: `New message from ${usernameOf(store, carol)}`,
     })
   }
 
   // 4. A declined proposal.
   if (dave) {
-    const theirs = wantSources.filter(source => source.ownerUsername === dave).slice(0, 1)
+    const theirs = wantSources.filter(source => source.ownerId === dave).slice(0, 1)
       .map(lineFromTradeItem)
     const mine = random.sample(myHaves, 1).map(lineFromItem)
     const trade = addTrade({
@@ -500,7 +505,7 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
   // Match alerts.
   for (const [index, source] of wantSources.slice(0, 4).entries()) {
     notify({
-      actor: source.ownerUsername,
+      actor: source.ownerId,
       body: `${conditionLabels[source.condition]} · ${source.card.setName}`,
       createdAt: hoursAgo(5 + index * 20),
       href: `/users/${source.ownerUsername}`,
@@ -509,13 +514,13 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
       title: `${source.ownerUsername} has ${source.card.name} for trade`,
     })
   }
-  const myHaveNames = new Set(myHaves.map(record => requireCard(record.cardId).name))
+  const myHaveNames = new Set(myHaves.map(record => requirePrinting(record.cardId).name))
   const othersWanting = listedItems(store, 'wants')
-    .filter(item => item.ownerUsername !== me && myHaveNames.has(item.card.name))
+    .filter(item => item.ownerId !== me && myHaveNames.has(item.card.name))
     .slice(0, 3)
   for (const [index, wanted] of othersWanting.entries()) {
     notify({
-      actor: wanted.ownerUsername,
+      actor: wanted.ownerId,
       body: 'It is on your haves — start a trade.',
       createdAt: hoursAgo(9 + index * 30),
       href: `/users/${wanted.ownerUsername}`,

@@ -16,14 +16,11 @@ export type Viewer =
     id: string
     email: string
     username: string
-    onboarded: boolean
     /** True when signed in through the local demo fallback, not Supabase. */
     demo: boolean
   }
 
 const DEMO_COOKIE = 'cnm-demo-user'
-/** Holds the demo username that finished onboarding. */
-const DEMO_ONBOARDED_COOKIE = 'cnm-demo-onboarded'
 
 function isSupabaseConfigured() {
   return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY)
@@ -44,16 +41,12 @@ export const fetchViewer = createServerFn({ method: 'GET' }).handler(async (): P
     const { data } = await supabase.auth.getUser()
     const user = data.user
     if (!user) return { kind: 'anonymous' }
-    const metadata = user.user_metadata as {
-      username?: string;
-      onboarded?: boolean
-    }
+    const metadata = user.user_metadata as { username?: string }
     return {
       demo: false,
       email: user.email ?? '',
       id: user.id,
       kind: 'user',
-      onboarded: metadata.onboarded === true,
       username: metadata.username ?? user.email?.split('@')[0] ?? 'trader',
     }
   }
@@ -65,7 +58,6 @@ export const fetchViewer = createServerFn({ method: 'GET' }).handler(async (): P
     email: `${demoUser}@example.com`,
     id: `demo-${demoUser}`,
     kind: 'user',
-    onboarded: getCookie(DEMO_ONBOARDED_COOKIE) === demoUser,
     username: demoUser,
   }
 })
@@ -88,18 +80,6 @@ export const demoSignIn = createServerFn({ method: 'POST' })
 
 export const demoSignOut = createServerFn({ method: 'POST' }).handler(async () => {
   deleteCookie(DEMO_COOKIE, { path: '/' })
-})
-
-/** Demo counterpart of the Supabase `onboarded` user metadata flag. */
-export const demoCompleteOnboarding = createServerFn({ method: 'POST' }).handler(async () => {
-  const demoUser = demoAuthAllowed() ? getCookie(DEMO_COOKIE) : undefined
-  if (!demoUser) throw new Error('Demo sign-in is disabled')
-  setCookie(DEMO_ONBOARDED_COOKIE, demoUser, {
-    httpOnly: true,
-    maxAge: 60 * 60 * 24 * 365,
-    path: '/',
-    sameSite: 'lax',
-  })
 })
 
 export const viewerQuery = () =>

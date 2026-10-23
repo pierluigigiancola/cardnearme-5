@@ -16,7 +16,7 @@ import {
 import { distribution, drawProbability, expandDeck, shuffle } from '#/lib/deckMath'
 import type { Comparison } from '#/lib/deckMath'
 import { formatRelative } from '#/lib/format'
-import type { Card, Deck, DeckCard } from '#/services/types'
+import type { Printing, Deck, DeckCard } from '#/services/types'
 
 export function DeckTile({ deck }: { deck: Deck }) {
   const cover = deck.cards.at(0)?.card
@@ -74,7 +74,7 @@ export function deckValue(entries: DeckCard[]) {
   return entries.reduce((sum, entry) => sum + (entry.card.prices.nonfoil ?? 0) * entry.quantity, 0)
 }
 
-const isLand = (card: Card) => card.typeLine.includes('Land')
+const isLand = (card: Printing) => card.typeLine.includes('Land')
 
 export function ManaCurve({ entries }: { entries: DeckCard[] }) {
   const buckets = Array.from({ length: 8 }, (_, cost) =>

@@ -43,7 +43,7 @@ import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
 import { gamesQuery, myDeckQuery, ownershipQuery } from '#/services/queries'
 import { getServices } from '#/services/services'
-import type { Card, DeckCard, DeckInput, DeckSection, OwnedDeck } from '#/services/types'
+import type { Printing, DeckCard, DeckInput, DeckSection, OwnedDeck } from '#/services/types'
 
 export const Route = createFileRoute('/x/decks/$deckId')({
   loader: async ({ context: { queryClient, user }, params }) => {
@@ -73,7 +73,7 @@ interface Draft {
 function toInput(deck: OwnedDeck, draft: Draft): DeckInput {
   return {
     cards: draft.cards.map(entry => ({
-      cardId: entry.card.id,
+      printingId: entry.card.id,
       quantity: entry.quantity,
       section: entry.section,
     })),
@@ -154,7 +154,7 @@ function DeckEditor({ deck }: { deck: OwnedDeck }) {
   const save = useWorkspaceMutation((services, input: DeckInput) => services.deckBuilder.update(deck.id, input))
   const remove = useWorkspaceMutation(services => services.deckBuilder.remove(deck.id))
 
-  const addCard = (card: Card, section = addTo) => setCards((cards) => {
+  const addCard = (card: Printing, section = addTo) => setCards((cards) => {
     const existing = cards.find(entry => entry.card.id === card.id && entry.section === section)
     if (existing) return cards.map(entry => (entry === existing ? {
       ...entry,

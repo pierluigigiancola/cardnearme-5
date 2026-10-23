@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { FacetDefinition } from './queryHelpers'
 import { buildFacets, cardFacets, matchesFacets } from './queryHelpers'
 
-import { makeCard } from '#/test/fixtures'
+import { makePrinting } from '#/test/fixtures'
 
 interface Item {
   colors: string[]
@@ -140,7 +140,7 @@ describe('buildFacets', () => {
 
   it('labels card facets with the built-in definitions', () => {
     const cards = [
-      makeCard({
+      makePrinting({
         artist: 'Rebecca Guay',
         colors: ['W', 'U'],
         finishes: ['nonfoil', 'foil'],
@@ -148,7 +148,7 @@ describe('buildFacets', () => {
         rarity: 'mythic',
         typeLine: 'Legendary Creature — Angel',
       }),
-      makeCard({
+      makePrinting({
         artist: 'Rebecca Guay',
         colors: ['U'],
         finishes: ['foil'],

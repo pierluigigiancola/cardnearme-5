@@ -9,7 +9,7 @@ import { Input } from '#/components/ui/input'
 import { formatRelative } from '#/lib/format'
 import { cn } from '#/lib/utils'
 import { chatsQuery } from '#/services/queries'
-import type { ChatMessage } from '#/services/types'
+import type { ChatSummary, UserId } from '#/services/types'
 
 export const Route = createFileRoute('/x/inbox')({
   loader: async ({ context: { queryClient, user } }) => {
@@ -19,9 +19,9 @@ export const Route = createFileRoute('/x/inbox')({
   component: InboxLayout,
 })
 
-function preview(message: ChatMessage | null, me: string) {
+function preview({ lastMessage: message, partner }: ChatSummary, me: UserId) {
   if (!message) return 'No messages yet'
-  const who = message.author === me ? 'You' : message.author
+  const who = message.author === me ? 'You' : partner.username
   switch (message.kind) {
     case 'text': return message.author === me ? `You: ${message.body}` : message.body
     case 'trade': return `${who} sent a trade proposal`
@@ -85,7 +85,7 @@ function InboxLayout() {
                     </span>
 
                     <span className="mt-0.5 flex items-center gap-2">
-                      <span className={cn('truncate text-sm', chat.unread > 0 ? 'font-medium text-foreground' : 'text-muted-foreground')}>{preview(chat.lastMessage, user.username)}</span>
+                      <span className={cn('truncate text-sm', chat.unread > 0 ? 'font-medium text-foreground' : 'text-muted-foreground')}>{preview(chat, user.id)}</span>
 
                       {chat.unread > 0 && <span className="ml-auto shrink-0 rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground tabular-nums">{chat.unread}</span>}
                     </span>

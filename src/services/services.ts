@@ -7,9 +7,10 @@ import type {
   BinderItemPatch,
   BinderPage,
   BinderQuery,
-  Card,
+  Printing,
   CardAvailability,
-  CardQuery,
+  CardId,
+  PrintingQuery,
   CardSet,
   ChangelogEntry,
   ChatSummary,
@@ -47,6 +48,7 @@ import type {
   TradeListInput,
   TradeMatch,
   UnreadCounts,
+  UserId,
   UserProfile,
   WorkspaceProfile,
 } from './types'
@@ -65,19 +67,24 @@ export interface CatalogueService {
     order?: SortOrder
   }) => Promise<CardSet[]>
   getSet: (gameId: GameId, setCode: string) => Promise<CardSet | null>
-  listCards: (query: CardQuery) => Promise<{
-    items: Card[];
+  /** The Printings in one Set. */
+  listSetPrintings: (query: PrintingQuery) => Promise<{
+    items: Printing[];
     total: number;
     facets: Facet[]
   }>
-  getCard: (gameId: GameId, setCode: string, number: string) => Promise<Card | null>
-  listPrintings: (card: Card) => Promise<Card[]>
+  /** One Printing, by Set code and collector number. */
+  getPrinting: (gameId: GameId, setCode: string, number: string) => Promise<Printing | null>
+  /** Every Printing of a Card, across Sets. */
+  listPrintings: (cardId: CardId) => Promise<Printing[]>
   listSealed: (gameId: GameId, setCode: string) => Promise<SealedProduct[]>
+  /** Cards whose name matches, one representative Printing each. */
   searchCards: (q: string, options?: {
     gameId?: GameId;
     limit?: number
-  }) => Promise<Card[]>
-  getCardAvailability: (card: Card) => Promise<CardAvailability[]>
+  }) => Promise<Printing[]>
+  /** Where a Card (any Printing) is offered or wanted on public Lists, per City. */
+  getCardAvailability: (cardId: CardId) => Promise<CardAvailability[]>
 }
 
 export interface PlacesService {
@@ -102,7 +109,7 @@ export interface CommunityService {
   listDecks: (options?: {
     gameId?: GameId;
     format?: string;
-    ownerUsername?: string;
+    ownerId?: UserId;
     limit?: number
   }) => Promise<Deck[]>
   getDeck: (deckId: string) => Promise<Deck | null>
@@ -128,8 +135,8 @@ export interface BinderService {
   getCounts: () => Promise<BinderCounts>
   /** One tab of the Binder. `haves` lists the Collection entries with copies for trade; each owned card appears once. */
   listItems: (query: BinderQuery) => Promise<BinderPage>
-  /** Copies owned, for trade and wanted, matched by card name across printings. */
-  getOwnership: (cardIds: string[]) => Promise<Partial<Record<string, Ownership>>>
+  /** Copies owned, for trade and wanted of each Printing's Card (counting every Printing), keyed by the Printing id asked for. */
+  getOwnership: (printingIds: string[]) => Promise<Partial<Record<string, Ownership>>>
   /** Adds Collection entries or Wants, merging into an identical entry of the same kind. */
   addItems: (items: BinderItemInput[]) => Promise<BinderItem[]>
   /** Edits an entry; for a Collection entry this includes its quantity and for-trade quantity (≤ quantity). */
@@ -145,8 +152,8 @@ export interface BinderService {
   createImport: (input: BinderImportInput) => Promise<BinderImport>
   getImport: (importId: string) => Promise<BinderImport | null>
   updateImportRow: (importId: string, line: number, patch: {
-    cardId?: string;
     include?: boolean
+    printingId?: string;
   }) => Promise<BinderImport>
   commitImport: (importId: string) => Promise<BinderImport>
 }
@@ -171,14 +178,14 @@ export interface ChatService {
   listChats: () => Promise<ChatSummary[]>
   getThread: (chatId: string) => Promise<ChatThread | null>
   /** Returns the conversation with a trader, starting one if needed. */
-  openChat: (partner: string) => Promise<ChatSummary>
+  openChat: (partner: UserId) => Promise<ChatSummary>
   sendMessage: (chatId: string, body: string) => Promise<void>
   markRead: (chatId: string) => Promise<void>
 }
 
 export interface TradesService {
   listMatches: (scope?: MatchScope) => Promise<TradeMatch[]>
-  getContext: (partner: string) => Promise<TradeContext>
+  getContext: (partner: UserId) => Promise<TradeContext>
   /** Posts a proposal into the chat with the partner; returns the new trade. */
   propose: (draft: TradeDraft) => Promise<Trade>
   /** Counter-offer or edit: replaces the terms and hands the turn to the other side. */
@@ -200,6 +207,11 @@ export interface NotificationsService {
 export interface ProfileService {
   get: () => Promise<WorkspaceProfile>
   update: (patch: ProfilePatch) => Promise<WorkspaceProfile>
+  /**
+   * Saves the Trader's City and Stores and records onboarding by setting
+   * `profile.onboardedAt` (once). This is the only place onboarding is
+   * recorded: the `/x` guard reads `onboardedAt`, nothing else.
+   */
   completeOnboarding: (input: OnboardingInput) => Promise<WorkspaceProfile>
   joinStore: (storeSlug: string) => Promise<WorkspaceProfile>
   leaveStore: (storeSlug: string) => Promise<WorkspaceProfile>

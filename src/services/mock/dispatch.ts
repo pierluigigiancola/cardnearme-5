@@ -1,6 +1,6 @@
 import type { WorkspaceServices } from '../services'
 
-import { args, arrayOf, bool, either, looseShape, nullable, num, oneOf, optional, recordOf, shape, str } from './checks'
+import { args, arrayOf, bool, either, nullable, num, oneOf, optional, recordOf, shape, str } from './checks'
 import type { ArgsCheck } from './checks'
 import { games } from './data'
 import { publicServices } from './public'
@@ -38,13 +38,13 @@ const facets = optional(recordOf(optional(arrayOf(str))))
 const ids = arrayOf(str)
 
 const binderItemInput = shape({
-  cardId: str,
   condition,
   finish,
   forTradeQuantity: optional(num),
   kind: oneOf('collection', 'want'),
   language,
   listId: optional(nullable(str)),
+  printingId: str,
   quantity: num,
 })
 
@@ -69,7 +69,7 @@ const listInput = {
 
 const deckInput = shape({
   cards: arrayOf(shape({
-    cardId: str,
+    printingId: str,
     quantity: num,
     section: oneOf('commander', 'mainboard', 'sideboard', 'considering'),
   })),
@@ -113,13 +113,6 @@ const tradeDraft = shape({
   partner: str,
 })
 
-/** Cards are re-read on the server; only the fields the services use are checked. */
-const card = looseShape({
-  gameId,
-  id: str,
-  name: str,
-})
-
 const workspaceMethods: { [TName in keyof WorkspaceServices]: MethodTable<WorkspaceServices[TName]> } = {
   binder: {
     addItems: args(arrayOf(binderItemInput)),
@@ -144,8 +137,8 @@ const workspaceMethods: { [TName in keyof WorkspaceServices]: MethodTable<Worksp
     moveItems: args(ids, shape({ listId: nullable(str) })),
     removeItems: args(ids),
     updateImportRow: args(str, num, shape({
-      cardId: optional(str),
       include: optional(bool),
+      printingId: optional(str),
     })),
     updateItem: args(str, shape({
       condition: optional(condition),
@@ -226,7 +219,7 @@ const workspaceMethods: { [TName in keyof WorkspaceServices]: MethodTable<Worksp
 }
 
 const publicMethods: { [TName in keyof StorePublicServices]: MethodTable<StorePublicServices[TName]> } = {
-  catalogue: { getCardAvailability: args(card) },
+  catalogue: { getCardAvailability: args(str) },
   community: {
     getDeck: args(str),
     getUser: args(str),
@@ -235,7 +228,7 @@ const publicMethods: { [TName in keyof StorePublicServices]: MethodTable<StorePu
       format: optional(str),
       gameId: optional(gameId),
       limit: optional(num),
-      ownerUsername: optional(str),
+      ownerId: optional(str),
     }))),
   },
   trading: {
@@ -246,7 +239,7 @@ const publicMethods: { [TName in keyof StorePublicServices]: MethodTable<StorePu
       limit: optional(num),
       listType,
       order,
-      ownerUsername: optional(str),
+      ownerId: optional(str),
       q: optional(str),
       sort: optional(oneOf('name', 'price', 'updated', 'quantity')),
       storeSlug: optional(str),

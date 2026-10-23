@@ -23,7 +23,7 @@ export interface StorePublicServices {
 function toUserProfile(store: MockStore, trader: TraderRecord): UserProfile {
   const { profile } = trader
   const completedHere = store.trades.filter(trade =>
-    trade.status === 'completed' && (trade.proposer === profile.username || trade.recipient === profile.username)).length
+    trade.status === 'completed' && (trade.proposer === trader.id || trade.recipient === trader.id)).length
   return {
     avatarHue: profile.avatarHue,
     badges: trader.badges,
@@ -38,20 +38,23 @@ function toUserProfile(store: MockStore, trader: TraderRecord): UserProfile {
   }
 }
 
-function toDeck({ visibility: _visibility, ...deck }: OwnedDeck): Deck {
-  return deck
+function toDeck(owner: TraderRecord, { visibility: _visibility, ...deck }: OwnedDeck): Deck {
+  return {
+    ...deck,
+    ownerUsername: owner.profile.username,
+  }
 }
 
 function publicDecks(store: MockStore) {
-  return [...store.traders.values()].flatMap(trader => trader.decks.filter(deck => deck.visibility === 'public').map(toDeck))
+  return [...store.traders.values()].flatMap(trader => trader.decks.filter(deck => deck.visibility === 'public').map(deck => toDeck(trader, deck)))
 }
 
 /** `viewer` comes from the session; it decides the anonymous result cap. */
 export function publicServices(store: MockStore = mockStore, viewer: CapViewer = { kind: 'anonymous' }): StorePublicServices {
   return {
     catalogue: {
-      getCardAvailability: async (card) => {
-        const relevant = [...listedItems(store, 'haves'), ...listedItems(store, 'wants')].filter(item => item.card.name === card.name)
+      getCardAvailability: async (cardId) => {
+        const relevant = [...listedItems(store, 'haves'), ...listedItems(store, 'wants')].filter(item => item.card.cardId === cardId)
         return cities
           .map((city) => {
             const inCity = relevant.filter(item => item.citySlug === city.slug)
@@ -69,17 +72,18 @@ export function publicServices(store: MockStore = mockStore, viewer: CapViewer =
     },
     community: {
       getDeck: async deckId => publicDecks(store).find(deck => deck.id === deckId) ?? null,
+      // The username comes from the URL; it is looked up here, at the boundary.
       getUser: async (username) => {
         const trader = traderByUsername(store, username)
         return trader ? toUserProfile(store, trader) : null
       },
       listDeckComments: async deckId => deckComments[deckId] ?? [],
-      listDecks: async ({ format, gameId, limit, ownerUsername } = {}) => {
+      listDecks: async ({ format, gameId, limit, ownerId } = {}) => {
         const result = publicDecks(store)
           .filter(deck =>
             (!gameId || deck.gameId === gameId)
             && (!format || deck.format.toLowerCase() === format.toLowerCase())
-            && (!ownerUsername || deck.ownerUsername === ownerUsername))
+            && (!ownerId || deck.ownerId === ownerId))
           .sort((a, b) => compare(a.updatedAt, b.updatedAt, 'desc'))
         return limit ? result.slice(0, limit) : result
       },

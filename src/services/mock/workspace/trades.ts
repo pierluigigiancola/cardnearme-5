@@ -1,9 +1,9 @@
 import type { TradesService } from '../../services'
 import type { MeetupLocation, Trade, TradeDraft, TradeLine } from '../../types'
-import { cardsById, participant, priceOf, requireTrader, storesBySlug } from '../store'
+import { printingsById, participant, priceOf, requireTrader, storesBySlug, usernameOf } from '../store'
 import type { ItemRecord } from '../store'
 
-import { cardKey, now, requireCard, validPrice } from './context'
+import { cardKey, now, requirePrinting, validPrice } from './context'
 import type { TraderContext } from './context'
 import { chatWith, partnerOf, post, requireChat, requireTrade } from './conversations'
 import { addRecords, collectionRecords, itemsIn, myHaves, partnerItems, requireItem, toBinderItems } from './records'
@@ -14,13 +14,13 @@ export function tradesService(ctx: TraderContext): TradesService {
   const { me, store, trader } = ctx
 
   const resolveDraft = (draft: TradeDraft) => {
-    const partner = participant(store, draft.partner).username
+    const partner = participant(store, draft.partner).id
     if (partner === me) throw new Error('You cannot trade with yourself')
     const give = draft.give.map((line): TradeLine => {
       // Your side: any of your own Collection entries.
       const record = requireItem(ctx, line.sourceId)
       if (record.kind !== 'collection') throw new Error('Wanted cards cannot be offered')
-      const card = requireCard(record.cardId)
+      const card = requirePrinting(record.cardId)
       return {
         card,
         condition: record.condition,
@@ -39,7 +39,7 @@ export function tradesService(ctx: TraderContext): TradesService {
     const get = draft.get.map((line): TradeLine => {
       const item = theirHaves.find(candidate => candidate.id === line.sourceId)
       const source = partnerRecords.find(record => record.id === line.sourceId)
-      if (!item || source?.kind !== 'collection') throw new Error(`${partner} no longer has one of these cards for trade`)
+      if (!item || source?.kind !== 'collection') throw new Error(`${usernameOf(store, partner)} no longer has one of these cards for trade`)
       return {
         card: item.card,
         condition: item.condition,
@@ -105,14 +105,14 @@ export function tradesService(ctx: TraderContext): TradesService {
     }
     for (const line of received) {
       addRecords(ctx, [{
-        cardId: line.card.id,
         condition: line.condition,
         finish: line.finish,
         kind: 'collection',
         language: line.language,
+        printingId: line.card.id,
         quantity: line.quantity,
       }])
-      const want = trader.items.find(record => record.kind === 'want' && cardsById.get(record.cardId)?.name === line.card.name)
+      const want = trader.items.find(record => record.kind === 'want' && printingsById.get(record.cardId)?.name === line.card.name)
       if (want) {
         want.quantity -= line.quantity
         dropEmpty(want)
@@ -162,15 +162,15 @@ export function tradesService(ctx: TraderContext): TradesService {
       })
       return trade
     },
-    getContext: async (partnerName) => {
-      const partner = participant(store, partnerName)
-      if (partner.username === me) throw new Error('You cannot trade with yourself')
+    getContext: async (partnerId) => {
+      const partner = participant(store, partnerId)
+      if (partner.id === me) throw new Error('You cannot trade with yourself')
       const myItems = toBinderItems(ctx, collectionRecords(ctx))
-      const partnerHaves = partnerItems(ctx, partner.username, 'haves')
-      const partnerWants = partnerItems(ctx, partner.username, 'wants')
+      const partnerHaves = partnerItems(ctx, partner.id, 'haves')
+      const partnerWants = partnerItems(ctx, partner.id, 'wants')
       const myWants = new Set(itemsIn(ctx, 'wants').map(item => cardKey(item.card)))
       const theirWants = new Set(partnerWants.map(item => cardKey(item.card)))
-      const partnerProfile = requireTrader(store, partner.username).profile
+      const partnerProfile = requireTrader(store, partner.id).profile
       return {
         meetingPlaces: [...new Set([...trader.profile.meetingPlaces, ...partnerProfile.meetingPlaces])],
         myItems,
@@ -188,20 +188,20 @@ export function tradesService(ctx: TraderContext): TradesService {
       const myWants = new Set(itemsIn(ctx, 'wants').map(item => cardKey(item.card)))
       const haves = myHaves(ctx)
       const myStores = trader.profile.storeSlugs
-      const candidates = [...store.traders.values()].filter(({ profile }) => {
-        if (profile.username === me) return false
+      const candidates = [...store.traders.values()].filter(({ id, profile }) => {
+        if (id === me) return false
         if (storeSlug) return profile.storeSlugs.includes(storeSlug)
         if (citySlug) return profile.citySlug === citySlug
         return profile.storeSlugs.some(slug => myStores.includes(slug))
       })
       return candidates
-        .map(({ profile }) => {
-          const theirWants = new Set(partnerItems(ctx, profile.username, 'wants').map(item => cardKey(item.card)))
+        .map(({ id, profile }) => {
+          const theirWants = new Set(partnerItems(ctx, id, 'wants').map(item => cardKey(item.card)))
           return {
             citySlug: profile.citySlug ?? '',
-            partner: participant(store, profile.username),
+            partner: participant(store, id),
             sharedStoreSlugs: profile.storeSlugs.filter(slug => myStores.includes(slug)),
-            theyHave: partnerItems(ctx, profile.username, 'haves').filter(item => myWants.has(cardKey(item.card))),
+            theyHave: partnerItems(ctx, id, 'haves').filter(item => myWants.has(cardKey(item.card))),
             theyWant: haves.filter(item => theirWants.has(cardKey(item.card))),
           }
         })

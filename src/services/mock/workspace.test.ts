@@ -13,7 +13,7 @@ async function proposeToFirstMatch() {
   })
   const match = (await workspace.trades.listMatches()).at(0)
   if (!match) throw new Error('Seeded workspace has no matches')
-  const context = await workspace.trades.getContext(match.partner.username)
+  const context = await workspace.trades.getContext(match.partner.id)
   const wanted = context.partnerHaves.at(0)
   if (!wanted) throw new Error('Partner has no haves')
   const trade = await workspace.trades.propose({
@@ -27,7 +27,7 @@ async function proposeToFirstMatch() {
     meetAt: null,
     meetup: null,
     note: '',
-    partner: context.partner.username,
+    partner: context.partner.id,
   })
   return {
     trade,

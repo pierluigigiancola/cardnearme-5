@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { cards } from './data'
+import { printings } from './data'
 import { publicServices } from './public'
-import { createStore, traderByUsername } from './store'
+import { createStore } from './store'
 import { workspaceFor } from './workspace'
 
 const trader = {
@@ -11,7 +11,7 @@ const trader = {
   username: 'collector',
 }
 
-const found = cards.find(candidate => candidate.gameId === 'mtg' && candidate.finishes.includes('nonfoil'))
+const found = printings.find(candidate => candidate.gameId === 'mtg' && candidate.finishes.includes('nonfoil'))
 if (!found) throw new Error('Seed data has no MTG card')
 const card = found
 
@@ -20,11 +20,11 @@ async function ownTwoCopies() {
   const workspace = workspaceFor(trader, store)
   const profile = await workspace.profile.get()
   const entry = (await workspace.binder.addItems([{
-    cardId: card.id,
     condition: 'NM',
     finish: 'nonfoil',
     kind: 'collection',
     language: 'en',
+    printingId: card.id,
     quantity: 2,
   }])).at(0)
   if (!entry) throw new Error('No Collection entry was added')
@@ -38,7 +38,7 @@ async function ownTwoCopies() {
 }
 
 async function publicHaveIds(publicView: ReturnType<typeof publicServices>, query: {
-  ownerUsername?: string;
+  ownerId?: string;
   citySlug?: string
 }) {
   const page = await publicView.trading.listTradeItems({
@@ -53,7 +53,7 @@ describe('Haves are Collection entries', () => {
     const { entry, publicView } = await ownTwoCopies()
     expect(entry.kind).toBe('collection')
     expect(entry.kind === 'collection' && entry.forTradeQuantity).toBe(0)
-    expect(await publicHaveIds(publicView, { ownerUsername: trader.username })).not.toContain(entry.id)
+    expect(await publicHaveIds(publicView, { ownerId: trader.id })).not.toContain(entry.id)
   })
 
   it('shows copies marked for trade on the public profile and City page, and only those copies', async () => {
@@ -62,7 +62,7 @@ describe('Haves are Collection entries', () => {
 
     const page = await publicView.trading.listTradeItems({
       listType: 'haves',
-      ownerUsername: trader.username,
+      ownerId: trader.id,
     })
     const have = page.items.find(item => item.id === entry.id)
     expect(have?.quantity).toBe(1)
@@ -73,7 +73,7 @@ describe('Haves are Collection entries', () => {
     const { entry, publicView, workspace } = await ownTwoCopies()
     await workspace.binder.updateItem(entry.id, { forTradeQuantity: 2 })
     await workspace.binder.updateItem(entry.id, { forTradeQuantity: 0 })
-    expect(await publicHaveIds(publicView, { ownerUsername: trader.username })).not.toContain(entry.id)
+    expect(await publicHaveIds(publicView, { ownerId: trader.id })).not.toContain(entry.id)
   })
 
   it('refuses more copies for trade than owned', async () => {
@@ -101,12 +101,12 @@ describe('Haves are Collection entries', () => {
     const store = createStore()
     const workspace = workspaceFor(trader, store)
     const entry = (await workspace.binder.addItems([{
-      cardId: card.id,
       condition: 'NM',
       finish: 'nonfoil',
       forTradeQuantity: 3,
       kind: 'collection',
       language: 'en',
+      printingId: card.id,
       quantity: 3,
     }])).at(0)
     expect(entry?.kind === 'collection' && entry.forTradeQuantity).toBe(3)
@@ -118,7 +118,7 @@ describe('what a Trader may give', () => {
   async function tradeSetup() {
     const setup = await ownTwoCopies()
     const partnerHave = (await setup.publicView.trading.listTradeItems({ listType: 'haves' })).items
-      .find(item => item.ownerUsername !== trader.username)
+      .find(item => item.ownerId !== trader.id)
     if (!partnerHave) throw new Error('Seed data has no partner Have')
     return {
       ...setup,
@@ -128,7 +128,7 @@ describe('what a Trader may give', () => {
 
   it('offers every Collection entry of the Trader, including ones not for trade, on their own side', async () => {
     const { entry, partnerHave, workspace } = await tradeSetup()
-    const context = await workspace.trades.getContext(partnerHave.ownerUsername)
+    const context = await workspace.trades.getContext(partnerHave.ownerId)
     expect(context.myItems.map(item => item.id)).toContain(entry.id)
 
     const trade = await workspace.trades.propose({
@@ -142,7 +142,7 @@ describe('what a Trader may give', () => {
       meetAt: null,
       meetup: null,
       note: '',
-      partner: partnerHave.ownerUsername,
+      partner: partnerHave.ownerId,
     })
     expect(trade.proposerGives.map(line => line.sourceId)).toEqual([entry.id])
     expect(trade.proposerGives.at(0)?.quantity).toBe(2)
@@ -150,7 +150,7 @@ describe('what a Trader may give', () => {
 
   it('takes the partner\'s side from their Haves only, as Collection entries', async () => {
     const { partnerHave, store, workspace } = await tradeSetup()
-    const partner = traderByUsername(store, partnerHave.ownerUsername)
+    const partner = store.traders.get(partnerHave.ownerId)
     const source = partner?.items.find(record => record.id === partnerHave.id)
     expect(source?.kind).toBe('collection')
 
@@ -165,7 +165,7 @@ describe('what a Trader may give', () => {
       meetAt: null,
       meetup: null,
       note: '',
-      partner: partnerHave.ownerUsername,
+      partner: partnerHave.ownerId,
     })
     expect(trade.recipientGives.at(0)?.sourceId).toBe(partnerHave.id)
     expect(trade.recipientGives.at(0)?.quantity).toBe(partnerHave.quantity)
@@ -173,7 +173,7 @@ describe('what a Trader may give', () => {
 
   it('refuses a partner card that is not marked for trade', async () => {
     const { partnerHave, store, workspace } = await tradeSetup()
-    const partner = traderByUsername(store, partnerHave.ownerUsername)
+    const partner = store.traders.get(partnerHave.ownerId)
     const source = partner?.items.find(record => record.id === partnerHave.id)
     if (source?.kind !== 'collection') throw new Error('Partner Have is not a Collection entry')
     source.forTradeQuantity = 0
@@ -189,7 +189,7 @@ describe('what a Trader may give', () => {
       meetAt: null,
       meetup: null,
       note: '',
-      partner: partnerHave.ownerUsername,
+      partner: partnerHave.ownerId,
     })).rejects.toThrow()
   })
 })

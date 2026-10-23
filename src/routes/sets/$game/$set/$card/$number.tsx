@@ -16,18 +16,18 @@ import { Button } from '#/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { formatDate } from '#/lib/format'
 import { cn } from '#/lib/utils'
-import { cardAvailabilityQuery, cardQuery, gameQuery, ownershipQuery, printingsQuery } from '#/services/queries'
-import type { Card, Finish } from '#/services/types'
+import { cardAvailabilityQuery, printingQuery, gameQuery, ownershipQuery, printingsQuery } from '#/services/queries'
+import type { Printing, Finish } from '#/services/types'
 
 export const Route = createFileRoute('/sets/$game/$set/$card/$number')({
   loader: async ({ context: { queryClient }, params }) => {
     const game = await queryClient.ensureQueryData(gameQuery(params.game))
     if (!game) throw notFound()
-    const card = await queryClient.ensureQueryData(cardQuery(game.id, params.set, params.number))
+    const card = await queryClient.ensureQueryData(printingQuery(game.id, params.set, params.number))
     if (!card) throw notFound()
     await Promise.all([
-      queryClient.ensureQueryData(printingsQuery(card)),
-      queryClient.ensureQueryData(cardAvailabilityQuery(card)),
+      queryClient.ensureQueryData(printingsQuery(card.cardId)),
+      queryClient.ensureQueryData(cardAvailabilityQuery(card.cardId)),
     ])
     return {
       card,
@@ -47,8 +47,9 @@ const legalityStyle = {
 
 function CardPage() {
   const { card, game } = Route.useLoaderData()
-  const { data: printings } = useSuspenseQuery(printingsQuery(card))
-  const { data: availability } = useSuspenseQuery(cardAvailabilityQuery(card))
+  const { data: printings } = useSuspenseQuery(printingsQuery(card.cardId))
+  const otherPrintings = printings.filter(printing => printing.id !== card.id)
+  const { data: availability } = useSuspenseQuery(cardAvailabilityQuery(card.cardId))
   const requireAuth = useRequireAuth()
   const [finish, setFinish] = useState<Finish>('nonfoil')
   const [adding, setAdding] = useState(false)
@@ -261,10 +262,10 @@ function CardPage() {
           )}
       </Section>
 
-      {printings.length > 0 && (
-        <Section title={`Other printings (${printings.length})`}>
+      {otherPrintings.length > 0 && (
+        <Section title={`Other Printings (${otherPrintings.length})`}>
           <CardList
-            cards={printings}
+            cards={otherPrintings}
             view="visual"
           />
         </Section>
@@ -307,8 +308,8 @@ function CardPage() {
   )
 }
 
-/** Copies of this card (any printing) in the viewer's binder. */
-function OwnershipCounts({ card }: { card: Card }) {
+/** Copies of this Card (any Printing) in the viewer's Binder. */
+function OwnershipCounts({ card }: { card: Printing }) {
   const viewer = useSignedInViewer()
   const result = useQuery(ownershipQuery(viewer.id, [card.id]))
   if (result.isError) {

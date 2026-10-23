@@ -62,9 +62,25 @@ export interface Ruling {
   text: string
 }
 
-/** One printing of a card in a set. */
+/** Identifies a Card. Opaque: never parse it, and don't confuse it with a Printing id. */
+export type CardId = string
+
+/**
+ * A game piece, identified by its name within a Game regardless of where it
+ * was printed. It groups that name's Printings across Sets; Wants target it.
+ */
 export interface Card {
+  id: CardId
+  gameId: GameId
+  name: string
+  slug: string
+}
+
+/** One release of a Card in a Set, with its own collector number. Collection entries are always a Printing. */
+export interface Printing {
   id: string
+  /** The Card this is a release of. */
+  cardId: CardId
   gameId: GameId
   setCode: string
   setName: string
@@ -126,8 +142,16 @@ export interface Store {
   isHub: boolean
 }
 
+/**
+ * Identifies a Trader: the Supabase auth user id. Every reference from one
+ * record to a person uses it, so a Trader can change their username without
+ * breaking Trades or chats. Usernames are for display and URLs only.
+ */
+export type UserId = string
+
 export interface UserProfile {
-  id: string
+  id: UserId
+  /** Display name and URL segment (`/users/$username`); never a reference. */
   username: string
   avatarHue: number
   memberSince: string
@@ -149,7 +173,10 @@ export type TradeListType = 'haves' | 'wants'
 export interface TradeItem {
   id: string
   listType: TradeListType
-  card: Card
+  card: Printing
+  /** The Trader who listed it. */
+  ownerId: UserId
+  /** Display only; refer to the owner by `ownerId`. */
   ownerUsername: string
   storeSlugs: string[]
   citySlug: string
@@ -162,7 +189,7 @@ export interface TradeItem {
 }
 
 export interface DeckCard {
-  card: Card
+  card: Printing
   quantity: number
   section: 'commander' | 'mainboard' | 'sideboard' | 'considering'
 }
@@ -172,6 +199,8 @@ export interface Deck {
   gameId: GameId
   format: string
   name: string
+  ownerId: UserId
+  /** Display only; refer to the owner by `ownerId`. */
   ownerUsername: string
   description: string
   updatedAt: string
@@ -246,7 +275,7 @@ export interface Facet {
 
 export type FacetSelection = Partial<Record<string, string[]>>
 
-export interface CardQuery {
+export interface PrintingQuery {
   gameId: GameId
   setCode: string
   q?: string
@@ -258,7 +287,7 @@ export interface CardQuery {
 export interface TradeItemQuery {
   citySlug?: string
   storeSlug?: string
-  ownerUsername?: string
+  ownerId?: UserId
   listType: TradeListType
   q?: string
   sort?: 'name' | 'price' | 'updated' | 'quantity'
@@ -275,7 +304,7 @@ export interface TradeItemQuery {
 }
 
 export interface SearchResult {
-  cards: Card[]
+  cards: Printing[]
   cities: City[]
 }
 
@@ -330,7 +359,7 @@ export interface ListsQuery {
 
 interface BinderEntryBase {
   id: string
-  card: Card
+  card: Printing
   /** For Wants this is the minimum acceptable condition. */
   condition: Condition
   finish: Finish
@@ -372,10 +401,10 @@ export interface BinderItemInput {
   kind: BinderItemKind
   /** Collection entry: the Haves List for its for-trade copies. Want: its Wants List. Omit for the default List. */
   listId?: string | null
-  cardId: string
   condition: Condition
   finish: Finish
   language: Language
+  printingId: string
   quantity: number
   /** Collection entries only: copies to mark for trade, from 0 (the default) to `quantity`. */
   forTradeQuantity?: number
@@ -404,7 +433,7 @@ export interface BinderStats {
   marketValue: number
   /** Total copies, counting quantities. */
   cards: number
-  /** Distinct printings. */
+  /** Distinct Printings. */
   distinct: number
 }
 
@@ -417,10 +446,10 @@ export interface BinderPage {
 
 export type BinderCounts = Record<BinderSection, number>
 
-/** How many copies of a card (any printing) the viewer has in each section. */
+/** How many copies of a Card (any Printing) the viewer has in each section. */
 export type Ownership = Record<BinderSection, number>
 
-/** One line of a CSV or pasted card list, before it is matched to a printing. */
+/** One line of a CSV or pasted card list, before it is matched to a Printing. */
 export interface ParsedImportRow {
   line: number
   raw: string
@@ -434,7 +463,7 @@ export interface ParsedImportRow {
 }
 
 export interface ImportRow extends ParsedImportRow {
-  card: Card | null
+  card: Printing | null
   include: boolean
 }
 
@@ -469,13 +498,15 @@ export interface DeckInput {
   description: string
   visibility: Visibility
   cards: {
-    cardId: string
+    printingId: string
     quantity: number
     section: DeckSection
   }[]
 }
 
 export interface ChatParticipant {
+  id: UserId
+  /** Display only. */
   username: string
   avatarHue: number
   online: boolean
@@ -487,7 +518,7 @@ export interface ChatParticipant {
 interface ChatMessageBase {
   id: string
   chatId: string
-  author: string
+  author: UserId
   sentAt: string
 }
 
@@ -529,7 +560,7 @@ export interface TradeLine {
   id: string
   /** The Collection entry this line comes from, on either side (a partner's `TradeItem.id` is their Collection entry's id). */
   sourceId: string
-  card: Card
+  card: Printing
   condition: Condition
   finish: Finish
   language: Language
@@ -556,27 +587,27 @@ export type MeetupLocation =
 export interface Trade {
   id: string
   chatId: string
-  proposer: string
-  recipient: string
+  proposer: UserId
+  recipient: UserId
   proposerGives: TradeLine[]
   recipientGives: TradeLine[]
   /** Cash added to balance the values; `cashPayer` hands it over. */
   cashAmount: number
-  cashPayer: string | null
+  cashPayer: UserId | null
   meetup: MeetupLocation | null
   meetAt: string | null
   note: string
   status: TradeStatus
   /** Who has to act next: the side that did not make the latest offer. */
-  awaiting: string | null
-  cancelledBy: string | null
+  awaiting: UserId | null
+  cancelledBy: UserId | null
   createdAt: string
   updatedAt: string
 }
 
 /** A trade proposal from the viewer's point of view. */
 export interface TradeDraft {
-  partner: string
+  partner: UserId
   give: TradeDraftLine[]
   get: TradeDraftLine[]
   cash: {
@@ -634,7 +665,8 @@ export interface AppNotification {
   body: string
   /** In-app path the notification opens. */
   href: string
-  actor: string | null
+  /** The Trader the notification is about. */
+  actor: UserId | null
   createdAt: string
   readAt: string | null
 }

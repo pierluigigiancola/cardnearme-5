@@ -1,5 +1,5 @@
-import type { Card, ChatMessage, TradeDraftLine } from '../../types'
-import { cardsById, nextId } from '../store'
+import type { Printing, ChatMessage, TradeDraftLine, UserId } from '../../types'
+import { printingsById, nextId } from '../store'
 import type { MockStore, TraderRecord } from '../store'
 
 /**
@@ -10,15 +10,15 @@ import type { MockStore, TraderRecord } from '../store'
 export interface TraderContext {
   store: MockStore
   trader: TraderRecord
-  /** The Trader's username, as Trades and chats refer to them. */
-  me: string
+  /** The Trader's UserId, as Trades and chats refer to them. */
+  me: UserId
   id: (prefix: string) => string
 }
 
 export function traderContext(store: MockStore, trader: TraderRecord): TraderContext {
   return {
     id: prefix => nextId(store, prefix),
-    me: trader.profile.username,
+    me: trader.id,
     store,
     trader,
   }
@@ -35,14 +35,15 @@ export function now() {
   return new Date().toISOString()
 }
 
-export function requireCard(cardId: string) {
-  const card = cardsById.get(cardId)
+export function requirePrinting(cardId: string) {
+  const card = printingsById.get(cardId)
   if (!card) throw new Error('Card not found')
   return card
 }
 
-export function cardKey(card: Pick<Card, 'gameId' | 'name'>) {
-  return `${card.gameId}:${card.name.toLowerCase()}`
+/** Printings of the same Card share this key. */
+export function cardKey(printing: Pick<Printing, 'cardId'>) {
+  return printing.cardId
 }
 
 export function clampQuantity(quantity: number) {

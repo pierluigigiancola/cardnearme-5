@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { cards } from './data'
+import { printings } from './data'
 import { publicServices } from './public'
 import { createStore } from './store'
 import { workspaceFor } from './workspace'
@@ -11,19 +11,19 @@ const trader = {
   username: 'storetester',
 }
 
-const cardId = cards.find(card => card.gameId === 'mtg')?.id ?? ''
+const printingId = printings.find(card => card.gameId === 'mtg')?.id ?? ''
 
 async function addHave() {
   const store = createStore()
   const workspace = workspaceFor(trader, store)
   const profile = await workspace.profile.get()
   const added = await workspace.binder.addItems([{
-    cardId,
     condition: 'NM',
     finish: 'nonfoil',
     forTradeQuantity: 1,
     kind: 'collection',
     language: 'en',
+    printingId,
     quantity: 1,
   }])
   const have = added.at(0)
@@ -42,7 +42,7 @@ describe('one mock store', () => {
     const { have, publicView } = await addHave()
     const page = await publicView.trading.listTradeItems({
       listType: 'haves',
-      ownerUsername: trader.username,
+      ownerId: trader.id,
     })
     expect(page.items.map(item => item.id)).toContain(have.id)
   })
@@ -75,7 +75,7 @@ describe('one mock store', () => {
     await workspace.binder.moveItems([have.id], { listId: hidden.id })
     const page = await publicView.trading.listTradeItems({
       listType: 'haves',
-      ownerUsername: trader.username,
+      ownerId: trader.id,
     })
     expect(page.items.map(item => item.id)).not.toContain(have.id)
   })

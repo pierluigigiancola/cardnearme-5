@@ -48,11 +48,6 @@ export function shape(fields: Record<string, Check>): Check {
     && Object.entries(fields).every(([key, check]) => check(value[key]))
 }
 
-/** Like `shape`, but extra fields are allowed (for records the server re-reads by id). */
-export function looseShape(fields: Record<string, Check>): Check {
-  return value => isPlainObject(value) && Object.entries(fields).every(([key, check]) => check(value[key]))
-}
-
 export type ArgsCheck = (args: readonly unknown[]) => boolean
 
 /** An argument list: at most one value per check, missing trailing ones read as `undefined`. */

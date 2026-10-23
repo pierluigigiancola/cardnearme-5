@@ -192,7 +192,7 @@ function BinderPage() {
 
         <Stat label="Cards">{formatNumber(page.stats.cards)}</Stat>
 
-        <Stat label="Distinct printings">{formatNumber(page.stats.distinct)}</Stat>
+        <Stat label="Distinct Printings">{formatNumber(page.stats.distinct)}</Stat>
       </div>
 
       {section !== 'collection' && (

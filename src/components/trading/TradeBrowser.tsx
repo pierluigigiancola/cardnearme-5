@@ -33,7 +33,7 @@ const sortValues = tradeSortOptions.map(option => option.value)
 
 /** Builds the trade-items query from URL state; shared by loaders and components. */
 export function buildTradeQuery(
-  scope: Pick<TradeItemQuery, 'citySlug' | 'storeSlug' | 'ownerUsername'>,
+  scope: Pick<TradeItemQuery, 'citySlug' | 'storeSlug' | 'ownerId'>,
   listType: TradeListType,
   search: BrowseSearch,
 ): TradeItemQuery {

@@ -1,9 +1,9 @@
-import type { BinderItem, BinderItemInput, BinderSection, Card, CollectionEntry, TradeListType } from '../../types'
+import type { BinderItem, BinderItemInput, BinderSection, CollectionEntry, Printing, TradeListType, UserId } from '../../types'
 import { games } from '../data'
-import { cardsById, listedItems, priceOf, requireTrader } from '../store'
+import { listedItems, priceOf, printingsById, requireTrader } from '../store'
 import type { CollectionRecord, ItemRecord, ListRecord } from '../store'
 
-import { clampQuantity, MAX_QUANTITY, now, requireCard } from './context'
+import { clampQuantity, MAX_QUANTITY, now, requirePrinting } from './context'
 import type { TraderContext } from './context'
 
 import { checkForTradeQuantity, isHave } from '#/domain'
@@ -42,7 +42,7 @@ export function toBinderItems(ctx: TraderContext, records: ItemRecord[]): Binder
 export function toBinderItems(ctx: TraderContext, records: ItemRecord[]): BinderItem[] {
   const inTrade = itemsInTrade(ctx)
   return records.flatMap((record): BinderItem[] => {
-    const card = cardsById.get(record.cardId)
+    const card = printingsById.get(record.cardId)
     if (!card) return []
     const base = {
       card,
@@ -84,8 +84,8 @@ export function myHaves(ctx: TraderContext) {
 }
 
 /** Another Trader's Haves or Wants, as other Traders see them. */
-export function partnerItems({ store }: TraderContext, username: string, listType: TradeListType) {
-  return listedItems(store, listType, requireTrader(store, username))
+export function partnerItems({ store }: TraderContext, partner: UserId, listType: TradeListType) {
+  return listedItems(store, listType, requireTrader(store, partner))
 }
 
 export function requireList({ trader }: TraderContext, listId: string) {
@@ -101,7 +101,7 @@ export function requireItem({ trader }: TraderContext, itemId: string) {
 }
 
 /** Resolves the List an entry goes on, creating a default List when the Trader has none of that type. */
-export function resolveList(ctx: TraderContext, type: TradeListType, listId: string | null | undefined, card: Card) {
+export function resolveList(ctx: TraderContext, type: TradeListType, listId: string | null | undefined, card: Printing) {
   if (listId) {
     const list = requireList(ctx, listId)
     if (list.type !== type) throw new Error(`${list.name} is a ${list.type} list`)
@@ -137,7 +137,7 @@ export function touchList({ trader }: TraderContext, listId: string | null) {
  */
 export function markForTrade(ctx: TraderContext, record: CollectionRecord, forTradeQuantity: number, listId?: string | null) {
   const checked = checkForTradeQuantity(record.quantity, forTradeQuantity)
-  const list = checked > 0 ? resolveList(ctx, 'haves', listId ?? record.listId, requireCard(record.cardId)) : null
+  const list = checked > 0 ? resolveList(ctx, 'haves', listId ?? record.listId, requirePrinting(record.cardId)) : null
   touchList(ctx, record.listId)
   record.forTradeQuantity = checked
   record.listId = list?.id ?? null
@@ -152,7 +152,7 @@ export function markForTrade(ctx: TraderContext, record: CollectionRecord, forTr
 export function addRecords(ctx: TraderContext, inputs: BinderItemInput[]) {
   const touched: ItemRecord[] = []
   for (const input of inputs) {
-    const card = requireCard(input.cardId)
+    const card = requirePrinting(input.printingId)
     if (!isCondition(input.condition) || !isFinish(input.finish) || !isLanguage(input.language)) throw new Error('Invalid card details')
     const quantity = clampQuantity(input.quantity)
     if (input.kind === 'collection') {

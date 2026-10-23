@@ -1,12 +1,12 @@
 import type { BinderService } from '../../services'
 import type { BinderImport, BinderItem, BinderSection, Ownership, ParsedImportRow } from '../../types'
-import { cards, games } from '../data'
+import { printings, games } from '../data'
 import { baseType, buildFacets, capitalise, compare, labelFrom, matchesFacets, matchesText } from '../queryHelpers'
 import type { FacetDefinition } from '../queryHelpers'
-import { cardsById } from '../store'
+import { printingsById } from '../store'
 import type { ItemRecord } from '../store'
 
-import { cardKey, clampQuantity, now, requireCard } from './context'
+import { cardKey, clampQuantity, now, requirePrinting } from './context'
 import type { TraderContext } from './context'
 import { addRecords, inSection, listTypeOf, markForTrade, requireItem, requireList, resolveList, toBinderItems, touchList } from './records'
 
@@ -28,7 +28,7 @@ const binderFacets: FacetDefinition<BinderItem>[] = [
   {
     key: 'set',
     label: 'Sets',
-    labelFor: value => cards.find(card => card.setCode === value)?.setName ?? value,
+    labelFor: value => printings.find(card => card.setCode === value)?.setName ?? value,
     values: item => [item.card.setCode],
   },
   {
@@ -97,10 +97,10 @@ export function binderService(ctx: TraderContext): BinderService {
     const name = row.name.trim().toLowerCase()
     const setCode = row.setCode?.toLowerCase()
     const byPrinting = setCode && row.number
-      ? cards.find(card => card.setCode.toLowerCase() === setCode && card.number === row.number)
+      ? printings.find(card => card.setCode.toLowerCase() === setCode && card.number === row.number)
       : undefined
     if (byPrinting) return byPrinting
-    const named = cards.filter(card => card.name.toLowerCase() === name)
+    const named = printings.filter(card => card.name.toLowerCase() === name)
     const inSet = setCode ? named.find(card => card.setCode.toLowerCase() === setCode) : undefined
     return inSet ?? named.find(card => trader.profile.games.includes(card.gameId)) ?? named.at(0) ?? null
   }
@@ -116,7 +116,6 @@ export function binderService(ctx: TraderContext): BinderService {
       const rows = draft.rows.filter(row => row.include && row.card)
       addRecords(ctx, rows.flatMap(row => (row.card
         ? [{
-          cardId: row.card.id,
           condition: row.condition ?? 'NM',
           finish: row.card.finishes.includes(row.finish) ? row.finish : 'nonfoil',
           // Importing Haves creates Collection entries with every imported copy for trade.
@@ -124,6 +123,7 @@ export function binderService(ctx: TraderContext): BinderService {
           kind: draft.section === 'wants' ? 'want' as const : 'collection' as const,
           language: row.language ?? 'en',
           listId: draft.listId,
+          printingId: row.card.id,
           quantity: row.quantity,
         }]
         : [])))
@@ -167,10 +167,10 @@ export function binderService(ctx: TraderContext): BinderService {
       return counts
     },
     getImport: async importId => trader.imports.find(draft => draft.id === importId) ?? null,
-    getOwnership: async (cardIds) => {
+    getOwnership: async (printingIds) => {
       const result: Partial<Record<string, Ownership>> = {}
-      for (const cardId of cardIds) {
-        const card = cardsById.get(cardId)
+      for (const printingId of printingIds) {
+        const card = printingsById.get(printingId)
         if (!card) continue
         const ownership: Ownership = {
           collection: 0,
@@ -178,11 +178,11 @@ export function binderService(ctx: TraderContext): BinderService {
           wants: 0,
         }
         for (const record of trader.items) {
-          const other = cardsById.get(record.cardId)
+          const other = printingsById.get(record.cardId)
           if (!other || cardKey(other) !== cardKey(card)) continue
           for (const section of ['collection', 'haves', 'wants'] as const) ownership[section] += copiesIn(record, section)
         }
-        result[cardId] = ownership
+        result[printingId] = ownership
       }
       return result
     },
@@ -216,7 +216,7 @@ export function binderService(ctx: TraderContext): BinderService {
         const record = requireItem(ctx, itemId)
         if (target.listId === null && record.kind === 'want') throw new Error('Wants always belong to a Wants List')
         return {
-          list: target.listId === null ? null : resolveList(ctx, listTypeOf(record), target.listId, requireCard(record.cardId)),
+          list: target.listId === null ? null : resolveList(ctx, listTypeOf(record), target.listId, requirePrinting(record.cardId)),
           record,
         }
       })
@@ -245,8 +245,8 @@ export function binderService(ctx: TraderContext): BinderService {
       if (draft.committedAt) throw new Error('This import was already confirmed')
       const row = draft.rows.find(candidate => candidate.line === line)
       if (!row) throw new Error('Row not found')
-      if (patch.cardId) {
-        row.card = requireCard(patch.cardId)
+      if (patch.printingId) {
+        row.card = requirePrinting(patch.printingId)
         row.include = true
       }
       if (patch.include !== undefined) row.include = patch.include && row.card !== null
@@ -254,7 +254,7 @@ export function binderService(ctx: TraderContext): BinderService {
     },
     updateItem: async (itemId, patch) => {
       const record = requireItem(ctx, itemId)
-      const card = requireCard(record.cardId)
+      const card = requirePrinting(record.cardId)
       if (patch.condition !== undefined) {
         if (!isCondition(patch.condition)) throw new Error('Invalid condition')
         record.condition = patch.condition
