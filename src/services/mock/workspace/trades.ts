@@ -1,9 +1,9 @@
 import type { TradesService } from '../../services'
 import type { MeetupLocation, Trade, TradeDraft, TradeLine } from '../../types'
-import { cardsById, participant, priceOf, requireTrader, storesBySlug, usernameOf } from '../store'
+import { printingsById, participant, priceOf, requireTrader, storesBySlug, usernameOf } from '../store'
 import type { ItemRecord } from '../store'
 
-import { cardKey, clampQuantity, now, requireCard, validPrice } from './context'
+import { cardKey, clampQuantity, now, requirePrinting, validPrice } from './context'
 import type { TraderContext } from './context'
 import { chatWith, partnerOf, post, requireChat, requireTrade } from './conversations'
 import { addRecords, itemsIn, partnerItems, requireItem, toBinderItems } from './records'
@@ -17,7 +17,7 @@ export function tradesService(ctx: TraderContext): TradesService {
     const give = draft.give.map((line): TradeLine => {
       const record = requireItem(ctx, line.sourceId)
       if (record.section === 'wants') throw new Error('Wanted cards cannot be offered')
-      const card = requireCard(record.cardId)
+      const card = requirePrinting(record.cardId)
       return {
         card,
         condition: record.condition,
@@ -101,14 +101,14 @@ export function tradesService(ctx: TraderContext): TradesService {
     }
     for (const line of received) {
       addRecords(ctx, [{
-        cardId: line.card.id,
         condition: line.condition,
         finish: line.finish,
         language: line.language,
+        printingId: line.card.id,
         quantity: line.quantity,
         section: 'collection',
       }])
-      decrement(trader.items.find(record => record.section === 'wants' && cardsById.get(record.cardId)?.name === line.card.name), line.quantity)
+      decrement(trader.items.find(record => record.section === 'wants' && printingsById.get(record.cardId)?.name === line.card.name), line.quantity)
     }
   }
 

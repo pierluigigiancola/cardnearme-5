@@ -17,7 +17,7 @@ import {
 } from '#/components/ui/select'
 import { cn } from '#/lib/utils'
 import { cardSearchQuery } from '#/services/queries'
-import type { Card, Finish } from '#/services/types'
+import type { Printing, Finish } from '#/services/types'
 
 export const Route = createFileRoute('/swap-calculator')({
   head: () => ({ meta: [{ title: 'Trade value calculator | CardNearMe' }] }),
@@ -26,7 +26,7 @@ export const Route = createFileRoute('/swap-calculator')({
 
 interface Line {
   id: string
-  card: Card
+  card: Printing
   finish: Finish
   quantity: number
 }
@@ -118,7 +118,7 @@ function TradeSide({ lines, onChange, title }: {
 
   const nextId = useRef(0)
 
-  const add = (card: Card) => {
+  const add = (card: Printing) => {
     onChange([...lines, {
       card,
       finish: card.finishes.includes(finish) ? finish : 'nonfoil',

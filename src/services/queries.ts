@@ -4,8 +4,8 @@ import { getServices } from './services'
 import type { CatalogueService, Services } from './services'
 import type {
   BinderQuery,
-  Card,
-  CardQuery,
+  CardId,
+  PrintingQuery,
   GameId,
   ListsQuery,
   MatchScope,
@@ -53,30 +53,30 @@ export const setQuery = (gameId: GameId, setCode: string) =>
     queryKey: ['set', gameId, setCode],
   })
 
-export const cardsQuery = (query: CardQuery) =>
+export const setPrintingsQuery = (query: PrintingQuery) =>
   queryOptions({
-    queryFn: fromServices(services => services.catalogue.listCards(query)),
+    queryFn: fromServices(services => services.catalogue.listSetPrintings(query)),
     queryKey: ['cards', query],
   })
 
-export const cardQuery = (gameId: GameId, setCode: string, number: string) =>
+export const printingQuery = (gameId: GameId, setCode: string, number: string) =>
   queryOptions({
     ...staticData,
-    queryFn: fromServices(services => services.catalogue.getCard(gameId, setCode, number)),
+    queryFn: fromServices(services => services.catalogue.getPrinting(gameId, setCode, number)),
     queryKey: ['card', gameId, setCode, number],
   })
 
-export const printingsQuery = (card: Card) =>
+export const printingsQuery = (cardId: CardId) =>
   queryOptions({
     ...staticData,
-    queryFn: fromServices(services => services.catalogue.listPrintings(card)),
-    queryKey: ['printings', card.id],
+    queryFn: fromServices(services => services.catalogue.listPrintings(cardId)),
+    queryKey: ['printings', cardId],
   })
 
-export const cardAvailabilityQuery = (card: Card) =>
+export const cardAvailabilityQuery = (cardId: CardId) =>
   queryOptions({
-    queryFn: fromServices(services => services.catalogue.getCardAvailability(card)),
-    queryKey: ['availability', card.id],
+    queryFn: fromServices(services => services.catalogue.getCardAvailability(cardId)),
+    queryKey: ['availability', cardId],
   })
 
 export const sealedQuery = (gameId: GameId, setCode: string) =>

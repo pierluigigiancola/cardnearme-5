@@ -9,11 +9,11 @@ import { ErrorState } from '#/components/layout/ErrorState'
 import { Input } from '#/components/ui/input'
 import { Popover, PopoverAnchor, PopoverContent } from '#/components/ui/popover'
 import { cardSearchQuery } from '#/services/queries'
-import type { Card, GameId } from '#/services/types'
+import type { Printing, GameId } from '#/services/types'
 
 /** Search input over the catalogue that shows matching cards in a dropdown. */
 export function CardSearchBox({ autoFocus, gameId, initialQuery = '', onPick, placeholder = 'Search cards' }: {
-  onPick: (card: Card) => void;
+  onPick: (card: Printing) => void;
   gameId?: GameId;
   placeholder?: string;
   initialQuery?: string;

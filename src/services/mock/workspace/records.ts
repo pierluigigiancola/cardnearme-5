@@ -1,9 +1,9 @@
-import type { BinderItem, BinderItemInput, BinderSection, Card, TradeListType, UserId } from '../../types'
+import type { BinderItem, BinderItemInput, BinderSection, Printing, TradeListType, UserId } from '../../types'
 import { games } from '../data'
-import { cardsById, listedItems, priceOf, requireTrader } from '../store'
+import { printingsById, listedItems, priceOf, requireTrader } from '../store'
 import type { ItemRecord, ListRecord } from '../store'
 
-import { clampQuantity, MAX_QUANTITY, now, requireCard } from './context'
+import { clampQuantity, MAX_QUANTITY, now, requirePrinting } from './context'
 import type { TraderContext } from './context'
 
 import { isCondition, isFinish, isLanguage } from '#/lib/cardOptions'
@@ -26,7 +26,7 @@ export function toBinderItems(ctx: TraderContext, records: ItemRecord[]): Binder
   const inTrade = itemsInTrade(ctx)
   const listedCards = new Set(ctx.trader.items.filter(record => record.section === 'haves').map(record => record.cardId))
   return records.flatMap((record) => {
-    const card = cardsById.get(record.cardId)
+    const card = printingsById.get(record.cardId)
     if (!card) return []
     return [{
       card,
@@ -67,7 +67,7 @@ export function requireItem({ trader }: TraderContext, itemId: string) {
 }
 
 /** Resolves the list an item goes to, creating a default list when the Trader has none. */
-export function resolveList(ctx: TraderContext, section: BinderSection, listId: string | null | undefined, card: Card) {
+export function resolveList(ctx: TraderContext, section: BinderSection, listId: string | null | undefined, card: Printing) {
   if (section === 'collection') return null
   if (listId) {
     const list = requireList(ctx, listId)
@@ -101,7 +101,7 @@ export function touchList({ trader }: TraderContext, listId: string | null) {
 export function addRecords(ctx: TraderContext, inputs: BinderItemInput[]) {
   const touched: ItemRecord[] = []
   for (const input of inputs) {
-    const card = requireCard(input.cardId)
+    const card = requirePrinting(input.printingId)
     if (!isCondition(input.condition) || !isFinish(input.finish) || !isLanguage(input.language)) throw new Error('Invalid card details')
     const quantity = clampQuantity(input.quantity)
     const list = resolveList(ctx, input.section, input.listId, card)

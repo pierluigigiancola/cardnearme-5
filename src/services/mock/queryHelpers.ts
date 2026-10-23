@@ -1,4 +1,4 @@
-import type { Card, Facet, FacetSelection, SortOrder, TradeItem } from '../types'
+import type { Printing, Facet, FacetSelection, SortOrder, TradeItem } from '../types'
 
 import { games, sets } from './data'
 
@@ -60,7 +60,7 @@ export function labelFrom(labels: Partial<Record<string, string>>, value: string
 }
 
 export const capitalise = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
-export const baseType = (card: Card) => card.typeLine.split(' — ')[0] ?? card.typeLine
+export const baseType = (card: Printing) => card.typeLine.split(' — ')[0] ?? card.typeLine
 export const rarityOrder = ['common', 'uncommon', 'rare', 'mythic', 'special']
 export const colorLabels: Record<string, string> = {
   B: 'Black',
@@ -71,7 +71,7 @@ export const colorLabels: Record<string, string> = {
   W: 'White',
 }
 
-export const cardFacets: FacetDefinition<Card>[] = [
+export const cardFacets: FacetDefinition<Printing>[] = [
   {
     key: 'rarity',
     label: 'Rarity',

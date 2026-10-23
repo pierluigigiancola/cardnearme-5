@@ -10,8 +10,8 @@ import { SignupPromo } from '#/components/trading/Promos'
 import { Button } from '#/components/ui/button'
 import { pickSort, validateBrowseSearch } from '#/lib/browseSearch'
 import type { BrowseSearch } from '#/lib/browseSearch'
-import { cardsQuery, gameQuery, setQuery } from '#/services/queries'
-import type { CardQuery, CardSet } from '#/services/types'
+import { setPrintingsQuery, gameQuery, setQuery } from '#/services/queries'
+import type { PrintingQuery, CardSet } from '#/services/types'
 
 const sortOptions = [
   {
@@ -37,7 +37,7 @@ const sortOptions = [
 ] as const
 const sortValues = sortOptions.map(option => option.value)
 
-function buildCardQuery(set: CardSet, search: BrowseSearch): CardQuery {
+function buildPrintingQuery(set: CardSet, search: BrowseSearch): PrintingQuery {
   return {
     facets: search.f,
     gameId: set.gameId,
@@ -56,7 +56,7 @@ export const Route = createFileRoute('/sets/$game/$set/')({
     if (!game) throw notFound()
     const set = await queryClient.ensureQueryData(setQuery(game.id, params.set))
     if (!set) throw notFound()
-    await queryClient.ensureQueryData(cardsQuery(buildCardQuery(set, deps)))
+    await queryClient.ensureQueryData(setPrintingsQuery(buildPrintingQuery(set, deps)))
     return {
       game,
       set,
@@ -70,8 +70,8 @@ function SetPage() {
   const { game, set } = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
-  const query = buildCardQuery(set, search)
-  const { data } = useSuspenseQuery(cardsQuery(query))
+  const query = buildPrintingQuery(set, search)
+  const { data } = useSuspenseQuery(setPrintingsQuery(query))
   const onChange = useCallback(
     (update: (previous: BrowseSearch) => BrowseSearch) => void navigate({
       replace: true,

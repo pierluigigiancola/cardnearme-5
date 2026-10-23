@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest'
 import { marketValue, tradeFromPerspective, tradeValue } from './tradeValue'
 
 import type { Trade, TradeLine } from '#/services/types'
-import { makeCard } from '#/test/fixtures'
+import { makePrinting } from '#/test/fixtures'
 
 function line(id: string, price: number, quantity = 1, marketPrice = price): TradeLine {
   return {
-    card: makeCard({ name: id }),
+    card: makePrinting({ name: id }),
     condition: 'NM',
     finish: 'nonfoil',
     id,

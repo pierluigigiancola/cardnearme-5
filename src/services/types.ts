@@ -62,9 +62,25 @@ export interface Ruling {
   text: string
 }
 
-/** One printing of a card in a set. */
+/** Identifies a Card. Opaque: never parse it, and don't confuse it with a Printing id. */
+export type CardId = string
+
+/**
+ * A game piece, identified by its name within a Game regardless of where it
+ * was printed. It groups that name's Printings across Sets; Wants target it.
+ */
 export interface Card {
+  id: CardId
+  gameId: GameId
+  name: string
+  slug: string
+}
+
+/** One release of a Card in a Set, with its own collector number. Collection entries are always a Printing. */
+export interface Printing {
   id: string
+  /** The Card this is a release of. */
+  cardId: CardId
   gameId: GameId
   setCode: string
   setName: string
@@ -153,7 +169,7 @@ export type TradeListType = 'haves' | 'wants'
 export interface TradeItem {
   id: string
   listType: TradeListType
-  card: Card
+  card: Printing
   /** The Trader who listed it. */
   ownerId: UserId
   /** Display only; refer to the owner by `ownerId`. */
@@ -169,7 +185,7 @@ export interface TradeItem {
 }
 
 export interface DeckCard {
-  card: Card
+  card: Printing
   quantity: number
   section: 'commander' | 'mainboard' | 'sideboard' | 'considering'
 }
@@ -255,7 +271,7 @@ export interface Facet {
 
 export type FacetSelection = Partial<Record<string, string[]>>
 
-export interface CardQuery {
+export interface PrintingQuery {
   gameId: GameId
   setCode: string
   q?: string
@@ -284,7 +300,7 @@ export interface TradeItemQuery {
 }
 
 export interface SearchResult {
-  cards: Card[]
+  cards: Printing[]
   cities: City[]
 }
 
@@ -338,7 +354,7 @@ export interface BinderItem {
   section: BinderSection
   /** Trade list the item belongs to (haves and wants only). */
   listId: string | null
-  card: Card
+  card: Printing
   /** For wants this is the minimum acceptable condition. */
   condition: Condition
   finish: Finish
@@ -347,7 +363,7 @@ export interface BinderItem {
   price: number
   /** Offered in a pending or accepted trade. */
   inTrade: boolean
-  /** Collection only: the same printing is also on a haves list. */
+  /** Collection only: the same Printing is also on a haves List. */
   listed: boolean
   updatedAt: string
 }
@@ -355,10 +371,10 @@ export interface BinderItem {
 export interface BinderItemInput {
   section: BinderSection
   listId?: string | null
-  cardId: string
   condition: Condition
   finish: Finish
   language: Language
+  printingId: string
   quantity: number
 }
 
@@ -377,7 +393,7 @@ export interface BinderStats {
   marketValue: number
   /** Total copies, counting quantities. */
   cards: number
-  /** Distinct printings. */
+  /** Distinct Printings. */
   distinct: number
 }
 
@@ -390,10 +406,10 @@ export interface BinderPage {
 
 export type BinderCounts = Record<BinderSection, number>
 
-/** How many copies of a card (any printing) the viewer has in each section. */
+/** How many copies of a Card (any Printing) the viewer has in each section. */
 export type Ownership = Record<BinderSection, number>
 
-/** One line of a CSV or pasted card list, before it is matched to a printing. */
+/** One line of a CSV or pasted card list, before it is matched to a Printing. */
 export interface ParsedImportRow {
   line: number
   raw: string
@@ -407,7 +423,7 @@ export interface ParsedImportRow {
 }
 
 export interface ImportRow extends ParsedImportRow {
-  card: Card | null
+  card: Printing | null
   include: boolean
 }
 
@@ -441,7 +457,7 @@ export interface DeckInput {
   description: string
   visibility: Visibility
   cards: {
-    cardId: string
+    printingId: string
     quantity: number
     section: DeckSection
   }[]
@@ -503,7 +519,7 @@ export interface TradeLine {
   id: string
   /** Binder item (viewer's side) or trade item (partner's side) this line came from. */
   sourceId: string
-  card: Card
+  card: Printing
   condition: Condition
   finish: Finish
   language: Language

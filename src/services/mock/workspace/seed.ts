@@ -1,7 +1,7 @@
 import type {
   AppNotification,
   BinderSection,
-  Card,
+  Printing,
   GameId,
   MeetupLocation,
   Trade,
@@ -10,13 +10,13 @@ import type {
   UserId,
   WorkspaceProfile,
 } from '../../types'
-import { cards, cities, stores } from '../data'
+import { printings, cities, stores } from '../data'
 import { createRandom, daysAgo, MOCK_NOW } from '../random'
 import type { Random } from '../random'
 import { hashString, listedItems, priceOf, storesBySlug, usernameOf } from '../store'
 import type { ItemRecord, ListRecord, MockStore, TraderRecord } from '../store'
 
-import { requireCard, traderContext } from './context'
+import { requirePrinting, traderContext } from './context'
 import type { NewMessage, TraderContext } from './context'
 
 import { tradeValue } from '#/domain'
@@ -115,7 +115,7 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
   const [tradeBinder, bulkRares, wishlist, commanderUpgrades] = lists as [ListRecord, ListRecord, ListRecord, ListRecord]
 
   const items: ItemRecord[] = []
-  const addItem = (section: BinderSection, listId: string | null, card: Card, options: Partial<ItemRecord> = {}) => {
+  const addItem = (section: BinderSection, listId: string | null, card: Printing, options: Partial<ItemRecord> = {}) => {
     const record: ItemRecord = {
       cardId: card.id,
       condition: random.pick(['NM', 'NM', 'NM', 'EX', 'M', 'GD'] as const),
@@ -133,12 +133,12 @@ export function seedTrader(store: MockStore, owner: WorkspaceOwner): TraderRecor
   }
 
   // Collection: cards from the Trader's games.
-  const pool = cards.filter(card => profileGames.includes(card.gameId))
+  const pool = printings.filter(card => profileGames.includes(card.gameId))
   const collection = random.sample(pool, 36).map(card => addItem('collection', null, card))
 
   // Haves: part of the collection, plus cards other Traders are looking for (so matches exist).
   for (const record of random.sample(collection, 10)) {
-    const card = requireCard(record.cardId)
+    const card = requirePrinting(record.cardId)
     const list = card.gameId === 'mtg' && (card.rarity === 'rare' || card.rarity === 'mythic') ? bulkRares : tradeBinder
     addItem('haves', list.id, card, {
       condition: record.condition,
@@ -201,7 +201,7 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
   const myHaves = trader.items.filter(item => item.section === 'haves')
 
   const lineFromItem = (record: ItemRecord): TradeLine => {
-    const card = requireCard(record.cardId)
+    const card = requirePrinting(record.cardId)
     return {
       card,
       condition: record.condition,
@@ -505,7 +505,7 @@ function seedConversations(ctx: TraderContext, wantSources: TradeItem[], random:
       title: `${source.ownerUsername} has ${source.card.name} for trade`,
     })
   }
-  const myHaveNames = new Set(myHaves.map(record => requireCard(record.cardId).name))
+  const myHaveNames = new Set(myHaves.map(record => requirePrinting(record.cardId).name))
   const othersWanting = listedItems(store, 'wants')
     .filter(item => item.ownerId !== me && myHaveNames.has(item.card.name))
     .slice(0, 3)

@@ -53,8 +53,8 @@ function publicDecks(store: MockStore) {
 export function publicServices(store: MockStore = mockStore, viewer: CapViewer = { kind: 'anonymous' }): StorePublicServices {
   return {
     catalogue: {
-      getCardAvailability: async (card) => {
-        const relevant = [...listedItems(store, 'haves'), ...listedItems(store, 'wants')].filter(item => item.card.name === card.name)
+      getCardAvailability: async (cardId) => {
+        const relevant = [...listedItems(store, 'haves'), ...listedItems(store, 'wants')].filter(item => item.card.cardId === cardId)
         return cities
           .map((city) => {
             const inCity = relevant.filter(item => item.citySlug === city.slug)
