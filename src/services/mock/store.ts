@@ -34,10 +34,6 @@ import { isHave, publicOnly } from '#/domain'
 
 interface EntryRecordBase {
   id: string
-  cardId: string
-  condition: Condition
-  finish: Finish
-  language: Language
   quantity: number
   updatedAt: string
 }
@@ -45,14 +41,21 @@ interface EntryRecordBase {
 /** An owned card, recorded once. Copies for trade make it a Have (ADR 0002). */
 export interface CollectionRecord extends EntryRecordBase {
   kind: 'collection'
+  printingId: string
+  condition: Condition
+  finish: Finish
+  language: Language
   /** Copies marked for trade, 0 to `quantity`. */
   forTradeQuantity: number
   /** The Haves List the entry is on; it is a Have there only while copies are for trade. */
   listId: string
 }
 
+/** A Want: a Card, optionally narrowed by filters (ADR 0002). */
 export interface WantRecord extends EntryRecordBase {
   kind: 'want'
+  cardId: CardId
+  filters: WantFilters
   listId: string
 }
 
@@ -103,6 +106,38 @@ export interface MockStore {
 }
 
 export const printingsById = new Map(printings.map(card => [card.id, card]))
+
+const printingsByCardId = new Map<CardId, Printing[]>()
+for (const printing of printings) printingsByCardId.set(printing.cardId, [...printingsByCardId.get(printing.cardId) ?? [], printing])
+
+/** Every Printing of a Card. */
+export function printingsOf(cardId: CardId) {
+  return printingsByCardId.get(cardId) ?? []
+}
+
+/** The Printing shown for a Want: one in its filtered Set (and finish) when set, else the Card's first. */
+export function shownPrinting(want: Pick<WantRecord, 'cardId' | 'filters'>) {
+  const { finish, setCode } = want.filters
+  const candidates = printingsOf(want.cardId)
+    .filter(printing => !setCode || printing.setCode.toLowerCase() === setCode.toLowerCase())
+  return candidates.find(printing => !finish || printing.finishes.includes(finish)) ?? candidates.at(0)
+}
+
+/** How a Want reads as a Printing's details: its filters, with "any" shown as the shown Printing's finish, English and the worst condition. */
+export function wantDetails(want: Pick<WantRecord, 'filters'>, card: Printing) {
+  const finish = want.filters.finish ?? card.finishes.at(0) ?? 'nonfoil'
+  return {
+    condition: want.filters.minCondition ?? 'PO',
+    finish,
+    language: want.filters.language ?? 'en',
+    price: priceOf(card, finish),
+  } satisfies {
+    condition: Condition
+    finish: Finish
+    language: Language
+    price: number
+  }
+}
 export const storesBySlug = new Map(stores.map(store => [store.slug, store]))
 
 export function priceOf(card: Printing, finish: Finish) {
@@ -143,11 +178,7 @@ export function createStore(): MockStore {
         .filter(item => item.ownerId === user.id)
         .map((item): ItemRecord => {
           const base = {
-            cardId: item.card.id,
-            condition: item.condition,
-            finish: item.finish,
             id: item.id,
-            language: item.language,
             listId: `${user.id}-${item.listType}`,
             quantity: item.quantity,
             updatedAt: item.updatedAt,
@@ -156,11 +187,21 @@ export function createStore(): MockStore {
           return item.listType === 'haves'
             ? {
               ...base,
+              condition: item.condition,
+              finish: item.finish,
               forTradeQuantity: item.quantity,
               kind: 'collection',
+              language: item.language,
+              printingId: item.card.id,
             }
             : {
               ...base,
+              // A seeded Want is for its Card, with a minimum condition and, for foils, the finish.
+              cardId: item.card.cardId,
+              filters: wantFilters({
+                finish: item.finish === 'foil' ? 'foil' : null,
+                minCondition: item.condition,
+              }),
               kind: 'want',
             }
         }),

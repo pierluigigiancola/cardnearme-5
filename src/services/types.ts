@@ -185,6 +185,13 @@ export interface TradeItem {
   language: Language
   quantity: number
   price: number
+  /**
+   * Wants only (null for Haves): the Want's filters. A Want targets a Card;
+   * `card` is the Printing shown for it, and `condition`, `finish` and
+   * `language` echo the filters (an unset condition reads as the worst, an
+   * unset finish as the shown Printing's, an unset language as English).
+   */
+  wantFilters: WantFilters | null
   updatedAt: string
 }
 
@@ -368,11 +375,9 @@ export interface ListsQuery {
 
 interface BinderEntryBase {
   id: string
+  /** Collection entry: the Printing owned. Want: the Printing shown for it (in the filtered Set when one is set). */
   card: Printing
-  /** For Wants this is the minimum acceptable condition. */
-  condition: Condition
-  finish: Finish
-  language: Language
+  /** Market unit price of `card`. */
   price: number
   /** Offered in a pending or accepted trade. */
   inTrade: boolean
@@ -385,6 +390,9 @@ interface BinderEntryBase {
  */
 export interface CollectionEntry extends BinderEntryBase {
   kind: 'collection'
+  condition: Condition
+  finish: Finish
+  language: Language
   /** Copies owned. */
   quantity: number
   /** Copies marked for trade, from 0 to `quantity`. Above zero, the entry is a Have. */
@@ -397,9 +405,25 @@ export interface CollectionEntry extends BinderEntryBase {
   listId: string
 }
 
-/** A card the viewer is looking for, on one of their Wants Lists. */
+/**
+ * Optional narrowing of a Want (ADR 0002). `null` means "any": a Want with no
+ * filters accepts any Printing of its Card, and every filter that is set is
+ * binding (see `fulfilsWant` in `#/domain`).
+ */
+export interface WantFilters {
+  setCode: string | null
+  finish: Finish | null
+  language: Language | null
+  /** The worst acceptable condition. */
+  minCondition: Condition | null
+}
+
+/** A Card the viewer is looking for, on one of their Wants Lists. It targets the Card, not a Printing. */
 export interface WantEntry extends BinderEntryBase {
   kind: 'want'
+  /** The Card wanted. `card` is only the Printing shown for it. */
+  cardId: CardId
+  filters: WantFilters
   /** Copies wanted. */
   quantity: number
   /** The Wants List it is on. */
@@ -411,26 +435,44 @@ export type BinderItem = CollectionEntry | WantEntry
 
 export type BinderItemKind = BinderItem['kind']
 
-export interface BinderItemInput {
-  kind: BinderItemKind
-  /** Collection entry: the Haves List for its for-trade copies. Want: its Wants List. Omit for the default List. */
+/** Adds a Collection entry: a concrete Printing with its details. */
+export interface CollectionEntryInput {
+  kind: 'collection'
+  /** The Haves List for its for-trade copies. Omit for the default List. */
   listId?: string | null
   condition: Condition
   finish: Finish
   language: Language
   printingId: string
   quantity: number
-  /** Collection entries only: copies to mark for trade, from 0 (the default) to `quantity`. */
+  /** Copies to mark for trade, from 0 (the default) to `quantity`. */
   forTradeQuantity?: number
 }
 
+/** Adds a Want for a Card. Filters left out mean "any printing". */
+export interface WantInput {
+  kind: 'want'
+  /** Its Wants List. Omit for the default List. */
+  listId?: string | null
+  cardId: CardId
+  filters?: Partial<WantFilters>
+  quantity: number
+}
+
+export type BinderItemInput = CollectionEntryInput | WantInput
+
 export interface BinderItemPatch {
+  /** Collection entries only. */
   condition?: Condition
+  /** Collection entries only. */
   finish?: Finish
+  /** Collection entries only. */
   language?: Language
   quantity?: number
   /** Collection entries only: copies marked for trade, at most `quantity`. Zero keeps the entry on its Haves List but not as a Have. */
   forTradeQuantity?: number
+  /** Wants only: replaces the filters given (`null` sets one back to "any"). */
+  filters?: Partial<WantFilters>
   /** Moves the entry to another List of its kind. */
   listId?: string
 }
