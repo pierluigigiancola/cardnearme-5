@@ -5,6 +5,7 @@ import type { CatalogueService, Services } from './services'
 import type {
   BinderQuery,
   CardId,
+  CardMatchRow,
   PrintingQuery,
   GameId,
   ListsQuery,
@@ -90,6 +91,14 @@ export const cardSearchQuery = (q: string, gameId?: GameId) =>
   queryOptions({
     queryFn: fromServices(services => services.catalogue.searchCards(q, { gameId })),
     queryKey: ['card-search', q, gameId],
+  })
+
+/** Resolves an imported card list in one call (`catalogue.matchCards`). Use with `queryClient.fetchQuery`. */
+export const cardMatchesQuery = (rows: CardMatchRow[], options: Parameters<CatalogueService['matchCards']>[1] = {}) =>
+  queryOptions({
+    ...staticData,
+    queryFn: fromServices(services => services.catalogue.matchCards(rows, options)),
+    queryKey: ['card-matches', rows, options],
   })
 
 export const globalSearchQuery = (q: string) =>

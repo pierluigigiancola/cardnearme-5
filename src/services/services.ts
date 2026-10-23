@@ -8,6 +8,7 @@ import type {
   BinderPage,
   BinderQuery,
   Printing,
+  CardMatchRow,
   CardAvailability,
   CardId,
   PrintingQuery,
@@ -83,6 +84,15 @@ export interface CatalogueService {
     gameId?: GameId;
     limit?: number
   }) => Promise<Printing[]>
+  /**
+   * Resolves a whole imported list in one call: one Printing (or null when nothing matches) per row, in row order.
+   * A row matches by Set code and collector number first, then by name (within its Set when given).
+   * `gameId` limits matching to one Game; `preferGames` breaks ties between Games for name-only rows.
+   */
+  matchCards: (rows: CardMatchRow[], options?: {
+    gameId?: GameId;
+    preferGames?: GameId[]
+  }) => Promise<(Printing | null)[]>
   /** Where a Card (any Printing) is offered or wanted on public Lists, per City. */
   getCardAvailability: (cardId: CardId) => Promise<CardAvailability[]>
 }
