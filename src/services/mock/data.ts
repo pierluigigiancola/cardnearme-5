@@ -605,12 +605,19 @@ export const decks: Deck[] = Array.from({ length: 30 }, (_, index) => {
 export const deckComments: Record<string, DeckComment[]> = Object.fromEntries(
   decks.map(deck => [
     deck.id,
-    Array.from({ length: Math.min(deck.commentCount, 3) }, (_, index) => ({
-      body: random.pick(['Love the curve on this.', 'Have you tried a second copy of the finisher?', 'Took this to FNM, went 3-1!', 'The sideboard plan is great.']),
-      createdAt: daysAgo(random.int(1, 30)),
-      id: `${deck.id}-c${index}`,
-      username: random.pick(users).username,
-    })),
+    Array.from({ length: Math.min(deck.commentCount, 3) }, (_, index): DeckComment => {
+      // Drawn in the same order as before, so the seeded data stays the same.
+      const body = random.pick(['Love the curve on this.', 'Have you tried a second copy of the finisher?', 'Took this to FNM, went 3-1!', 'The sideboard plan is great.'])
+      const createdAt = daysAgo(random.int(1, 30))
+      const author = random.pick(users)
+      return {
+        authorId: author.id,
+        authorUsername: author.username,
+        body,
+        createdAt,
+        id: `${deck.id}-c${index}`,
+      }
+    }),
   ]),
 )
 

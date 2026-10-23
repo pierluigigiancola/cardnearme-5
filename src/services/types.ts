@@ -218,7 +218,9 @@ export interface Deck {
 
 export interface DeckComment {
   id: string
-  username: string
+  authorId: UserId
+  /** Display only; refer to the author by `authorId`. */
+  authorUsername: string
   body: string
   createdAt: string
 }
