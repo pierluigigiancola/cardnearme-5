@@ -85,8 +85,9 @@ export interface CatalogueService {
     limit?: number
   }) => Promise<Printing[]>
   /**
-   * Resolves a whole imported list in one call: one Printing (or null when nothing matches) per row, in row order.
-   * A row matches by Set code and collector number first, then by name (within its Set when given).
+   * Resolves a whole imported list to Printings in one call: one Printing (or null when nothing fits) per row, in row order.
+   * The name is fixed by ticket 12; it resolves rows to Printings and has nothing to do with a glossary Match between Traders.
+   * A row resolves by Set code and collector number first, then by name (within its Set when given).
    * `gameId` limits matching to one Game; `preferGames` breaks ties between Games for name-only rows.
    */
   matchCards: (rows: CardMatchRow[], options?: {

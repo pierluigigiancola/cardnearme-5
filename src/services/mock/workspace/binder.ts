@@ -1,9 +1,9 @@
 import type { BinderService } from '../../services'
 import type { BinderImport, BinderItem, BinderItemInput, BinderSection, Ownership } from '../../types'
 import { printings, games } from '../data'
-import { matchCards } from '../matchCards'
 import { baseType, buildFacets, capitalise, compare, labelFrom, matchesFacets, matchesText } from '../queryHelpers'
 import type { FacetDefinition } from '../queryHelpers'
+import { resolveImportRows } from '../resolveImportRows'
 import { printingsById, printingsOf } from '../store'
 import type { ItemRecord } from '../store'
 
@@ -143,7 +143,8 @@ export function binderService(ctx: TraderContext): BinderService {
       if (input.rows.length === 0) throw new Error('Nothing to import')
       if (input.section !== 'collection' && input.listId) requireList(ctx, input.listId)
       const rows = input.rows.slice(0, 1000)
-      const matches = matchCards(rows, { preferGames: trader.profile.games })
+      // Same lookup as `catalogue.matchCards` (see `resolveImportRows` for why it is called directly).
+      const printingsByRow = resolveImportRows(rows, { preferGames: trader.profile.games })
       const draft: BinderImport = {
         committedAt: null,
         createdAt: now(),
@@ -151,7 +152,7 @@ export function binderService(ctx: TraderContext): BinderService {
         importedCount: 0,
         listId: input.section === 'collection' ? null : input.listId,
         rows: rows.map((row, index) => {
-          const card = matches[index] ?? null
+          const card = printingsByRow[index] ?? null
           return {
             ...row,
             card,
