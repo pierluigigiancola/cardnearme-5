@@ -5,8 +5,6 @@ import {
   cards,
   changelog,
   cities,
-  deckComments,
-  decks,
   faq,
   games,
   helpArticles,
@@ -14,11 +12,9 @@ import {
   sealedProducts,
   sets,
   stores,
-  tradeItems,
-  users,
 } from './data'
-import { buildFacets, cardFacets, compare, matchesFacets, matchesText, rarityOrder, tradeItemFacets } from './queryHelpers'
-import { mockWorkspaceServices } from './workspaceRpc'
+import { buildFacets, cardFacets, compare, matchesFacets, matchesText, rarityOrder } from './queryHelpers'
+import { mockStoreServices, mockWorkspaceServices } from './rpc'
 
 /** Simulates network latency so loading states are exercised in the shell. */
 function delay<T>(value: T, ms = 80): Promise<T> {
@@ -26,7 +22,9 @@ function delay<T>(value: T, ms = 80): Promise<T> {
 }
 
 // ---------------------------------------------------------------------------
-// Implementation
+// Implementation. Catalogue, places and content are static and served from
+// the bundle; everything that reads Traders' data goes to the shared store on
+// the server (`rpc.ts`).
 // ---------------------------------------------------------------------------
 
 export const mockServices: Services = {
@@ -34,24 +32,7 @@ export const mockServices: Services = {
   catalogue: {
     getCard: async (gameId, setCode, number) =>
       delay(cards.find(card => card.gameId === gameId && card.setCode === setCode && card.number === number) ?? null),
-    getCardAvailability: async (card) => {
-      const relevant = tradeItems.filter(item => item.card.name === card.name)
-      return delay(
-        cities
-          .map((city) => {
-            const inCity = relevant.filter(item => item.citySlug === city.slug)
-            return {
-              available: inCity.filter(item => item.listType === 'haves').length,
-              cityName: city.name,
-              citySlug: city.slug,
-              country: city.country,
-              storeCount: stores.filter(store => store.citySlug === city.slug).length,
-              wanted: inCity.filter(item => item.listType === 'wants').length,
-            }
-          })
-          .filter(entry => entry.available + entry.wanted > 0),
-      )
-    },
+    getCardAvailability: mockStoreServices.catalogue.getCardAvailability,
     getGame: async gameId => delay(games.find(game => game.id === gameId) ?? null),
     getSet: async (gameId, setCode) => delay(sets.find(set => set.gameId === gameId && set.code === setCode) ?? null),
     listCards: async ({ facets, gameId, order = 'asc', q, setCode, sort = 'number' }) => {
@@ -99,20 +80,7 @@ export const mockServices: Services = {
       )
     },
   },
-  community: {
-    getDeck: async deckId => delay(decks.find(deck => deck.id === deckId) ?? null),
-    getUser: async username => delay(users.find(user => user.username === username) ?? null),
-    listDeckComments: async deckId => delay(deckComments[deckId] ?? []),
-    listDecks: async ({ format, gameId, limit, ownerUsername } = {}) => {
-      const result = decks
-        .filter(deck =>
-          (!gameId || deck.gameId === gameId)
-          && (!format || deck.format.toLowerCase() === format.toLowerCase())
-          && (!ownerUsername || deck.ownerUsername === ownerUsername))
-        .sort((a, b) => compare(a.updatedAt, b.updatedAt, 'desc'))
-      return delay(limit ? result.slice(0, limit) : result)
-    },
-  },
+  community: mockStoreServices.community,
   content: {
     getHelpArticle: async slug => delay(helpArticles.find(article => article.slug === slug) ?? null),
     listChangelog: async () => delay(changelog),
@@ -146,36 +114,5 @@ export const mockServices: Services = {
       cities: matchingCities.slice(0, 4),
     }
   },
-  trading: {
-    getCityTradeStats: async (citySlug) => {
-      const inCity = tradeItems.filter(item => item.citySlug === citySlug)
-      return delay({
-        haves: inCity.filter(item => item.listType === 'haves').length,
-        wants: inCity.filter(item => item.listType === 'wants').length,
-      })
-    },
-    listTradeItems: async ({ citySlug, facets, limit, listType, order = 'desc', ownerUsername, q, sort = 'updated', storeSlug }) => {
-      const scoped = tradeItems.filter(item =>
-        item.listType === listType
-        && (!citySlug || item.citySlug === citySlug)
-        && (!storeSlug || item.storeSlugs.includes(storeSlug))
-        && (!ownerUsername || item.ownerUsername === ownerUsername))
-      const filtered = scoped
-        .filter(item => matchesText(item.card.name, q) && matchesFacets(item, tradeItemFacets, facets))
-        .sort((a, b) => {
-          switch (sort) {
-            case 'name': return compare(a.card.name, b.card.name, order)
-            case 'price': return compare(a.price, b.price, order)
-            case 'quantity': return compare(a.quantity, b.quantity, order)
-            case 'updated': return compare(a.updatedAt, b.updatedAt, order)
-          }
-        })
-      return delay({
-        cappedAt: limit !== undefined && filtered.length > limit ? limit : null,
-        facets: buildFacets(scoped, tradeItemFacets),
-        items: limit !== undefined ? filtered.slice(0, limit) : filtered,
-        total: filtered.length,
-      })
-    },
-  },
+  trading: mockStoreServices.trading,
 }

@@ -437,6 +437,15 @@ const badgePool = ['Pioneer', 'Trailblazer', 'Collector', 'Deck Brewer', 'Truste
 const meetingPlaces = ['Store front counter', 'Café next door', 'Friday Night tables', 'Train station hall']
 const tradeCities = cities.filter(city => city.traderCount >= city.unlockThreshold)
 
+const takenUsernames = new Set<string>()
+
+/** Usernames are unique: a clash gets the trader's index appended. */
+function uniqueUsername(candidate: string, index: number) {
+  const username = takenUsernames.has(candidate) ? `${candidate}${index}` : candidate
+  takenUsernames.add(username)
+  return username
+}
+
 export const users: UserProfile[] = Array.from({ length: 48 }, (_, index) => {
   const city = index === 0 ? cities.find(c => c.slug === 'vigevano--italy') ?? random.pick(tradeCities) : random.pick(tradeCities)
   const cityStores = stores.filter(store => store.citySlug === city.slug)
@@ -450,7 +459,7 @@ export const users: UserProfile[] = Array.from({ length: 48 }, (_, index) => {
     meetingPlaces: random.sample(meetingPlaces, random.int(1, 2)),
     memberSince: daysAgo(random.int(20, 700)),
     storeSlugs: random.sample(cityStores, random.int(1, Math.min(3, cityStores.length))).map(store => store.slug),
-    username: `${random.pick(syllables)}${random.pick(syllables)}${random.chance(0.5) ? random.int(1, 99) : ''}`,
+    username: uniqueUsername(`${random.pick(syllables)}${random.pick(syllables)}${random.chance(0.5) ? random.int(1, 99) : ''}`, index),
   }
 })
 

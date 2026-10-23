@@ -4,15 +4,15 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
 Spec: [../spec.md](../spec.md) · ADR: [0001](../../../docs/adr/0001-domain-rules-in-typescript-server-functions.md)
 
 Note: 02 also edits the mock workspace. If both run at once, expect a merge.
 
-- [ ] One store holds every Trader's data, and the seed data loads into it.
-- [ ] Public services and workspace services both read and write that store.
-- [ ] Adding a Have in your Binder shows it on your public profile and on City and Store pages.
-- [ ] The workspace services closure (about 1,700 lines today) is split by concern (Binder, Lists, Trades, chat, profile and so on), with no behaviour change.
-- [ ] The workspace RPC accepts only known method names, and validates arguments before calling them.
-- [ ] Tests cover the store's behaviour, and `pnpm lint`, `pnpm exec tsc --noEmit` and `pnpm test` pass.
+- [x] One store holds every Trader's data, and the seed data loads into it.
+- [x] Public services and workspace services both read and write that store.
+- [x] Adding a Have in your Binder shows it on your public profile and on City and Store pages.
+- [x] The workspace services closure (about 1,700 lines today) is split by concern (Binder, Lists, Trades, chat, profile and so on), with no behaviour change.
+- [x] The workspace RPC accepts only known method names, and validates arguments before calling them.
+- [x] Tests cover the store's behaviour, and `pnpm lint`, `pnpm exec tsc --noEmit` and `pnpm test` pass.
