@@ -5,8 +5,15 @@ import { getServices } from './services'
 import type { Services } from './services'
 
 /**
- * Mutation hook for workspace writes. On success every personal query
- * (`['me', …]`) is refreshed, so pages never show stale counts after an
+ * Queries a workspace write can change: every personal query, and the public
+ * reads of Traders' data (a new Have shows on the profile, City and Store
+ * pages straight away).
+ */
+const traderDataKeys = [['me'], ['trade-items'], ['city-trade-stats'], ['availability'], ['user'], ['decks'], ['deck']]
+
+/**
+ * Mutation hook for workspace writes. On success every query in
+ * `traderDataKeys` is refreshed, so pages never show stale data after an
  * edit; failures surface as a toast with the service's message.
  *
  * ```ts
@@ -21,6 +28,6 @@ export function useWorkspaceMutation<TInput, TResult>(run: (services: Services, 
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : 'Something went wrong')
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['me'] }),
+    onSuccess: () => Promise.all(traderDataKeys.map(queryKey => queryClient.invalidateQueries({ queryKey }))),
   })
 }

@@ -1,23 +1,24 @@
 import type { Facet, Page, TradeItem, TradeItemQuery } from '../types'
 
-import { tradeItems } from './data'
 import { buildFacets, compare, matchesFacets, matchesText, tradeItemFacets } from './queryHelpers'
+import { listedItems, mockStore } from './store'
+import type { MockStore } from './store'
 
 import { capResults, resultCapFor } from '#/domain'
 import type { CapViewer } from '#/domain'
 
 /**
- * Public Haves and Wants for one viewer. Runs on the server (see
- * `tradingRpc.ts`), which passes the session's viewer, so the cap is decided
- * here and the query's `limit` only pages within it.
+ * Public Haves and Wants for one viewer, read from the shared store. Runs on
+ * the server (see `rpc.ts`), which passes the session's viewer, so the cap is
+ * decided here and the query's `limit` only pages within it.
  */
 export async function listTradeItemsFor(
   viewer: CapViewer,
   { citySlug, facets, limit, listType, order = 'desc', ownerUsername, q, sort = 'updated', storeSlug }: TradeItemQuery,
+  store: MockStore = mockStore,
 ): Promise<Page<TradeItem> & { facets: Facet[] }> {
-  const scoped = tradeItems.filter(item =>
-    item.listType === listType
-    && (!citySlug || item.citySlug === citySlug)
+  const scoped = listedItems(store, listType).filter(item =>
+    (!citySlug || item.citySlug === citySlug)
     && (!storeSlug || item.storeSlugs.includes(storeSlug))
     && (!ownerUsername || item.ownerUsername === ownerUsername))
   const filtered = scoped
