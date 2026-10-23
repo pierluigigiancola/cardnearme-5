@@ -37,7 +37,7 @@ describe('capResults', () => {
     expect(page.cappedAt).toBe(30)
   })
 
-  it('treats a limit below the cap as paging, not capping', () => {
+  it('treats a limit below the cap as a smaller page, not capping', () => {
     const page = capResults(numbers(45), {
       cap: 30,
       limit: 8,

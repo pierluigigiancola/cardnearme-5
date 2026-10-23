@@ -303,8 +303,9 @@ export interface TradeItemQuery {
   order?: SortOrder
   facets?: FacetSelection
   /**
-   * Paging only: how many results this page should hold. It never raises the
-   * viewer's cap. The server works the cap out from the session (anonymous
+   * The requested page size: how many results (from the first) to return.
+   * There is no offset or cursor. It is clamped to the viewer's cap, so it
+   * never raises it. The server works the cap out from the session (anonymous
    * visitors get `ANONYMOUS_RESULT_CAP`), clamps this limit to it and reports
    * `cappedAt` when the cap held results back. Omit it to get every result the
    * viewer may see.

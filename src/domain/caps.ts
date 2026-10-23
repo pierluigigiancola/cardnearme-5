@@ -23,10 +23,11 @@ export function canJoinAnotherStore(joinedCount: number) {
 }
 
 /**
- * Applies the viewer's result cap and the client's paging `limit` to a full,
- * ordered result list. The limit is clamped to the cap, so asking for more
+ * Applies the viewer's result cap and the client's requested page size
+ * (`limit`, from the first result; there is no offset) to a full, ordered
+ * result list. The limit is clamped to the cap, so asking for more
  * can't raise it. `cappedAt` is the cap when it, not the limit, held results
- * back; a limit below the cap is paging and reports `null`.
+ * back; a limit below the cap is only a smaller page and reports `null`.
  */
 export function capResults<T>(items: readonly T[], { cap, limit }: {
   cap: number | null
