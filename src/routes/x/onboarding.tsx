@@ -5,7 +5,6 @@ import { useState } from 'react'
 
 import { sanitizeRedirect } from '#/auth/AuthForm'
 import { useRefreshViewer } from '#/auth/useViewer'
-import { demoCompleteOnboarding } from '#/auth/viewer'
 import { Logo } from '#/components/brand/Logo'
 import { ErrorState } from '#/components/layout/ErrorState'
 import { StoreMap } from '#/components/places/Places'
@@ -18,7 +17,6 @@ import { cn } from '#/lib/utils'
 import { useWorkspaceMutation } from '#/services/mutations'
 import { citiesQuery, detectedCityQuery, profileQuery, storesQuery } from '#/services/queries'
 import type { OnboardingInput } from '#/services/types'
-import { getSupabaseBrowserClient } from '#/supabase/supabase.browser'
 
 export const Route = createFileRoute('/x/onboarding')({
   validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({ redirect: sanitizeRedirect(search.redirect) }),
@@ -66,9 +64,7 @@ function OnboardingPage() {
         showStoresOnProfile: showStores,
         storeSlugs,
       })
-      // The `/x` guard reads the flag from the session, so mark it there too.
-      if (user.demo) await demoCompleteOnboarding()
-      else await getSupabaseBrowserClient().auth.updateUser({ data: { onboarded: true } })
+      // The `/x` guard reads `profile.onboardedAt`, which the mutation just set and refetched.
       await refresh()
       await router.navigate({ href: redirect ?? '/x/binder' })
     }

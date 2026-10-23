@@ -36,7 +36,7 @@ export const Route = createFileRoute('/stores/$store')({
         storeSlug: store.slug,
       })),
       // Signed-in traders see their matches at this store first.
-      viewer.kind === 'user' && viewer.onboarded
+      viewer.kind === 'user'
         ? Promise.all([
           queryClient.ensureQueryData(matchesQuery(viewer.id, { storeSlug: store.slug })),
           queryClient.ensureQueryData(storesQuery()),
@@ -131,7 +131,7 @@ function StorePage() {
           {unlocked
             ? (
               <>
-                {viewer.kind === 'user' && viewer.onboarded && (
+                {viewer.kind === 'user' && (
                   <StoreMatches
                     joined={joined}
                     store={store}
