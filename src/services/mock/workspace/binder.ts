@@ -4,14 +4,14 @@ import { printings, games } from '../data'
 import { matchCards } from '../matchCards'
 import { baseType, buildFacets, capitalise, compare, labelFrom, matchesFacets, matchesText } from '../queryHelpers'
 import type { FacetDefinition } from '../queryHelpers'
-import { printingsById } from '../store'
+import { printingsById, printingsOf } from '../store'
 import type { ItemRecord } from '../store'
 
 import { cardKey, clampQuantity, now, requirePrinting } from './context'
 import type { TraderContext } from './context'
-import { addRecords, checkWantFilters, inSection, listTypeOf, markForTrade, myReserved, printingOf, requireItem, requireList, resolveList, toBinderItems, touchList } from './records'
+import { addRecords, inSection, listTypeOf, markForTrade, myReserved, printingOf, requireItem, requireList, resolveList, toBinderItems, touchList } from './records'
 
-import { checkOwnedQuantity } from '#/domain'
+import { checkOwnedQuantity, checkWantFilters } from '#/domain'
 import { conditionLabels, isCondition, isLanguage, languageLabels } from '#/lib/cardOptions'
 
 /** Copies a record counts for in a Binder tab: owned, for trade, or wanted. */
@@ -295,7 +295,7 @@ export function binderService(ctx: TraderContext): BinderService {
           throw new Error('A Want is narrowed by its filters')
         }
         if (patch.filters !== undefined) {
-          record.filters = checkWantFilters(record.cardId, {
+          record.filters = checkWantFilters(printingsOf(record.cardId), {
             ...record.filters,
             ...patch.filters,
           })

@@ -1,4 +1,6 @@
-import type { CardId, Condition, Finish, Language, WantFilters } from '#/services/types'
+import { conditions, isCondition, isFinish, isLanguage } from './cardAttributes'
+
+import type { CardId, Condition, Finish, Language, Printing, WantFilters } from '#/services/types'
 
 /**
  * The Want-fulfilment rule (ADR 0002). A Want targets a Card, not a Printing.
@@ -25,6 +27,34 @@ export function wantFilters(filters: Partial<WantFilters> = {}): WantFilters {
   }
 }
 
+/** What `checkWantFilters` reads from each Printing of the Want's Card. */
+export type WantPrinting = Pick<Printing, 'name' | 'setCode' | 'finishes'>
+
+/**
+ * Checks a Want's filters against its Card's Printings and fills the unset
+ * ones with "any". A Set filter must be a Set the Card was printed in, and a
+ * finish filter one it was printed with there. The Set is returned as the
+ * catalogue spells it.
+ */
+export function checkWantFilters(cardPrintings: readonly WantPrinting[], filters: Partial<WantFilters> | undefined): WantFilters {
+  const checked = wantFilters(filters)
+  if (cardPrintings.length === 0) throw new Error('Card not found')
+  if (checked.minCondition !== null && !isCondition(checked.minCondition)) throw new Error('Invalid condition')
+  if (checked.language !== null && !isLanguage(checked.language)) throw new Error('Invalid language')
+  if (checked.finish !== null && !isFinish(checked.finish)) throw new Error('Invalid finish')
+  const { finish, setCode } = checked
+  const inSet = cardPrintings.filter(printing => setCode === null || printing.setCode.toLowerCase() === setCode.toLowerCase())
+  const name = cardPrintings[0].name
+  if (inSet.length === 0) throw new Error(`${name} was never printed in ${setCode}`)
+  if (finish !== null && !inSet.some(printing => printing.finishes.includes(finish))) {
+    throw new Error(`${name} has no ${finish} printing${setCode ? ` in ${setCode}` : ''}`)
+  }
+  return {
+    ...checked,
+    setCode: setCode === null ? null : inSet[0].setCode,
+  }
+}
+
 /** True when the Want sets no filter. */
 export function isAnyPrinting(filters: WantFilters) {
   return Object.values(filters).every(value => value === null)
@@ -45,12 +75,9 @@ export interface ReceivedCopy {
   condition: Condition
 }
 
-/** Conditions from best to worst. */
-const conditionOrder: Condition[] = ['M', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO']
-
 /** True when `condition` is at least as good as `minimum` (M is best, PO worst). */
 export function meetsCondition(condition: Condition, minimum: Condition) {
-  return conditionOrder.indexOf(condition) <= conditionOrder.indexOf(minimum)
+  return conditions.indexOf(condition) <= conditions.indexOf(minimum)
 }
 
 /** True when a received copy fulfils the Want: same Card, and every filter the Want sets is met. */
