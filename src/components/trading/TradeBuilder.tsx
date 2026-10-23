@@ -24,7 +24,7 @@ import { Label } from '#/components/ui/label'
 import { Textarea } from '#/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { QuantityStepper } from '#/components/workspace/QuantityStepper'
-import { freeQuantity, tradeFromPerspective, tradeValue } from '#/domain'
+import { freeQuantity, isHave, tradeFromPerspective, tradeValue } from '#/domain'
 import { formatPrice } from '#/lib/format'
 import { usePricingSource } from '#/lib/pricing'
 import { cn } from '#/lib/utils'
@@ -296,7 +296,7 @@ function TradeBuilderForm({ context, onClose, request }: {
         ...item,
         matched: wanted.has(item.id),
         note: [
-          item.forTradeQuantity > 0 ? `${item.forTradeQuantity} for trade` : 'Collection',
+          isHave(item) ? `${item.forTradeQuantity} for trade` : 'Collection',
           item.reservedQuantity > 0 ? `${item.reservedQuantity} reserved` : null,
         ].filter(Boolean).join(' · '),
         quantity: freeQuantity(item),

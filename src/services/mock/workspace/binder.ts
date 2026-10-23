@@ -11,7 +11,7 @@ import { cardKey, checkQuantity, now, requirePrinting } from './context'
 import type { TraderContext } from './context'
 import { addRecords, inSection, listTypeOf, markForTrade, myReserved, printingOf, requireItem, requirePrintingOf, requireList, resolveList, toBinderItems, touchList } from './records'
 
-import { checkOwnedQuantity, checkWantFilters } from '#/domain'
+import { checkOwnedQuantity, checkWantFilters, isHave } from '#/domain'
 import { conditionLabels, isCondition, isLanguage, languageLabels } from '#/lib/cardOptions'
 
 /** Copies a record counts for in a Binder tab: owned, for trade, or wanted. */
@@ -75,7 +75,7 @@ const collectionFacets: FacetDefinition<BinderItem>[] = [
     key: 'for-trade',
     label: 'For trade',
     labelFor: value => (value === 'for-trade' ? 'For trade' : 'Not for trade'),
-    values: item => [item.kind === 'collection' && item.forTradeQuantity > 0 ? 'for-trade' : 'not-for-trade'],
+    values: item => [item.kind === 'collection' && isHave(item) ? 'for-trade' : 'not-for-trade'],
   },
   ...binderFacets,
   {

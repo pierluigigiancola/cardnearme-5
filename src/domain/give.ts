@@ -1,4 +1,5 @@
 import type { CollectionQuantities } from './collection'
+import { isHave } from './collection'
 import { freeQuantity } from './reservation'
 
 /**
@@ -27,7 +28,7 @@ export function giveLineQuantity(entry: CollectionQuantities, picker: GivePicker
   if (!Number.isInteger(requested) || requested < 1) throw new Error('Quantity must be at least 1')
   const givable = givableQuantity(entry, picker)
   if (givable < 1) {
-    if (entry.quantity > 0 && freeQuantity(entry) === 0 && (picker === 'giver' || entry.forTradeQuantity > 0)) throw new Error('Every copy is reserved by other trades')
+    if (entry.quantity > 0 && freeQuantity(entry) === 0 && (picker === 'giver' || isHave(entry))) throw new Error('Every copy is reserved by other trades')
     throw new Error(picker === 'partner' ? 'This card is not for trade' : 'You no longer own this card')
   }
   return Math.min(requested, givable)
