@@ -4,12 +4,12 @@
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** done
 
 Spec: [../spec.md](../spec.md), decision 3
 
-- [ ] `completeOnboarding` is the only place onboarding is recorded, and it sets `profile.onboardedAt`. Its doc comment says so.
-- [ ] The `/x` guard reads `profile.onboardedAt` on the server.
-- [ ] The `user_metadata.onboarded` write in the onboarding route and the reads in the viewer helper are removed.
-- [ ] The demo sign-in path follows the same rule.
-- [ ] Tests cover the guard for onboarded and not-onboarded Traders, and `pnpm lint`, `pnpm exec tsc --noEmit` and `pnpm test` pass.
+- [x] `completeOnboarding` is the only place onboarding is recorded, and it sets `profile.onboardedAt`. Its doc comment says so.
+- [x] The `/x` guard reads `profile.onboardedAt` on the server.
+- [x] The `user_metadata.onboarded` write in the onboarding route and the reads in the viewer helper are removed.
+- [x] The demo sign-in path follows the same rule.
+- [x] Tests cover the guard for onboarded and not-onboarded Traders, and `pnpm lint`, `pnpm exec tsc --noEmit` and `pnpm test` pass.
