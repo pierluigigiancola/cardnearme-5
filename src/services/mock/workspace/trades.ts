@@ -215,6 +215,8 @@ export function tradesService(ctx: TraderContext): TradesService {
         ...draft,
         partner,
       })
+      // A counter-offer proposes new terms, so it passes the same eligibility check as `propose`.
+      checkCanPropose(cityOf(trader), cityOf(requireTrader(store, partner)))
       const countering = trade.awaiting === me
       Object.assign(trade, {
         ...terms,

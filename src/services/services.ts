@@ -226,7 +226,12 @@ export interface TradesService {
    * be locked. Traders in different unlocked Cities may trade.
    */
   propose: (draft: TradeDraft) => Promise<Trade>
-  /** Counter-offer or edit: replaces the terms and hands the turn to the other side. */
+  /**
+   * Counter-offer or edit: replaces the terms and hands the turn to the other
+   * side. Its terms are proposed afresh, so the same eligibility rule as
+   * `propose` applies. (Accepting is not checked: spec decision 5 locks only
+   * proposing, and ADR 0003 adds only the reservation check.)
+   */
   revise: (tradeId: string, draft: TradeDraft) => Promise<Trade>
   /** Accepts the proposal awaiting the viewer and reserves both sides' cards; refused when either side lacks unreserved copies. */
   accept: (tradeId: string) => Promise<Trade>

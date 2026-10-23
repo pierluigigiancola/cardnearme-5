@@ -189,6 +189,19 @@ describe('Trade eligibility', () => {
     expect(trade.recipient).toBe(roman.trader.id)
   })
 
+  it('refuses a counter-offer once a Trader\'s City is locked', async () => {
+    const store = createStore()
+    const workspace = workspaceFor(me, store)
+    const printing = unusedPrinting(store)
+    const roman = seededTraderIn(store, 'rome--italy')
+    const [added] = await roman.workspace.binder.addItems([haveInput(printing.id)])
+    const trade = await workspace.trades.propose(draftFor(roman.trader.id, added.id, 1))
+
+    await workspace.profile.update({ citySlug: VIGEVANO })
+
+    await expect(workspace.trades.revise(trade.id, draftFor(roman.trader.id, added.id, 2))).rejects.toThrow('Trading in Vigevano unlocks')
+  })
+
   it('marks Matches in an unlocked City as open to proposals', async () => {
     const matches = await workspaceFor(me, createStore()).trades.listMatches()
     expect(matches.every(match => match.eligibility.canPropose)).toBe(true)
